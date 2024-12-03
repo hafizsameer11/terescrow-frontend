@@ -415,9 +415,37 @@ const airbnb = require('../assets/icons/airbnb.png') as string;
 const amazon = require('../assets/icons/amazon.png') as string;
 const upOutlined = require('../assets/icons/upoutline.png') as string;
 const attachFile = require('../assets/icons/attach-file.png') as string;
+const bitCoin = require('../assets/icons/bitcoin.png') as string;
+const gift = require('../assets/icons/gift.png') as string;
+const btc = require('../assets/icons/btc.png') as string;
+const usdt = require('../assets/icons/usdt.png') as string;
+const eth = require('../assets/icons/eth.png') as string;
+const solana = require('../assets/icons/solana.png') as string;
+const shibaInu = require('../assets/icons/shiba-inu.png') as string;
+const dogeCoin = require('../assets/icons/doge-coin.png') as string;
+const dollarCoin = require('../assets/icons/dollar-coin.png') as string;
+const bnb = require('../assets/icons/bnb.png') as string;
+const tonCoin = require('../assets/icons/ton-coin.png') as string;
+const tron = require('../assets/icons/tron.png') as string;
+const tickMarked = require('../assets/icons/tick-marked.png') as string;
+
+
 // const eyeFill = require('../assets/icons/eyefill.png') as string;
 
 const icons = {
+  tickMarked,
+  btc,
+  usdt,
+  eth,
+  solana,
+  shibaInu,
+  dogeCoin,
+  dollarCoin,
+  bnb,
+  tonCoin,
+  tron,
+  bitCoin,
+  gift,
   addFileOutline,
   addFile,
   attachFile,

@@ -23,9 +23,41 @@ const mxlogo = require('../assets/images/mxlogo.png');
 const eyefill = require('../assets/images/eyefill.png');
 const infoCircleFilled = require('../assets/images/infocirclefilled.png');
 const coverImage = require('../assets/images/coverImg.jpg');
+const buySellCard = require('../assets/images/buysell.png');
+const cryptoCard = require('../assets/images/crypto.png');
+const amazonCard = require('../assets/images/amazon-card.png');
+const americanExpressCard = require('../assets/images/american-express-card.png')
+const ebayCard = require('../assets/images/ebay-card.png')
+const itunesCard = require('../assets/images/itunes-card.png');
+const nikeCard = require('../assets/images/nike-card.png')
+const footLockerCard = require('../assets/images/foot-locker-card.png')
+const googlePlayCard = require('../assets/images/google-play-card.png')
+const visaCard = require('../assets/images/visa-card.png')
+const connectingAgentBg = require('../assets/images/connecting-agent-bg.png')
+const maskGroup = require('../assets/images/mask-group.png')
+const tercescrow = require('../assets/images/tercescrow.png')
+const amazonSplashCard = require('../assets/images/splash-amazon.png')
+const splashGradientCard = require('../assets/images/splash-gradient-card.png')
+const steamCard = require('../assets/images/steam-card.png')
+const splashCoins = require('../assets/images/splash-coins.png')
 
 const images = {
+  maskGroup,
+  connectingAgentBg,
+  splashGradientCard,
+  splashCoins,
+  steamCard,
+  amazonSplashCard,
+  amazonCard,
+  tercescrow,
+  americanExpressCard,
+  footLockerCard,
+  googlePlayCard,
+  visaCard,
+  ebayCard,
   coverImage,
+  itunesCard,
+  nikeCard,
   mxlogo,
   logo,
   eyefill,
@@ -50,6 +82,8 @@ const images = {
   user11,
   elipseCard,
   rectangleCard,
+  buySellCard,
+  cryptoCard,
 };
 
 export default images;
