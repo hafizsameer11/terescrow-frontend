@@ -1,10 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, FlatList } from 'react-native';
 import React from 'react';
 import { useTheme } from '@/contexts/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants';
 import ChatCategories from '@/components/ChatCategories';
-import { FlatList } from 'react-native-reanimated/lib/typescript/Animated';
 import ChatItem from '@/components/ChatItem';
 import {
   DUMMY_DATA_ALL,
@@ -46,23 +45,21 @@ const chat = () => {
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
         />
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={getFilteredData()}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <ChatItem
-                icon={item.icon}
-                heading={item.heading}
-                text={item.text}
-                date={item.date}
-                price={item.price}
-                productId={item.productId}
-              />
-            )}
-            style={styles.dataList}
-          />
-        </View>
+        <FlatList
+          data={getFilteredData()}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ChatItem
+              icon={item.icon}
+              heading={item.heading}
+              text={item.text}
+              date={item.date}
+              price={item.price}
+              productId={item.productId}
+            />
+          )}
+          style={styles.dataList}
+        />
       </View>
     </SafeAreaView>
   );

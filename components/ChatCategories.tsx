@@ -22,43 +22,38 @@ const ChatCategories = (props: PropTypes) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      {/* Categories */}
-      <View style={styles.container}>
-        {categories.map((category) => (
-          <Pressable
-            key={category.id}
-            onPress={() => handleCategoryPress(category.id)}
+    <View style={styles.container}>
+      {categories.map((category) => (
+        <Pressable
+          key={category.id}
+          onPress={() => handleCategoryPress(category.id)}
+          style={[
+            styles.categoryTypeContainer,
+            {
+              backgroundColor:
+                props.selectedCategory === category.id
+                  ? category.bg
+                  : dark
+                  ? 'transparent'
+                  : COLORS.white,
+            },
+          ]}
+        >
+          <Text
             style={[
-              styles.categoryTypeContainer,
+              styles.categoryText,
               {
-                backgroundColor:
+                color:
                   props.selectedCategory === category.id
-                    ? category.bg
-                    : dark
-                    ? 'transparent'
-                    : COLORS.white,
+                    ? 'black'
+                    : COLORS.grayscale400,
               },
             ]}
           >
-            <Text
-              style={[
-                styles.categoryText,
-                {
-                  color:
-                    props.selectedCategory === category.id
-                      ? 'black'
-                      : COLORS.grayscale400,
-                },
-              ]}
-            >
-              {category.name}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Data */}
+            {category.name}
+          </Text>
+        </Pressable>
+      ))}
     </View>
   );
 };

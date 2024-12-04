@@ -256,7 +256,13 @@ const SignUp = () => {
                 <View style={{ marginTop: 25, width: '100%' }}>
                   <Button
                     title="Create an Account"
-                    onPress={handleSubmit as () => void}
+                    // onPress={handleSubmit as () => void}
+                    onPress={() =>
+                      push({
+                        pathname: '/otpverification',
+                        params: { context: 'signup' },
+                      })
+                    }
                   />
                 </View>
               </View>

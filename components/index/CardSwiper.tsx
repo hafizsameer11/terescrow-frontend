@@ -1,11 +1,11 @@
-import { View, Dimensions } from "react-native";
-import { StyleSheet } from "react-native";
-import { Image } from "expo-image";
-import images from "@/constants/images";
-import Swiper from "react-native-swiper";
-import { COLORS } from "@/constants";
+import { View, Dimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import images from '@/constants/images';
+import Swiper from 'react-native-swiper';
+import { COLORS } from '@/constants';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const SwipCard = () => {
   return (
@@ -37,21 +37,22 @@ const SwipCard = () => {
 
 const styles = StyleSheet.create({
   wrapper: {
+    height: 200,
   },
   slide: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginHorizontal: 16,
   },
   text: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 30,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   image: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   pagination: {
     bottom: screenWidth * -0.0525,
@@ -60,7 +61,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#70D4A3",
+    backgroundColor: '#70D4A3',
     marginHorizontal: 5,
   },
   activeDot: {

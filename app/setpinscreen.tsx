@@ -15,6 +15,7 @@ import { validationPinChange } from '@/utils/validation';
 import FONTS from '@/constants/fonts';
 import { COLORS } from '@/constants';
 import SuccessModal from './successmodal';
+import { showTopToast } from '@/utils/helpers';
 
 const SetPinScreen: React.FC = () => {
   const searchParams = useSearchParams();
@@ -27,24 +28,10 @@ const SetPinScreen: React.FC = () => {
 
   const handlePress = (digit: string) => {
     console.log('reached');
-    if (pin.length <= 4) {
+    if (pin.length < 4) {
       setPin([...pin, digit]);
       return;
     }
-    router.push('/(tabs)');
-  };
-
-  const showToast = () => {
-    Toast.show({
-      type: 'error',
-      text1: 'Error',
-      text2:
-        'Incorrect login cradientals. Please try again or reset your password.',
-      position: 'top',
-      visibilityTime: 3000,
-      autoHide: true,
-      topOffset: 50,
-    });
   };
 
   // Handle backspace
@@ -54,29 +41,33 @@ const SetPinScreen: React.FC = () => {
 
   const validatePin = () => {
     const pinValue = pin.join('');
-
+    router.push('/(tabs)');
     if (title === 'Confirm your Pin') {
       const enteredPin = searchParams.get('enteredPin');
 
-      if (pinValue !== enteredPin) {
-        showToast();
-        console.log('Pins do not match!');
-        setPin([]);
-        return;
-      } else {
-        Toast.show({
-          type: 'success',
-          text1: 'Success',
-          text2:
-            'Pin confirmed successfully. You can now proceed to your dashboard.',
-          position: 'top',
-          visibilityTime: 3000,
-          autoHide: true,
-          topOffset: 50,
-        });
-        router.back();
-        console.log('Pins match successfully!');
-      }
+      // if (pinValue !== enteredPin) {
+      //   showTopToast({
+      //     type: 'error',
+      //     text1: 'Error',
+      //     text2: 'Pins do not match!',
+      //   })
+      //   console.log('Pins do not match!');
+      //   setPin([]);
+      //   return;
+      // } else {
+      //   Toast.show({
+      //     type: 'success',
+      //     text1: 'Success',
+      //     text2:
+      //       'Pin confirmed successfully. You can now proceed to your dashboard.',
+      //     position: 'top',
+      //     visibilityTime: 3000,
+      //     autoHide: true,
+      //     topOffset: 50,
+      //   });
+      //   router.back();
+      //   console.log('Pins match successfully!');
+      // }
 
       if (context === 'signup') {
         push({
@@ -117,7 +108,7 @@ const SetPinScreen: React.FC = () => {
         }
       })
       .catch((err: { message: string }) => {
-        showToast();
+        showTopToast({ type: 'error', text1: 'Error', text2: err.message });
         setPin([]);
       });
   };

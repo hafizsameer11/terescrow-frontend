@@ -1,7 +1,7 @@
-import { images } from "@/constants";
-import { View, FlatList } from "react-native";
-import CardItem from "./CardItem";
-import { useRouter } from "expo-router";
+import { images } from '@/constants';
+import { View, FlatList } from 'react-native';
+import CardItem from './CardItem';
+import { useRouter } from 'expo-router';
 
 interface CardData {
   id: string;
@@ -14,64 +14,62 @@ const CardList: React.FC = () => {
 
   const data: CardData[] = [
     {
-      id: "1",
+      id: '1',
       card: images.amazonCard,
-      text: "Amazon",
+      text: 'Amazon',
     },
     {
-      id: "2",
+      id: '2',
       card: images.americanExpressCard,
-      text: "American Express",
+      text: 'American Express',
     },
     {
-      id: "3",
+      id: '3',
       card: images.visaCard,
-      text: "Visa Card",
+      text: 'Visa Card',
     },
     {
-      id: "4",
+      id: '4',
       card: images.ebayCard,
-      text: "Ebay",
+      text: 'Ebay',
     },
     {
-      id: "5",
+      id: '5',
       card: images.footLockerCard,
-      text: "Footlocker",
+      text: 'Footlocker',
     },
     {
-      id: "6",
+      id: '6',
       card: images.googlePlayCard,
-      text: "Google Play",
+      text: 'Google Play',
     },
     {
-      id: "7",
+      id: '7',
       card: images.itunesCard,
-      text: "iTunes",
+      text: 'iTunes',
     },
     {
-      id: "8",
+      id: '8',
       card: images.nikeCard,
-      text: "Nike",
+      text: 'Nike',
     },
   ];
 
   return (
-    <View>
-      <FlatList
-        data={data}
-        renderItem={({ item }) => (
-          <CardItem
-            card={item.card}
-            text={item.text}
-            onSend={() => router.push(`/cards/${item.id}`)} // Navigate to the dynamic route with `id`
-          />
-        )}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={{ marginHorizontal: 16 }}
-        contentContainerStyle={{ padding: 0 }}
-      />
-    </View>
+    <FlatList
+      data={data}
+      renderItem={({ item }) => (
+        <CardItem
+          card={item.card}
+          text={item.text}
+          onSend={() => router.push(`/cards/${item.id}`)} // Navigate to the dynamic route with `id`
+        />
+      )}
+      keyExtractor={(item) => item.id}
+      numColumns={2}
+      columnWrapperStyle={{ marginHorizontal: 16 }}
+      contentContainerStyle={{ padding: 0 }}
+    />
   );
 };
 

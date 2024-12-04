@@ -3,7 +3,7 @@ import React from 'react';
 import { useTheme } from '@/contexts/themeContext';
 import { COLORS, icons, SIZES } from '@/constants';
 import { Image } from 'expo-image';
-import SelectModal from '@/app/SelectModal';
+import SelectModal from '@/components/SelectModal';
 
 interface SelectProps {
   error: string | undefined;

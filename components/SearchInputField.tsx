@@ -1,15 +1,22 @@
-import { StyleSheet, View, TextInput, Text } from "react-native";
-import { Image } from "expo-image";
-import { COLORS, icons } from "@/constants";
+import { StyleSheet, View, TextInput, Text } from 'react-native';
+import { Image } from 'expo-image';
+import { COLORS, icons } from '@/constants';
+import React from 'react';
 
-const SearchInputField = () => {
+interface SearchProps {
+  searchTerm: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const SearchInputField = ({ searchTerm, setSearchTerm }: SearchProps) => {
   return (
     <View style={styles.container}>
-        <Image source={icons.search} style={styles.searchIcon} />
+      <Image source={icons.search} style={styles.searchIcon} />
       <TextInput
         style={styles.input}
-        placeholderTextColor={COLORS.grayscale400} 
-        
+        placeholderTextColor={COLORS.grayscale400}
+        onChangeText={(value) => setSearchTerm(value)}
+        value={searchTerm}
         placeholder="Search..."
       />
     </View>
@@ -21,29 +28,29 @@ export default SearchInputField;
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    flexDirection: "column",
-    alignItems: "center",
+    flexDirection: 'column',
+    alignItems: 'center',
   },
   input: {
-    width: "100%",
+    width: '100%',
     paddingLeft: 45,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     marginBottom: 12,
   },
   resultText: {
     marginTop: 8,
     fontSize: 16,
-    color: "#333",
+    color: '#333',
   },
   searchIcon: {
-    position: "absolute",
+    position: 'absolute',
     top: 28,
     left: 30,
     width: 20,
     height: 20,
-    tintColor: "#ccc",
+    tintColor: '#ccc',
     marginBottom: 4,
   },
 });
