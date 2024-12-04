@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -12,40 +12,37 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Appearance,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/themeContext';
 
 interface CustomModalProps {
   isVisible: boolean;
-  onSelect: (selection: string) => void;
-  onClose: () => void;
+  setIsVisible: (value: boolean) => void;
+  onSelect: (value: string) => void;
+  title: string;
   prefilledValue?: string;
-  onEditPress: (fieldType: "country" | "gender") => void;
-  onConfirm?: (value: string) => void;
-  setFieldValue: Function;
-  type: "country" | "gender";
+  options: { label: string; value: string }[];
 }
 
-const { height: screenHeight } = Dimensions.get("window");
+const { height: screenHeight } = Dimensions.get('window');
 
-const CustomModal: React.FC<CustomModalProps> = ({
+const SelectModal: React.FC<CustomModalProps> = ({
   isVisible,
   onSelect,
-  onClose,
+  setIsVisible,
   prefilledValue,
-  type,
-  onEditPress,
+  options,
+  title,
 }) => {
-  const options =
-    type === "country"
-      ? ["Nigeria", "Ghana", "Cameroon", "South Africa", "Kenya"]
-      : ["Male", "Female", "Other"];
+  const { dark } = useTheme();
+  // const options =
+  //   type === 'country'
+  //     ? ['Nigeria', 'Ghana', 'Cameroon', 'South Africa', 'Kenya']
+  //     : ['Male', 'Female', 'Other'];
 
   const [modalHeight] = useState(new Animated.Value(0)); // Initial modal height set to 0
   const translateY = useRef(new Animated.Value(0)).current;
-
-  // Determine if the theme is dark or light
-  const theme = Appearance.getColorScheme(); // 'light' or 'dark'
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -54,7 +51,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
     },
     onPanResponderRelease: (_, gestureState) => {
       if (gestureState.dy > 100) {
-        onClose();
+        setIsVisible(false);
       } else {
         Animated.spring(translateY, {
           toValue: 0,
@@ -98,33 +95,34 @@ const CustomModal: React.FC<CustomModalProps> = ({
   }, [isVisible]);
 
   // Render each option
-  const renderOption = ({ item }: { item: string }) => (
-    <TouchableOpacity style={styles.option} onPress={() => onSelect(item)}>
-      <Text
-        style={[
-          styles.optionText,
-          { color: theme === "dark" ? "#fff" : "#000" },
-        ]}
-      >
-        {item}
-      </Text>
-      <View style={styles.optionRight}>
-        {item === prefilledValue && <View style={styles.redDot} />}
-        <Ionicons
-          name="chevron-forward"
-          size={20}
-          color={theme === "dark" ? "#fff" : "#C4C4C4"}
-        />
-      </View>
-    </TouchableOpacity>
-  );
+  const renderOption = ({ label, value }: { label: string; value: string }) => {
+    const handleSelectValue = () => {
+      setIsVisible(false);
+      onSelect(value);
+    };
+    return (
+      <TouchableOpacity style={styles.option} onPress={handleSelectValue}>
+        <Text style={[styles.optionText, { color: dark ? '#fff' : '#000' }]}>
+          {label}
+        </Text>
+        <View style={styles.optionRight}>
+          {label === prefilledValue && <View style={styles.redDot} />}
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={dark ? '#fff' : '#C4C4C4'}
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal visible={isVisible} animationType="fade" transparent>
       <TouchableWithoutFeedback
         onPress={() => {
           Keyboard.dismiss(); // Dismiss the keyboard if it's open
-          onClose(); // Close the modal when the backdrop is tapped
+          setIsVisible(false); // Close the modal when the backdrop is tapped
         }}
       >
         <View style={styles.modalOverlay}>
@@ -135,32 +133,27 @@ const CustomModal: React.FC<CustomModalProps> = ({
               {
                 height: modalHeight, // Animate height
                 transform: [{ translateY }], // Animate position
-                backgroundColor: theme === "dark" ? "#333" : "#fff",
+                backgroundColor: dark ? '#333' : '#fff',
               },
             ]}
           >
             <View
               style={[
                 styles.dragHandle,
-                { backgroundColor: theme === "dark" ? "#555" : "#E0E0E0" },
+                { backgroundColor: dark ? '#555' : '#E0E0E0' },
               ]}
             />
 
             {/* Title */}
-            <Text
-              style={[
-                styles.title,
-                { color: theme === "dark" ? "#fff" : "#000" },
-              ]}
-            >
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+            <Text style={[styles.title, { color: dark ? '#fff' : '#000' }]}>
+              {title}
             </Text>
 
             {/* Options List */}
             <FlatList
               data={options}
-              renderItem={renderOption}
-              keyExtractor={(item) => item}
+              renderItem={({ item }) => renderOption(item)}
+              keyExtractor={(item) => item.value}
             />
           </Animated.View>
         </View>
@@ -172,8 +165,8 @@ const CustomModal: React.FC<CustomModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "flex-end",
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-end',
   },
   modalContainer: {
     borderTopLeftRadius: 12,
@@ -184,39 +177,39 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 2.5,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 8,
   },
   title: {
     fontSize: 14,
-    textAlign: "center",
-    fontWeight: "500",
+    textAlign: 'center',
+    fontWeight: '500',
     letterSpacing: 1.5,
     marginBottom: 16,
   },
   option: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: '#F0F0F0',
   },
   optionText: {
     fontSize: 16,
   },
   optionRight: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   redDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "red",
+    backgroundColor: 'red',
     marginRight: 8,
   },
 });
 
-export default CustomModal;
+export default SelectModal;

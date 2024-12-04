@@ -1,42 +1,24 @@
-import React, { useState } from "react";
-import { COLORS } from "@/constants";
-import { Pressable, StyleSheet, Text, View, FlatList } from "react-native";
-import ChatDataRendering from "./ChatDataRendering";
-import {
-  DUMMY_DATA_ALL,
-  DUMMY_DATA_COMP,
-  DUMMY_DATA_DECLINE,
-  DUMMY_DATA_PROCESS,
-} from "../utils/DummyData";
-import { useTheme } from "@/contexts/themeContext";
+import React, { useState } from 'react';
+import { COLORS } from '@/constants';
+import { Pressable, StyleSheet, Text, View, FlatList } from 'react-native';
+import { useTheme } from '@/contexts/themeContext';
 
-const ChatCategories = () => {
+const categories = [
+  { id: 'all', name: 'All', bg: COLORS.green },
+  { id: 'completed', name: 'Completed', bg: COLORS.green },
+  { id: 'processing', name: 'Processing', bg: COLORS.warning },
+  { id: 'declined', name: 'Declined', bg: COLORS.red },
+];
+
+interface PropTypes {
+  selectedCategory: string;
+  setSelectedCategory: React.Dispatch<React.SetStateAction<string>>;
+}
+const ChatCategories = (props: PropTypes) => {
   const { dark } = useTheme();
 
-  const categories = [
-    { id: "all", name: "All", bg: COLORS.green },
-    { id: "completed", name: "Completed", bg: COLORS.green },
-    { id: "processing", name: "Processing", bg: COLORS.warning },
-    { id: "declined", name: "Declined", bg: COLORS.red },
-  ];
-
-  const [selectedCategory, setSelectedCategory] = useState("all");
-
   const handleCategoryPress = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-  };
-
-  const getFilteredData = () => {
-    switch (selectedCategory) {
-      case "completed":
-        return DUMMY_DATA_COMP;
-      case "processing":
-        return DUMMY_DATA_PROCESS;
-      case "declined":
-        return DUMMY_DATA_DECLINE;
-      default:
-        return DUMMY_DATA_ALL;
-    }
+    props.setSelectedCategory(categoryId);
   };
 
   return (
@@ -51,7 +33,11 @@ const ChatCategories = () => {
               styles.categoryTypeContainer,
               {
                 backgroundColor:
-                  selectedCategory === category.id ? category.bg : dark ? 'transparent' : COLORS.white,
+                  props.selectedCategory === category.id
+                    ? category.bg
+                    : dark
+                    ? 'transparent'
+                    : COLORS.white,
               },
             ]}
           >
@@ -60,8 +46,8 @@ const ChatCategories = () => {
                 styles.categoryText,
                 {
                   color:
-                    selectedCategory === category.id
-                      ? "black"
+                    props.selectedCategory === category.id
+                      ? 'black'
                       : COLORS.grayscale400,
                 },
               ]}
@@ -73,23 +59,6 @@ const ChatCategories = () => {
       </View>
 
       {/* Data */}
-      <View style={{ flex: 1 }}>
-        <FlatList
-          data={getFilteredData()}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ChatDataRendering
-              icon={item.icon}
-              heading={item.heading}
-              text={item.text}
-              date={item.date}
-              price={item.price}
-              productId={item.productId}
-            />
-          )}
-          style={styles.dataList}
-        />
-      </View>
     </View>
   );
 };
@@ -97,8 +66,8 @@ const ChatCategories = () => {
 const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 2,
@@ -113,9 +82,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   categoryText: {
-    fontWeight: "500",
+    fontWeight: '500',
     color: COLORS.greyscale600,
-    textTransform: "capitalize",
+    textTransform: 'capitalize',
     marginVertical: 5,
   },
 });

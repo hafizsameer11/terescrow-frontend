@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -6,41 +6,41 @@ import {
   View,
   TouchableOpacity,
   StyleSheet,
-} from "react-native";
-import { router, useRouter } from "expo-router";
-import { useSearchParams } from "expo-router/build/hooks";
-import Toast from "react-native-toast-message";
-import { useTheme } from "@/contexts/themeContext";
-import { validationPinChange } from "@/utils/validation";
-import FONTS from "@/constants/fonts";
-import { COLORS } from "@/constants";
-import { toast } from "react-toastify";
-import Toaster from "@/components/Toaster";
-import { Formik } from "formik";
-import SuccessModal from "./successmodal";
+} from 'react-native';
+import { router, useRouter } from 'expo-router';
+import { useSearchParams } from 'expo-router/build/hooks';
+import Toast from 'react-native-toast-message';
+import { useTheme } from '@/contexts/themeContext';
+import { validationPinChange } from '@/utils/validation';
+import FONTS from '@/constants/fonts';
+import { COLORS } from '@/constants';
+import SuccessModal from './successmodal';
 
 const SetPinScreen: React.FC = () => {
   const searchParams = useSearchParams();
-  const title = searchParams.get("title");
-  const context = searchParams.get("context");
+  const title = searchParams.get('title');
+  const context = searchParams.get('context');
   const { push } = useRouter();
   const [pin, setPin] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const { dark } = useTheme();
 
   const handlePress = (digit: string) => {
-    if (pin.length < 4) {
+    console.log('reached');
+    if (pin.length <= 4) {
       setPin([...pin, digit]);
+      return;
     }
+    router.push('/(tabs)');
   };
 
   const showToast = () => {
     Toast.show({
-      type: "error",
-      text1: "Error",
+      type: 'error',
+      text1: 'Error',
       text2:
-        "Incorrect login cradientals. Please try again or reset your password.",
-      position: "top",
+        'Incorrect login cradientals. Please try again or reset your password.',
+      position: 'top',
       visibilityTime: 3000,
       autoHide: true,
       topOffset: 50,
@@ -53,42 +53,42 @@ const SetPinScreen: React.FC = () => {
   };
 
   const validatePin = () => {
-    const pinValue = pin.join("");
+    const pinValue = pin.join('');
 
-    if (title === "Confirm your Pin") {
-      const enteredPin = searchParams.get("enteredPin");
+    if (title === 'Confirm your Pin') {
+      const enteredPin = searchParams.get('enteredPin');
 
       if (pinValue !== enteredPin) {
         showToast();
-        console.log("Pins do not match!");
+        console.log('Pins do not match!');
         setPin([]);
         return;
       } else {
         Toast.show({
-          type: "success",
-          text1: "Success",
+          type: 'success',
+          text1: 'Success',
           text2:
-            "Pin confirmed successfully. You can now proceed to your dashboard.",
-          position: "top",
+            'Pin confirmed successfully. You can now proceed to your dashboard.',
+          position: 'top',
           visibilityTime: 3000,
           autoHide: true,
           topOffset: 50,
         });
         router.back();
-        console.log("Pins match successfully!");
+        console.log('Pins match successfully!');
       }
 
-      if (context === "signup") {
+      if (context === 'signup') {
         push({
-          pathname: "/setpinscreen",
-          params: { title: "Pin confirmed", context: "signup" },
+          pathname: '/setpinscreen',
+          params: { title: 'Pin confirmed', context: 'signup' },
         });
       }
 
-      if (context === "transactionPin") {
+      if (context === 'transactionPin') {
         push({
-          pathname: "/setpinscreen",
-          params: { title: "Pin confirmed", context: "transactionPin" },
+          pathname: '/setpinscreen',
+          params: { title: 'Pin confirmed', context: 'transactionPin' },
         });
         setModalVisible(false);
         setPin([]);
@@ -99,18 +99,18 @@ const SetPinScreen: React.FC = () => {
     validationPinChange
       .validate({ setYourPin: pinValue, confirmYourPin: pinValue })
       .then(() => {
-        if (title === "Set your Pin" && context === "signup") {
+        if (title === 'Set your Pin' && context === 'signup') {
           push({
-            pathname: "/setpinscreen",
-            params: { title: "Confirm your Pin", enteredPin: pinValue },
+            pathname: '/setpinscreen',
+            params: { title: 'Confirm your Pin', enteredPin: pinValue },
           });
           setPin([]);
         }
 
-        if (title === "Enter new Pin" && context === "transactionPin") {
+        if (title === 'Enter new Pin' && context === 'transactionPin') {
           push({
-            pathname: "/setpinscreen",
-            params: { title: "Confirm your Pin", enteredPin: pinValue },
+            pathname: '/setpinscreen',
+            params: { title: 'Confirm your Pin', enteredPin: pinValue },
           });
           setModalVisible(false);
           setPin([]);
@@ -129,8 +129,8 @@ const SetPinScreen: React.FC = () => {
 
     if (
       pin.length >= 4 &&
-      title === "Confirm your Pin" &&
-      context === "signup"
+      title === 'Confirm your Pin' &&
+      context === 'signup'
     ) {
       setModalVisible(true);
     }
@@ -138,7 +138,7 @@ const SetPinScreen: React.FC = () => {
 
   const handleModalPress = () => {
     setModalVisible(false);
-    push("/(tabs)/chat");
+    push('/(tabs)/chat');
     setPin([]);
   };
 
@@ -146,7 +146,7 @@ const SetPinScreen: React.FC = () => {
     background: dark ? COLORS.dark1 : COLORS.white,
     textPrimary: COLORS.primary,
     textSecondary: dark ? COLORS.greyscale500 : COLORS.grayscale700,
-    pinDot: "#eafff7",
+    pinDot: '#eafff7',
     pinDotFilled: dark ? COLORS.white : COLORS.dark1,
     buttonBackground: dark ? COLORS.gray2 : COLORS.grayscale100,
     buttonText: dark ? COLORS.white : COLORS.dark1,
@@ -166,13 +166,13 @@ const SetPinScreen: React.FC = () => {
           ]}
         >
           <Text style={[styles.pinText, { color: themeStyles.textPrimary }]}>
-            {pin.length < 4 ? "***" : pin.join("")}
+            {pin.length < 4 ? '***' : pin.join('')}
           </Text>
         </View>
         <Text
           style={[
             styles.title,
-            { color: themeStyles.buttonText, fontWeight: "bold" },
+            { color: themeStyles.buttonText, fontWeight: 'bold' },
           ]}
         >
           {title}
@@ -230,7 +230,7 @@ const SetPinScreen: React.FC = () => {
               styles.numberButton,
               { backgroundColor: themeStyles.buttonBackground },
             ]}
-            onPress={() => handlePress("0")}
+            onPress={() => handlePress('0')}
           >
             <Text
               style={[
@@ -276,36 +276,36 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   iconContainer: {
     width: 130,
     height: 130,
     borderRadius: 100,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 5,
   },
   pinText: {
     fontSize: 30,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 24,
     fontWeight: FONTS.Bold,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 14,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 30,
   },
   pinInputContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
     padding: 8,
     borderRadius: 50,
     marginBottom: 30,
@@ -317,17 +317,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   numberPad: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    width: "100%",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
   },
   numberButton: {
     width: 70,
     height: 70,
     borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginVertical: 10,
     marginHorizontal: 10,
   },
@@ -345,5 +345,5 @@ const styles = StyleSheet.create({
 
 export default SetPinScreen;
 function toastConfig(message: string) {
-  throw new Error("Function not implemented.");
+  throw new Error('Function not implemented.');
 }

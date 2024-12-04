@@ -1,8 +1,8 @@
-import { StyleSheet, View, Text } from "react-native";
-import { Image } from "expo-image";
-import { COLORS } from "@/constants";
-import { useTheme } from "@/contexts/themeContext";
-const RecentItem: React.FC<{
+import { StyleSheet, View, Text } from 'react-native';
+import { Image } from 'expo-image';
+import { COLORS } from '@/constants';
+import { useTheme } from '@/contexts/themeContext';
+const ChatItem: React.FC<{
   icon: string;
   heading: string;
   text: string;
@@ -45,8 +45,8 @@ const RecentItem: React.FC<{
             <Text
               style={[dark ? { color: COLORS.white } : { color: COLORS.black }]}
             >
-              {" "}
-              -{" "}
+              {' '}
+              -{' '}
             </Text>
             <Text
               style={[
@@ -71,9 +71,9 @@ const RecentItem: React.FC<{
           </View>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
           >
             <Text
@@ -97,7 +97,7 @@ const RecentItem: React.FC<{
   );
 };
 
-export default RecentItem;
+export default ChatItem;
 
 const styles = StyleSheet.create({
   container: {
@@ -105,23 +105,23 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 12,
     marginHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F7F7F7",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
   },
   circle: {
     width: 10,
     height: 10,
     marginLeft: 5,
     borderRadius: 5,
-    justifyContent: "center",
+    justifyContent: 'center',
     backgroundColor: COLORS.green,
   },
   iconContainer: {
     width: 40,
     height: 40,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
     borderRadius: 50,
     borderColor: COLORS.green,
@@ -132,11 +132,11 @@ const styles = StyleSheet.create({
     height: 20,
   },
   textContainer: {
-    flexDirection: "column",
-    width: "85%",
+    flexDirection: 'column',
+    width: '85%',
   },
   heading: {
-    fontWeight: "bold",
+    fontWeight: 'bold',
     fontSize: 14,
     marginBottom: 2,
   },
@@ -145,22 +145,22 @@ const styles = StyleSheet.create({
     color: COLORS.greyscale600,
   },
   contentOne: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 5,
   },
   contentTwo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   details: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   date: {
     fontSize: 9,
     color: COLORS.greyscale600,
   },
-  detailPriceProduct: { fontSize: 10, fontFamily: "Bold" },
+  detailPriceProduct: { fontSize: 10, fontFamily: 'Bold' },
 });

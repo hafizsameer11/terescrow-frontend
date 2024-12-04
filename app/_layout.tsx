@@ -1,14 +1,14 @@
-import { DarkTheme, DefaultTheme } from "@react-navigation/native";
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import "react-native-reanimated";
-import { ThemeProvider } from "@/contexts/themeContext";
+import { DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import 'react-native-reanimated';
+import { ThemeProvider } from '@/contexts/themeContext';
 
-import { useColorScheme } from "@/hooks/useColorScheme";
-import Toast from "react-native-toast-message";
+import { useColorScheme } from '@/hooks/useColorScheme';
+import Toast from 'react-native-toast-message';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -35,26 +35,25 @@ export default function RootLayout() {
         <Stack.Screen name="signup" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="otpverification" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="setpinscreen"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="(tabs)/index"
-          options={{ headerShown: false }}
-        />
+        <Stack.Screen name="setpinscreen" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="notificationpage" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="notificationpage"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="tercescrow" options={{ headerShown: false }} />
-        <Stack.Screen name='splashsteam' options={{ headerShown: false }} />
+        <Stack.Screen name="splashsteam" options={{ headerShown: false }} />
         <Stack.Screen name="splashcrypto" options={{ headerShown: false }} />
         <Stack.Screen name="setnewpassword" options={{ headerShown: false }} />
         <Stack.Screen name="forgetpassword" options={{ headerShown: false }} />
         <Stack.Screen name="successmodal" options={{ headerShown: false }} />
         <Stack.Screen name="signin" options={{ headerShown: false }} />
-        <Stack.Screen name='editprofile' options={{ headerShown: false }} />
+        <Stack.Screen name="editprofile" options={{ headerShown: false }} />
         <Stack.Screen name="updatekyclevel" options={{ headerShown: false }} />
-        <Stack.Screen name="instantuserschat" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="instantuserschat"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="bvnverification" options={{ headerShown: false }} />
         <Stack.Screen name="profilesecurity" options={{ headerShown: false }} />
         <Stack.Screen name="changepassword" options={{ headerShown: false }} />
@@ -62,11 +61,11 @@ export default function RootLayout() {
         <Stack.Screen name="sellgiftcard" options={{ headerShown: false }} />
 
         <Stack.Screen name="buygiftcard" options={{ headerShown: false }} />
-        <Stack.Screen name="sellcrypto" options={{ headerShown: false }}  />
-        <Stack.Screen name="buycrypto" options={{ headerShown: false }}  />
+        <Stack.Screen name="sellcrypto" options={{ headerShown: false }} />
+        <Stack.Screen name="buycrypto" options={{ headerShown: false }} />
         {/* <Stack.Screen name="amazon" options={{ headerShown: false }}  /> */}
         {/* <Stack.Screen name="americanexpress" options={{ headerShown: false }}  /> */}
-        <Stack.Screen name="connectingagent" options={{ headerShown: false }}  />
+        <Stack.Screen name="connectingagent" options={{ headerShown: false }} />
         {/* <Stack.Screen name="ebaycard" options={{ headerShown: false }}  /> */}
         {/* <Stack.Screen name="visacard" options={{ headerShown: false }}  /> */}
         {/* <Stack.Screen name="footlocker" options={{ headerShown: false }}  /> */}
@@ -83,11 +82,11 @@ export default function RootLayout() {
         {/* <Stack.Screen name="bnb" options={{ headerShown: false }}  /> */}
         {/* <Stack.Screen name="toncoin" options={{ headerShown: false }}  /> */}
         {/* <Stack.Screen name="tron" options={{ headerShown: false }}  /> */}
-        <Stack.Screen name="giftcardsold" options={{ headerShown: false }}  />
-        <Stack.Screen name="giftcardbought" options={{ headerShown: false }}  />
-        <Stack.Screen name="cryptosold" options={{ headerShown: false }}  />
-        <Stack.Screen name="cryptobought" options={{ headerShown: false }}  />
-        <Stack.Screen name="chatwithagent" options={{ headerShown: false }}  />
+        <Stack.Screen name="giftcardsold" options={{ headerShown: false }} />
+        <Stack.Screen name="giftcardbought" options={{ headerShown: false }} />
+        <Stack.Screen name="cryptosold" options={{ headerShown: false }} />
+        <Stack.Screen name="cryptobought" options={{ headerShown: false }} />
+        <Stack.Screen name="chatwithagent" options={{ headerShown: false }} />
       </Stack>
       <Toast />
       <StatusBar style="auto" />

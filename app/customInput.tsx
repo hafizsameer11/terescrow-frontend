@@ -1,4 +1,4 @@
-import React, { useState, FC, useRef, useEffect } from "react";
+import React, { useState, FC, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,13 @@ import {
   Animated,
   TouchableOpacity,
   Dimensions,
-} from "react-native";
-import CheckBox from "@react-native-community/checkbox";
-import { COLORS, icons, SIZES } from "@/constants";
-import { useTheme } from "@/contexts/themeContext";
-import { Image } from "expo-image";
-import CustomModal from "./CountriesModal"; // Modal still present
-import FONTS from "@/constants/fonts";
+} from 'react-native';
+import CheckBox from '@react-native-community/checkbox';
+import { COLORS, icons, SIZES } from '@/constants';
+import { useTheme } from '@/contexts/themeContext';
+import { Image } from 'expo-image';
+import CustomModal from './SelectModal'; // Modal still present
+import FONTS from '@/constants/fonts';
 
 type InputType = string | number | boolean;
 
@@ -29,7 +29,7 @@ interface InputProps extends TextInputProps {
   onEditPress?: () => void;
   // onInputChanged: (id: string, text: string | number) => void;
   showCheckbox?: boolean;
-  fontWeight?: "normal" | "bold" | "500";
+  fontWeight?: 'normal' | 'bold' | '500';
   showModal?: boolean; // New prop to control modal visibility
 }
 
@@ -68,7 +68,7 @@ const Input: FC<InputProps> = (props) => {
     }
   };
 
-  const halfHeight = Dimensions.get("window").height / 2;
+  const halfHeight = Dimensions.get('window').height / 2;
 
   // Checkbox handler
   // const handleCheckboxChange = (newValue: boolean) => {
@@ -96,19 +96,19 @@ const Input: FC<InputProps> = (props) => {
             source={props.icon}
             style={[
               styles.icon,
-              { tintColor: isFocused ? COLORS.primary : "#BCBCBC" }, // Icon color based on focus
+              { tintColor: isFocused ? COLORS.primary : '#BCBCBC' }, // Icon color based on focus
             ]}
           />
         )}
 
         <TextInput
           {...props}
-          secureTextEntry={props.id === "password" && !isPasswordVisible}
+          secureTextEntry={props.id === 'password' && !isPasswordVisible}
           editable={props.isEditable !== false}
           onFocus={handleFocus}
           id={props.id}
           ref={inputRef}
-          placeholderTextColor={isFocused ? COLORS.primary : "#BCBCBC"}
+          placeholderTextColor={isFocused ? COLORS.primary : '#BCBCBC'}
           style={[
             styles.input,
             {
@@ -126,7 +126,7 @@ const Input: FC<InputProps> = (props) => {
         />
 
         {/* Icon to toggle password visibility */}
-        {props.id === "password" && (
+        {props.id === 'password' && (
           <TouchableOpacity
             onPress={() => setIsPasswordVisible(!isPasswordVisible)} // Toggle password visibility
             style={styles.iconContainer} // Added iconContainer for the icon
@@ -136,7 +136,7 @@ const Input: FC<InputProps> = (props) => {
               style={[
                 styles.icon,
                 {
-                  tintColor: isFocused ? COLORS.primary : "#BCBCBC",
+                  tintColor: isFocused ? COLORS.primary : '#BCBCBC',
                 },
               ]}
             />
@@ -150,14 +150,13 @@ const Input: FC<InputProps> = (props) => {
               {
                 top: labelPosition,
                 fontSize: isFocused || props.value ? 12 : 16,
-                color:
-                  props.errorText
-                    ? COLORS.red
-                    : isFocused || props.value
-                    ? COLORS.primary
-                    : dark
-                    ? COLORS.grayscale200
-                    : COLORS.greyscale600,
+                color: props.errorText
+                  ? COLORS.red
+                  : isFocused || props.value
+                  ? COLORS.primary
+                  : dark
+                  ? COLORS.grayscale200
+                  : COLORS.greyscale600,
               },
             ]}
             onPress={() => inputRef.current?.focus()}
@@ -184,28 +183,28 @@ const styles = StyleSheet.create({
   inputContainer: {
     borderRadius: SIZES.padding,
     borderWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   errorInput: {
     borderColor: COLORS.error,
   },
   input: {
-    width: "100%",
+    width: '100%',
     fontSize: SIZES.body3,
     paddingVertical: 16,
     color: COLORS.black,
-    position: "relative",
+    position: 'relative',
     borderRadius: SIZES.padding,
   },
   inputText: {
     fontSize: SIZES.body4,
   },
   iconContainer: {
-    position: "absolute",
+    position: 'absolute',
     right: 10,
-    top: "35%",
+    top: '35%',
   },
 
   icon: {
@@ -213,22 +212,22 @@ const styles = StyleSheet.create({
     height: 20,
   },
   label: {
-    position: "absolute",
+    position: 'absolute',
     left: 15,
     top: 13,
     bottom: 5,
     fontSize: 16,
-    transitionProperty: "all",
-    transitionDuration: "0.3s",
-    transitionTimingFunction: "ease-in-out",
+    transitionProperty: 'all',
+    transitionDuration: '0.3s',
+    transitionTimingFunction: 'ease-in-out',
   },
   labelFocused: {
     top: -10,
     fontSize: 12,
   },
   checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 15,
   },
   checkbox: {
@@ -240,7 +239,7 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: SIZES.body4,
     color: COLORS.black,
-    fontWeight: "400",
+    fontWeight: '400',
   },
   errorContainer: {
     marginTop: 5,
@@ -249,7 +248,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     color: COLORS.red,
-    fontWeight: "400",
+    fontWeight: '400',
     borderColor: COLORS.red,
   },
 });
