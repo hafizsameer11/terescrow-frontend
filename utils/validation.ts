@@ -19,7 +19,7 @@ export const validationSignUpSchema = Yup.object().shape({
       'Please enter a valid email address'
     ),
 
-  userName: Yup.string().required('Username is required'),
+  username: Yup.string().required('Username is required'),
 
   password: Yup.string()
     .required('Password is required')

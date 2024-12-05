@@ -10,6 +10,9 @@ import QuickBoxItem from '@/components/index/QuickBoxItem';
 import { Colors } from '@/constants/Colors';
 import ChatItem from '@/components/ChatItem';
 import { DUMMY_DATA_ALL } from '@/utils/DummyData';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getCategories } from '@/utils/queries/quickActionQueries';
 
 const data = [
   {
@@ -44,8 +47,18 @@ const data = [
 
 export default function HomeScreen() {
   const { dark } = useTheme();
+  const { token } = useAuth();
   const router = useRouter();
-  console.log(dark);
+  const {
+    data: categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    isError: categoriesIsError,
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => getCategories(token),
+    enabled: token !== '',
+  });
 
   const QuickActions = () => {
     const { dark } = useTheme();

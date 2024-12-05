@@ -10,18 +10,14 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
-import CryptoDetail from '../CryptoDetail';
-import CustomSelectField from '@/components/CustomSelectField';
 import { useTheme } from '@/contexts/themeContext';
 import CounterInput from '@/components/CounterInput';
 import { Colors } from '@/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NavigateBack from '@/components/NavigateBack';
 import CryptoCardCom from '@/components/CryptoCardCom';
-import InformationFields from '@/components/InformationFields';
-import CustomProceed from '@/components/CustomProceed';
 import CustomSelect from '@/components/CustomSelect';
-import Button from '@/utils/Button';
+import Button from '@/components/Button';
 
 // Define the data structure for crypto
 interface CryptoData {
@@ -42,6 +38,7 @@ const cryptoData: CryptoData[] = [
   { id: '9', icon: icons.tonCoin, text: 'Ethereum Wallet' },
   { id: '10', icon: icons.tron, text: 'Tether Wallet' },
 ];
+
 const options = [
   { value: '1', label: 'Option 1' },
   { value: '2', label: 'Option 2' },

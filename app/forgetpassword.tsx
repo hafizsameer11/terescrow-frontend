@@ -1,8 +1,8 @@
-import { COLORS, icons } from "@/constants";
-import { Image } from "expo-image";
-import React from "react";
-import { Formik } from "formik";
-import { useRouter } from "expo-router";
+import { COLORS, icons } from '@/constants';
+import { Image } from 'expo-image';
+import React from 'react';
+import { Formik } from 'formik';
+import { useRouter } from 'expo-router';
 import {
   ScrollView,
   Touchable,
@@ -10,17 +10,17 @@ import {
   View,
   Text,
   StyleSheet,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "@/contexts/themeContext";
-import { validationforgetPasswordSchema } from "@/utils/validation";
-import Input from "./customInput";
-import Button from "@/utils/Button";
-import { useNavigation } from "expo-router";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/themeContext';
+import { validationforgetPasswordSchema } from '@/utils/validation';
+import Input from './customInput';
+import Button from '@/components/Button';
+import { useNavigation } from 'expo-router';
 
 const ForgetPassword = () => {
   const { dark } = useTheme();
-  const {goBack} = useNavigation();
+  const { goBack } = useNavigation();
   const { push } = useRouter();
 
   const themeStyles = {
@@ -45,7 +45,7 @@ const ForgetPassword = () => {
           </TouchableOpacity>
           <Text
             style={[
-              { fontWeight: "bold", fontSize: 25, marginVertical: 9 },
+              { fontWeight: 'bold', fontSize: 25, marginVertical: 9 },
               { color: themeStyles.normalText },
             ]}
           >
@@ -57,7 +57,7 @@ const ForgetPassword = () => {
         </View>
         <View style={{ flex: 1 }}>
           <Formik
-            initialValues={{ email: "" }}
+            initialValues={{ email: '' }}
             validationSchema={validationforgetPasswordSchema}
             onSubmit={(values) => console.log(values)}
           >
@@ -66,25 +66,30 @@ const ForgetPassword = () => {
                 <View>
                   <Input
                     value={values.email}
-                    onChangeText={handleChange("email")}
-                    onBlur={handleBlur("email")}
+                    onChangeText={handleChange('email')}
+                    onBlur={handleBlur('email')}
                     label="Email Address"
                     keyboardType="email-address"
                     errorText={
-                      touched.email && errors.email ? errors.email : ""
+                      touched.email && errors.email ? errors.email : ''
                     }
                     showCheckbox={false}
                     prefilledValue={values.email}
                     id="email"
                   />
                 </View>
-                <View style={{ width: "100%", marginBottom: 20 }}>
+                <View style={{ width: '100%', marginBottom: 20 }}>
                   <Button
                     style={{
                       opacity: !(values.email && !errors.email) ? 0.6 : 1,
                     }}
                     title="Continue"
-                    onPress={() => push({ pathname: "/otpverification", params: { context: "signin" }})}
+                    onPress={() =>
+                      push({
+                        pathname: '/otpverification',
+                        params: { context: 'signin' },
+                      })
+                    }
                     disabled={!values.email || Boolean(errors.email)}
                   />
                 </View>
@@ -103,11 +108,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   secondryCont: {
-    flexDirection: "column",
+    flexDirection: 'column',
     marginTop: 15,
     flex: 1,
-    justifyContent: "space-between",
-    alignItems: "center",
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });
 

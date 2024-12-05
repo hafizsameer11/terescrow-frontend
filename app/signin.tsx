@@ -1,25 +1,51 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Image } from "expo-image";
-import { COLORS, icons } from "@/constants";
-import FONTS from "@/constants/fonts";
-import Input from "./customInput";
-import Button from "../utils/Button";
-import { Formik } from "formik";
-import { validationSignInSchema } from "@/utils/validation";
-import { useTheme } from "@/contexts/themeContext";
-import { useRouter } from "expo-router";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { COLORS, icons } from '@/constants';
+import FONTS from '@/constants/fonts';
+import Input from './customInput';
+import Button from '../components/Button';
+import { Formik } from 'formik';
+import { validationSignInSchema } from '@/utils/validation';
+import { useTheme } from '@/contexts/themeContext';
+import { useNavigation, useRouter } from 'expo-router';
+import { useMutation } from '@tanstack/react-query';
+import { loginUser } from '@/utils/mutations';
+import { NavigationProp } from '@react-navigation/native';
+import { showTopToast } from '@/utils/helpers';
+import { ApiError } from '@/utils/customApiCalls';
+import { useAuth } from '@/contexts/authContext';
 
 const Signin = () => {
   const { dark } = useTheme();
-  const {push} = useRouter();
+  const { navigate, reset } = useNavigation<NavigationProp<any>>();
+  const { setToken } = useAuth();
+  const { mutate: handleLogin, isPending } = useMutation({
+    mutationFn: loginUser,
+    mutationKey: ['login'],
+    onSuccess: async (data) => {
+      reset({
+        index: 0,
+        routes: [{ name: '(tabs)' }],
+      });
+      await setToken(data.token);
+      navigate('(tabs)');
+    },
+    onError: (error: ApiError) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message,
+      });
+    },
+  });
 
   return (
     <SafeAreaView
@@ -32,7 +58,13 @@ const Signin = () => {
         {/* Header Section */}
         <View style={styles.header}>
           <TouchableOpacity>
-            <Image source={icons.arrowBack} style={[styles.backIcon, {tintColor: dark ? COLORS.white : COLORS.black}]} />
+            <Image
+              source={icons.arrowBack}
+              style={[
+                styles.backIcon,
+                { tintColor: dark ? COLORS.white : COLORS.black },
+              ]}
+            />
           </TouchableOpacity>
 
           <Text
@@ -51,15 +83,22 @@ const Signin = () => {
             { color: dark ? COLORS.white : COLORS.black },
           ]}
         >
-          Don't have an account?{" "}
-          <Text style={styles.createAccountText} onPress={() => push("/signup")}>Create Account</Text>
+          Don't have an account?{' '}
+          <Text
+            style={styles.createAccountText}
+            onPress={() => navigate('signup')}
+          >
+            Create Account
+          </Text>
         </Text>
 
         <View style={styles.formContainer}>
           <Formik
-            initialValues={{ email: "", password: "" }}
+            initialValues={{ email: '', password: '' }}
             validationSchema={validationSignInSchema}
-            onSubmit={() => push('/(tabs)/chat')}
+            onSubmit={(values) => {
+              handleLogin(values);
+            }}
           >
             {({
               handleChange,
@@ -69,16 +108,16 @@ const Signin = () => {
               touched,
               values,
             }) => (
-              <View style={{ flex: 1, justifyContent: "space-between" }}>
+              <View style={{ flex: 1, justifyContent: 'space-between' }}>
                 <View>
                   <Input
                     value={values.email}
-                    onChangeText={handleChange("email")}
-                    onBlur={handleBlur("email")}
+                    onChangeText={handleChange('email')}
+                    onBlur={handleBlur('email')}
                     label="Email"
                     keyboardType="email-address"
                     errorText={
-                      touched.email && errors.email ? errors.email : ""
+                      touched.email && errors.email ? errors.email : ''
                     }
                     showCheckbox={false}
                     prefilledValue={values.email}
@@ -86,13 +125,13 @@ const Signin = () => {
                   />
                   <Input
                     value={values.password}
-                    onChangeText={handleChange("password")}
-                    onBlur={handleBlur("password")}
+                    onChangeText={handleChange('password')}
+                    onBlur={handleBlur('password')}
                     keyboardType="default"
                     label="Password"
                     secureTextEntry
                     errorText={
-                      touched.password && errors.password ? errors.password : ""
+                      touched.password && errors.password ? errors.password : ''
                     }
                     showCheckbox={false}
                     prefilledValue={values.password}
@@ -105,8 +144,13 @@ const Signin = () => {
                         { color: dark ? COLORS.white : COLORS.black },
                       ]}
                     >
-                      Forgot Password?{" "}
-                      <Text style={styles.resetPasswordText} onPress={() => push("/forgetpassword")} >Click here</Text>
+                      Forgot Password?{' '}
+                      <Text
+                        style={styles.resetPasswordText}
+                        onPress={() => navigate('forgetpassword')}
+                      >
+                        Click here
+                      </Text>
                     </Text>
                   </View>
                 </View>
@@ -115,14 +159,7 @@ const Signin = () => {
                   <Button
                     title="Sign in"
                     onPress={handleSubmit as () => void}
-                    disabled={
-                      !(
-                        values.email &&
-                        values.password &&
-                        !errors.email &&
-                        !errors.password
-                      )
-                    }
+                    isLoading={isPending}
                     style={[
                       styles.button,
                       {
@@ -164,7 +201,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 25,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginTop: 15,
   },
   subtitle: {
@@ -172,7 +209,7 @@ const styles = StyleSheet.create({
   },
   createAccountText: {
     color: COLORS.primary,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   formContainer: {
     marginTop: 20,
@@ -183,7 +220,7 @@ const styles = StyleSheet.create({
   },
   resetPasswordText: {
     color: COLORS.primary,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   buttonContainer: {
     marginTop: 20,
@@ -191,8 +228,8 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: 15,
     color: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

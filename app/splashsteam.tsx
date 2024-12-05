@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/themeContext';
-import Button from '@/utils/Button';
+import Button from '@/components/Button';
 import { router } from 'expo-router';
 
 const SplashSteam = () => {

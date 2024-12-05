@@ -1,20 +1,20 @@
-import { COLORS, icons } from "@/constants";
+import { COLORS, icons } from '@/constants';
 import {
   ScrollView,
   TouchableOpacity,
   View,
   Text,
   StyleSheet,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Image } from "expo-image";
-import { useTheme } from "@/contexts/themeContext";
-import { useNavigation } from "expo-router";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { useTheme } from '@/contexts/themeContext';
+import { useNavigation } from 'expo-router';
 
-import { Formik } from "formik";
-import { validationBVNValidation } from "@/utils/validation";
-import Input from "./customInput";
-import Button from "@/utils/Button";
+import { Formik } from 'formik';
+import { validationBVNValidation } from '@/utils/validation';
+import Input from './customInput';
+import Button from '@/components/Button';
 
 const BvnVerification = () => {
   const { dark } = useTheme();
@@ -28,11 +28,11 @@ const BvnVerification = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={{ flex: 1, justifyContent: "space-between" }}>
+        <View style={{ flex: 1, justifyContent: 'space-between' }}>
           <View>
             <View style={styles.container}>
               <TouchableOpacity
-                style={{ position: "absolute", left: 15 }}
+                style={{ position: 'absolute', left: 15 }}
                 onPress={goBack}
               >
                 <Image
@@ -46,7 +46,7 @@ const BvnVerification = () => {
               </TouchableOpacity>
               <Text
                 style={[
-                  { fontSize: 20, fontWeight: "bold" },
+                  { fontSize: 20, fontWeight: 'bold' },
                   { color: themeStyles.normalText },
                 ]}
               >
@@ -57,10 +57,10 @@ const BvnVerification = () => {
             <View style={styles.formContainer}>
               <Formik
                 initialValues={{
-                  surName: "",
-                  firstName: "",
-                  bvn: "",
-                  dateOfBirth: "",
+                  surName: '',
+                  firstName: '',
+                  bvn: '',
+                  dateOfBirth: '',
                 }}
                 validationSchema={validationBVNValidation}
                 onSubmit={(values) => console.log(values)}
@@ -76,50 +76,50 @@ const BvnVerification = () => {
                   <View>
                     <Input
                       label="Surname"
-                      onChangeText={handleChange("surName")}
+                      onChangeText={handleChange('surName')}
                       keyboardType="default"
-                      onBlur={handleBlur("surName")}
+                      onBlur={handleBlur('surName')}
                       value={values.surName}
                       errorText={
-                        touched.surName && errors.surName ? errors.surName : ""
+                        touched.surName && errors.surName ? errors.surName : ''
                       }
                       id="surName"
                       prefilledValue={values.surName}
                     />
                     <Input
                       label="First name"
-                      onChangeText={handleChange("firstName")}
+                      onChangeText={handleChange('firstName')}
                       keyboardType="default"
-                      onBlur={handleBlur("firstName")}
+                      onBlur={handleBlur('firstName')}
                       value={values.firstName}
                       errorText={
                         touched.firstName && errors.firstName
                           ? errors.firstName
-                          : ""
+                          : ''
                       }
                       id="firstName"
                       prefilledValue={values.firstName}
                     />
                     <Input
                       label="BVN"
-                      onChangeText={handleChange("bvn")}
+                      onChangeText={handleChange('bvn')}
                       keyboardType="default"
-                      onBlur={handleBlur("bvn")}
+                      onBlur={handleBlur('bvn')}
                       value={values.bvn}
-                      errorText={touched.bvn && errors.bvn ? errors.bvn : ""}
+                      errorText={touched.bvn && errors.bvn ? errors.bvn : ''}
                       id="bvn"
                       prefilledValue={values.bvn}
                     />
                     <Input
                       label="Date of birth"
-                      onChangeText={handleChange("dateOfBirth")}
+                      onChangeText={handleChange('dateOfBirth')}
                       keyboardType="default"
-                      onBlur={handleBlur("dateOfBirth")}
+                      onBlur={handleBlur('dateOfBirth')}
                       value={values.dateOfBirth}
                       errorText={
                         touched.dateOfBirth && errors.dateOfBirth
                           ? errors.dateOfBirth
-                          : ""
+                          : ''
                       }
                       id="dateOfBirth"
                       prefilledValue={values.dateOfBirth}
@@ -134,10 +134,10 @@ const BvnVerification = () => {
           <View style={{ padding: 20 }}>
             <Formik
               initialValues={{
-                surName: "",
-                firstName: "",
-                bvn: "",
-                dateOfBirth: "",
+                surName: '',
+                firstName: '',
+                bvn: '',
+                dateOfBirth: '',
               }}
               validationSchema={validationBVNValidation}
               onSubmit={(values) => console.log(values)}
@@ -176,7 +176,12 @@ const BvnVerification = () => {
             </Formik>
           </View>
         </View>
-        <Text style={[{ textAlign: "center", paddingHorizontal: 20, paddingBottom: 10 }, { color: themeStyles.normalText }]}>
+        <Text
+          style={[
+            { textAlign: 'center', paddingHorizontal: 20, paddingBottom: 10 },
+            { color: themeStyles.normalText },
+          ]}
+        >
           An OTP will be send to the number registered to your BNV
         </Text>
       </ScrollView>
@@ -186,15 +191,15 @@ const BvnVerification = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 15,
   },
   rowContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     flex: 1,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
   },
   formContainer: {
     padding: 20,

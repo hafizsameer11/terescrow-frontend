@@ -7,17 +7,47 @@ import { validationSignUpSchema } from '../utils/validation';
 import Input from './customInput';
 import { COLORS, icons, SIZES } from '@/constants';
 import { Image } from 'expo-image';
-import Button from '../utils/Button';
+import Button from '../components/Button';
 import Checkbox from 'expo-checkbox';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import * as Yup from 'yup';
 import { COUNTRIES, GENDERS } from '@/utils/dummyTrans';
 import CustomSelect from '@/components/CustomSelect';
+import { NavigationProp } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
+import { registerUser } from '@/utils/mutations';
+import { ApiError } from '@/utils/customApiCalls';
+import { showTopToast } from '@/utils/helpers';
 
 const SignUp = () => {
   const { dark } = useTheme();
-  const [isChecked, setChecked] = useState(false);
-  const { push } = useRouter();
+  const { navigate, reset } = useNavigation<NavigationProp<any>>();
+  const { mutate: signUp, isPending } = useMutation({
+    mutationKey: ['signup'],
+    mutationFn: registerUser,
+    onSuccess: () => {
+      reset({
+        index: 0,
+        routes: [{ name: 'otpverification' }],
+      });
+      navigate('otpverification', {
+        context: 'signup',
+      });
+    },
+    onError: (error: ApiError) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message,
+      });
+    },
+  });
+
+  const handleSubmit = async (
+    values: Yup.InferType<typeof validationSignUpSchema>
+  ) => {
+    signUp(values);
+  };
 
   return (
     <SafeAreaView
@@ -49,7 +79,7 @@ const SignUp = () => {
           >
             Already have an account?{' '}
             <Text
-              onPress={() => push('/signin')}
+              onPress={() => navigate('signin')}
               style={{
                 fontSize: SIZES.h4,
                 fontWeight: 'bold',
@@ -67,7 +97,7 @@ const SignUp = () => {
             lastName: '',
             email: '',
             phoneNumber: '',
-            userName: '',
+            username: '',
             password: '',
             gender: '',
             termsAccepted: false,
@@ -75,11 +105,7 @@ const SignUp = () => {
           }}
           validationSchema={validationSignUpSchema}
           onSubmit={(values) => {
-            console.log(values);
-            push({
-              pathname: '/otpverification',
-              params: { context: 'signup' },
-            });
+            handleSubmit(values);
           }}
         >
           {({
@@ -164,17 +190,17 @@ const SignUp = () => {
                 />
 
                 <Input
-                  value={values.userName}
-                  onChangeText={handleChange('userName')}
+                  value={values.username}
+                  onChangeText={handleChange('username')}
                   keyboardType="default"
-                  onBlur={handleBlur('userName')}
+                  onBlur={handleBlur('username')}
                   label="Username"
                   errorText={
-                    touched.userName && errors.userName ? errors.userName : ''
+                    touched.username && errors.username ? errors.username : ''
                   }
                   showCheckbox={false}
-                  prefilledValue={values.userName}
-                  id="userName"
+                  prefilledValue={values.username}
+                  id="username"
                 />
 
                 <Input
@@ -219,7 +245,7 @@ const SignUp = () => {
                       setFieldValue('termsAccepted', value)
                     }
                     // onValueChange={handleChange("") as unknown as ((value: boolean) => void)}
-                    color={isChecked ? COLORS.primary : undefined}
+                    color={values.termsAccepted ? COLORS.primary : undefined}
                   />
                   <Text
                     style={{
@@ -256,13 +282,8 @@ const SignUp = () => {
                 <View style={{ marginTop: 25, width: '100%' }}>
                   <Button
                     title="Create an Account"
-                    // onPress={handleSubmit as () => void}
-                    onPress={() =>
-                      push({
-                        pathname: '/otpverification',
-                        params: { context: 'signup' },
-                      })
-                    }
+                    isLoading={isPending}
+                    onPress={handleSubmit as any}
                   />
                 </View>
               </View>

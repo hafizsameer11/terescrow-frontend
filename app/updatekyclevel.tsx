@@ -1,18 +1,18 @@
-import { COLORS, icons } from "@/constants";
-import { Image } from "expo-image";
+import { COLORS, icons } from '@/constants';
+import { Image } from 'expo-image';
 import {
   ScrollView,
   TouchableOpacity,
   View,
   StyleSheet,
   Text,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "@/contexts/themeContext";
-import { useNavigation } from "expo-router";
-import Button from "@/utils/Button";
-import DraggableModal from "./kycModal";
-import { useState } from "react";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/themeContext';
+import { useNavigation } from 'expo-router';
+import Button from '@/components/Button';
+import DraggableModal from './kycModal';
+import { useState } from 'react';
 
 const UpdateKycLevel = () => {
   const { dark } = useTheme();
@@ -32,29 +32,29 @@ const UpdateKycLevel = () => {
   const currentLimits = [
     {
       icon: icons.activity2,
-      title: "Crypto limit",
+      title: 'Crypto limit',
       limits: [
-        { label: "Receive", value: "Unlimited" },
-        { label: "Sell", value: "Unlimited" },
+        { label: 'Receive', value: 'Unlimited' },
+        { label: 'Sell', value: 'Unlimited' },
       ],
     },
     {
       icon: icons.gift,
-      title: "Gift Card limit",
+      title: 'Gift Card limit',
       limits: [
-        { label: "Receive", value: "Unlimited" },
-        { label: "Sell", value: "Unlimited" },
+        { label: 'Receive', value: 'Unlimited' },
+        { label: 'Sell', value: 'Unlimited' },
       ],
     },
   ];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
-      <View style={{ flex: 1, justifyContent: "space-between" }}>
+      <View style={{ flex: 1, justifyContent: 'space-between' }}>
         <ScrollView>
           <View style={styles.container}>
             <TouchableOpacity
-              style={{ position: "absolute", left: 15 }}
+              style={{ position: 'absolute', left: 15 }}
               onPress={goBack}
             >
               <Image
@@ -68,7 +68,7 @@ const UpdateKycLevel = () => {
             </TouchableOpacity>
             <Text
               style={[
-                { fontSize: 20, fontWeight: "bold" },
+                { fontSize: 20, fontWeight: 'bold' },
                 { color: themeStyles.normalText },
               ]}
             >
@@ -107,7 +107,7 @@ const UpdateKycLevel = () => {
                     fontSize: 16,
                     marginBottom: 15,
                     marginTop: 20,
-                    fontWeight: "bold",
+                    fontWeight: 'bold',
                   },
                   { color: themeStyles.normalText },
                 ]}
@@ -159,14 +159,14 @@ const UpdateKycLevel = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 15,
   },
   rowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   verifiedContainer: {
     paddingHorizontal: 10,
@@ -175,19 +175,19 @@ const styles = StyleSheet.create({
   },
   verifiedText: {
     color: COLORS.primary,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   limitContainer: {
     marginBottom: 15,
   },
   limitHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 5,
   },
   limitRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingVertical: 2,
   },
   buttonContainer: {

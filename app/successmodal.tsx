@@ -4,11 +4,11 @@ import {
   View,
   Modal,
   TouchableWithoutFeedback,
-} from "react-native";
-import { Image } from "expo-image";
-import { COLORS, icons, SIZES } from "@/constants";
-import { useTheme } from "@/contexts/themeContext";
-import Button from "@/utils/Button";
+} from 'react-native';
+import { Image } from 'expo-image';
+import { COLORS, icons, SIZES } from '@/constants';
+import { useTheme } from '@/contexts/themeContext';
+import Button from '@/components/Button';
 
 type ModalProps = {
   modalVisible: boolean;
@@ -36,7 +36,13 @@ const SuccessModal = ({
               },
             ]}
           >
-            <View style={{ backgroundColor: '#eafff7', padding: 12, borderRadius: 100 }}>
+            <View
+              style={{
+                backgroundColor: '#eafff7',
+                padding: 12,
+                borderRadius: 100,
+              }}
+            >
               <Image
                 source={icons.tickMarked}
                 contentFit="contain"
@@ -55,11 +61,11 @@ const SuccessModal = ({
               Your account has been successfully created.
             </Text>
             <Button
-              title={buttonTitle || "Continue"}
+              title={buttonTitle || 'Continue'}
               filled
               onPress={onPress}
               style={{
-                width: "100%",
+                width: '100%',
                 marginTop: 12,
               }}
             />
@@ -75,33 +81,33 @@ export default SuccessModal;
 const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     color: COLORS.primary,
-    textAlign: "center",
+    textAlign: 'center',
     marginVertical: 12,
   },
   modalSubtitle: {
     fontSize: 16,
-    fontFamily: "regular",
+    fontFamily: 'regular',
     color: COLORS.black2,
-    textAlign: "center",
+    textAlign: 'center',
     marginVertical: 12,
   },
   modalContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    width: "100%",
-    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   modalSubContainer: {
     height: 400,
-    width: "100%",
+    width: '100%',
     backgroundColor: COLORS.white,
     borderStartStartRadius: 12,
     borderEndStartRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 16,
   },
   modalIllustration: {

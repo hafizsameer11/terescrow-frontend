@@ -16,7 +16,7 @@ import NavigateBack from '@/components/NavigateBack';
 import { Image } from 'expo-image';
 import { Colors } from '@/constants/Colors';
 import CustomSelectField from '@/components/CustomSelectField';
-import Button from '@/utils/Button';
+import Button from '@/components/Button';
 import CounterInput from '@/components/CounterInput';
 
 interface CardData {

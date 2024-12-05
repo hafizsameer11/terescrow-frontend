@@ -1,29 +1,29 @@
-import React, { useState } from "react";
-import { icons } from "@/constants";
-import { Image } from "expo-image";
+import React, { useState } from 'react';
+import { icons } from '@/constants';
+import { Image } from 'expo-image';
 import {
   ScrollView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "@/contexts/themeContext";
-import { COLORS } from "@/constants";
-import { Formik } from "formik";
-import { validationSetNewPassword } from "@/utils/validation";
-import Input from "./customInput";
-import Button from "@/utils/Button";
-import NavigateBack from "@/components/NavigateBack";
-import { useNavigation, useRouter } from "expo-router"; // Importing useRouter
-import SuccessModal from "./successmodal";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/themeContext';
+import { COLORS } from '@/constants';
+import { Formik } from 'formik';
+import { validationSetNewPassword } from '@/utils/validation';
+import Input from './customInput';
+import Button from '@/components/Button';
+import NavigateBack from '@/components/NavigateBack';
+import { useNavigation, useRouter } from 'expo-router'; // Importing useRouter
+import SuccessModal from './successmodal';
 
 const SetNewPassword = () => {
   const [modalVisible, setModalVisible] = useState(false); // Added state for modal visibility
   const { dark } = useTheme();
-  const router = useRouter(); 
-  const {goBack} = useNavigation();
+  const router = useRouter();
+  const { goBack } = useNavigation();
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
     normalText: dark ? COLORS.white : COLORS.black,
@@ -31,7 +31,7 @@ const SetNewPassword = () => {
 
   const handleModalPress = () => {
     setModalVisible(false);
-    router.push("/(tabs)/chat"); 
+    router.push('/(tabs)/chat');
   };
 
   return (
@@ -51,7 +51,7 @@ const SetNewPassword = () => {
           </TouchableOpacity>
           <Text
             style={[
-              { fontSize: 23, fontWeight: "bold", marginVertical: 10 },
+              { fontSize: 23, fontWeight: 'bold', marginVertical: 10 },
               { color: themeStyles.normalText },
             ]}
           >
@@ -63,7 +63,7 @@ const SetNewPassword = () => {
         </View>
         <View style={{ flex: 1 }}>
           <Formik
-            initialValues={{ password: "", confirmPassword: "" }}
+            initialValues={{ password: '', confirmPassword: '' }}
             validationSchema={validationSetNewPassword}
             onSubmit={(values) => {
               console.log(values);
@@ -82,13 +82,13 @@ const SetNewPassword = () => {
                 <View>
                   <Input
                     value={values.password}
-                    onChangeText={handleChange("password")}
-                    onBlur={handleBlur("password")}
+                    onChangeText={handleChange('password')}
+                    onBlur={handleBlur('password')}
                     keyboardType="default"
                     label="Password"
                     secureTextEntry
                     errorText={
-                      touched.password && errors.password ? errors.password : ""
+                      touched.password && errors.password ? errors.password : ''
                     }
                     showCheckbox={false}
                     prefilledValue={values.password}
@@ -96,22 +96,22 @@ const SetNewPassword = () => {
                   />
                   <Input
                     value={values.confirmPassword}
-                    onChangeText={handleChange("confirmPassword")}
-                    onBlur={handleBlur("confirmPassword")}
+                    onChangeText={handleChange('confirmPassword')}
+                    onBlur={handleBlur('confirmPassword')}
                     keyboardType="default"
                     label="Confirm Password"
                     secureTextEntry
                     errorText={
                       touched.confirmPassword && errors.confirmPassword
                         ? errors.confirmPassword
-                        : ""
+                        : ''
                     }
                     showCheckbox={false}
                     prefilledValue={values.confirmPassword}
                     id="password"
                   />
                 </View>
-                <View style={{ width: "100%" }}>
+                <View style={{ width: '100%' }}>
                   <Button
                     disabled={
                       !(
@@ -155,11 +155,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   secondryCont: {
-    flexDirection: "column",
+    flexDirection: 'column',
     marginTop: 15,
     flex: 1,
-    justifyContent: "space-between",
-    alignItems: "center",
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });
 

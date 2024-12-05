@@ -1,10 +1,10 @@
-import { COLORS, images } from "@/constants";
-import { Image } from "expo-image";
-import { ScrollView, View, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "@/contexts/themeContext";
-import Button from "@/utils/Button";
-import { router } from "expo-router";
+import { COLORS, images } from '@/constants';
+import { Image } from 'expo-image';
+import { ScrollView, View, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/themeContext';
+import Button from '@/components/Button';
+import { router } from 'expo-router';
 
 const SplashCrypto = () => {
   const { dark } = useTheme();
@@ -19,13 +19,13 @@ const SplashCrypto = () => {
         <View
           style={{
             flex: 1,
-            alignItems: "center",
+            alignItems: 'center',
           }}
         >
           <Image
             source={images.splashCoins}
             contentFit="contain"
-            style={{ width: "100%", height: 300 }}
+            style={{ width: '100%', height: 300 }}
           />
         </View>
         <View style={{ padding: 10, marginBottom: 30 }}>
@@ -33,7 +33,7 @@ const SplashCrypto = () => {
             <Text
               style={{
                 fontSize: 20,
-                fontWeight: "bold",
+                fontWeight: 'bold',
                 color: dark ? COLORS.white : COLORS.black,
               }}
             >
@@ -53,16 +53,16 @@ const SplashCrypto = () => {
             style={{
               paddingVertical: 20,
               paddingRight: 10,
-              flexDirection: "row",
-              justifyContent: "space-between",
+              flexDirection: 'row',
+              justifyContent: 'space-between',
               gap: 5,
-              alignItems: "center",
+              alignItems: 'center',
             }}
           >
             <Button
               style={{
-                width: "50%",
-                backgroundColor: "transparent",
+                width: '50%',
+                backgroundColor: 'transparent',
                 borderColor: COLORS.primary,
                 borderWidth: 1,
               }}
@@ -70,17 +70,21 @@ const SplashCrypto = () => {
               title="Back"
               onPress={() => router.back()}
             />
-            <Button title="Next" style={{ width: "50%" }
-          
-          } onPress={() => { router.push('/signup') }} />
+            <Button
+              title="Next"
+              style={{ width: '50%' }}
+              onPress={() => {
+                router.push('/signup');
+              }}
+            />
           </View>
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "center",
+              flexDirection: 'row',
+              justifyContent: 'center',
               gap: 5,
-              alignItems: "center",
-              width: "100%",
+              alignItems: 'center',
+              width: '100%',
             }}
           >
             <Text
