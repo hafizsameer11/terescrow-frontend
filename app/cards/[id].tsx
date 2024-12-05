@@ -13,13 +13,11 @@ import {
   View,
 } from 'react-native';
 import NavigateBack from '@/components/NavigateBack';
-import CardCom from '@/components/CardCom';
-import InformationFields from '@/components/InformationFields';
-import CustomProceed from '@/components/CustomProceed';
 import { Image } from 'expo-image';
 import { Colors } from '@/constants/Colors';
 import CustomSelectField from '@/components/CustomSelectField';
 import Button from '@/utils/Button';
+import CounterInput from '@/components/CounterInput';
 
 interface CardData {
   id: string;
@@ -60,48 +58,15 @@ const CardScreen: React.FC = () => {
     );
   };
 
-  const renderInputFields = () => {
+  const renderInfoFields = () => {
     return (
       <View style={styles.inputFieldsContainer}>
-        {/* Input with Counter */}
-        <View style={styles.inputWithCounter}>
-          <Text
-            style={[
-              styles.mainText,
-              dark ? { color: Colors.dark.text } : { color: Colors.light.text },
-            ]}
-          >
-            How many cards?
-          </Text>
-          <View style={styles.counterContainer}>
-            <TouchableOpacity
-              onPress={() =>
-                setCardsConter(cardsConter > 0 ? cardsConter - 1 : 0)
-              }
-              style={styles.counterButton}
-            >
-              <Text style={[styles.counterText, styles.specialCase]}>-</Text>
-            </TouchableOpacity>
-
-            <Text
-              style={[
-                styles.counterValue,
-                dark
-                  ? { color: Colors.dark.text }
-                  : { color: Colors.light.text },
-              ]}
-            >
-              {cardsConter}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setCardsConter(cardsConter + 1)}
-              style={styles.counterButton}
-            >
-              <Text style={styles.counterText}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
+        <CounterInput
+          text="How many cards?"
+          counter={cardsConter}
+          setCounter={setCardsConter}
+          type="counter"
+        />
         {/* Regular Input */}
         <TextInput
           style={[
@@ -136,7 +101,7 @@ const CardScreen: React.FC = () => {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <NavigateBack text={cardData.text} />
             {renderCard()}
-            {renderInputFields()}
+            {renderInfoFields()}
           </ScrollView>
           <View style={styles.footer}>
             <Button
@@ -180,43 +145,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 24,
     marginHorizontal: 16,
-  },
-  mainText: {
-    fontSize: 16,
-    color: COLORS.grayscale700,
-    fontWeight: 'semibold',
-  },
-  inputWithCounter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    paddingLeft: 12,
-    borderWidth: 1,
-    borderRadius: 12,
-    borderColor: COLORS.greyscale300,
-  },
-  counterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  counterButton: {
-    borderRadius: 50,
-    marginHorizontal: 16,
-    backgroundColor: COLORS.greyscale600,
-  },
-  counterText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'semibold',
-    paddingHorizontal: 7,
-  },
-  counterValue: {
-    fontSize: 16,
-    color: '#333',
-  },
-  specialCase: {
-    paddingHorizontal: 10,
   },
   input: {
     marginTop: 24,

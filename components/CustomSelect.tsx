@@ -6,8 +6,8 @@ import { Image } from 'expo-image';
 import SelectModal from '@/components/SelectModal';
 
 interface SelectProps {
-  error: string | undefined;
-  touched: boolean | undefined;
+  error?: string | undefined;
+  touched?: boolean | undefined;
   options: { label: string; value: string }[];
   id: string;
   modalLabel: string;
@@ -36,7 +36,7 @@ const CustomSelect = ({
           style={{
             height: 50,
             borderWidth: 1,
-            borderColor: COLORS.greyscale600,
+            borderColor: COLORS.greyscale300,
             paddingHorizontal: 10,
             flexDirection: 'row',
             alignItems: 'center',

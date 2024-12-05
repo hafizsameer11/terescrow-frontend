@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,13 @@ import {
   Pressable,
   TouchableOpacity,
   FlatList,
-} from "react-native";
+} from 'react-native';
 
 const options = [
-  { key: "1", label: "Option 1" },
-  { key: "2", label: "Option 2" },
-  { key: "3", label: "Option 3" },
-  { key: "4", label: "Option 4" },
+  { id: '1', label: 'Option 1' },
+  { id: '2', label: 'Option 2' },
+  { id: '3', label: 'Option 3' },
+  { id: '4', label: 'Option 4' },
 ];
 
 const CustomSelectField = ({ title }: { title: string }) => {
@@ -33,7 +33,7 @@ const CustomSelectField = ({ title }: { title: string }) => {
     <View style={styles.container}>
       <TouchableOpacity style={styles.selectField} onPress={handleModalOpen}>
         <Text style={styles.selectText}>
-          {selectedValue || "Select an Option"}
+          {selectedValue || 'Select an Option'}
         </Text>
       </TouchableOpacity>
 
@@ -51,7 +51,7 @@ const CustomSelectField = ({ title }: { title: string }) => {
           <Text style={styles.modalTitle}>{title}</Text>
           <FlatList
             data={options}
-            keyExtractor={(item) => item.key}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.option}
@@ -71,33 +71,33 @@ export default CustomSelectField;
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   selectField: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    width: "100%",
-    backgroundColor: "transparent",
+    width: '100%',
+    backgroundColor: 'transparent',
   },
   selectText: {
-    color: "#333",
+    color: '#333',
   },
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
-    width: "100%",
-    backgroundColor: "#fff",
+    width: '100%',
+    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -105,17 +105,17 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 20,
-    textAlign: "center",
+    textAlign: 'center',
   },
   option: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: '#eee',
   },
   optionText: {
     fontSize: 16,
-    color: "#333",
+    color: '#333',
   },
 });
