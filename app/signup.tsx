@@ -9,7 +9,7 @@ import { COLORS, icons, SIZES } from '@/constants';
 import { Image } from 'expo-image';
 import Button from '../components/Button';
 import Checkbox from 'expo-checkbox';
-import { useNavigation, useRouter } from 'expo-router';
+import { router, useNavigation, useRouter } from 'expo-router';
 import * as Yup from 'yup';
 import { COUNTRIES, GENDERS } from '@/utils/dummyTrans';
 import CustomSelect from '@/components/CustomSelect';
@@ -22,6 +22,7 @@ import { showTopToast } from '@/utils/helpers';
 const SignUp = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
+
   const { mutate: signUp, isPending } = useMutation({
     mutationKey: ['signup'],
     mutationFn: registerUser,
@@ -32,6 +33,7 @@ const SignUp = () => {
       });
       navigate('otpverification', {
         context: 'signup',
+        email: null,
       });
     },
     onError: (error: ApiError) => {

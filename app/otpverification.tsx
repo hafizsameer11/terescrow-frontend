@@ -17,17 +17,55 @@ import { useSearchParams } from 'expo-router/build/hooks';
 import { Image } from 'expo-image';
 import FONTS from '@/constants/fonts';
 import Input from './customInput';
+import { useMutation } from '@tanstack/react-query';
+import {
+  resendOtp,
+  verifyEmailOtp,
+  verifyPasswordOtp,
+} from '@/utils/mutations';
+import { useAuth } from '@/contexts/authContext';
+import { NavigationProp, useRoute } from '@react-navigation/native';
 
 const OTPVerification = () => {
-  const { goBack } = useNavigation();
+  const { goBack, navigate, reset } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const [time, setTime] = useState(45);
   const [otp, setOtp] = useState('');
   const [timerOut, setTimerOut] = useState(false);
   const { colors, dark } = useTheme();
-  const { push } = useRouter();
+  const route = useRoute();
+  const { context, email } = route.params as { context: string; email: string };
 
-  const searchParams = useSearchParams();
-  const context = searchParams.get('context');
+  const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
+    mutationFn:
+      context == 'signup'
+        ? () => verifyEmailOtp(token)
+        : () => verifyPasswordOtp(email),
+    mutationKey: ['verify-otp'],
+    onSuccess: () => {
+      if (context === 'signup') {
+        reset({
+          index: 0,
+          routes: [{ name: 'signin' }],
+        });
+        navigate('signin');
+      } else {
+        reset({
+          index: 0,
+          routes: [{ name: 'resetpassword' }],
+        });
+        navigate('resetpassword');
+      }
+    },
+  });
+
+  const { mutate: resend, isPending: resendingOtp } = useMutation({
+    mutationFn:
+      context === 'signup'
+        ? () => resendOtp(token, undefined)
+        : () => resendOtp(undefined, email),
+    mutationKey: ['resend-otp'],
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -46,17 +84,11 @@ const OTPVerification = () => {
   const handleResendOtp = () => {
     setTime(45);
     setTimerOut(false);
+    resend();
   };
 
   const handleVerifyOTP = () => {
-    if (otp.length === 4) {
-      console.log(`Verifying OTP: ${otp}`);
-      if (context === 'signup') {
-        push({ pathname: '/setpinscreen', params: { title: 'Set your Pin' } });
-      } else if (context === 'signin') {
-        push('/setnewpassword');
-      }
-    }
+    verifyOtp();
   };
 
   const themeStyle = {
@@ -122,6 +154,7 @@ const OTPVerification = () => {
           <Button
             title="Continue"
             filled
+            isLoading={verifyingOtp}
             disabled={otp.length !== 4}
             style={[styles.button, themeStyle]}
             onPress={handleVerifyOTP}

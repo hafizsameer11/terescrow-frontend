@@ -5,13 +5,11 @@ export const API_ENDPOINTS = {
     Login: API_DOMAIN + '/auth/login',
     Register: API_DOMAIN + '/auth/customer/register',
     Logout: API_DOMAIN + '/auth/logout',
-    VerifyEmailOtp: API_DOMAIN + '/auth/verify-email',
+    VerifyEmailOtp: API_DOMAIN + '/auth/verify-email-otp',
     ResendOtp: API_DOMAIN + '/auth/resend-otp',
-    ForgotPassword: API_DOMAIN + '/auth/forget-password',
-    VerifyPasswordOtp: API_DOMAIN + '/auth/reset-password-otp-verification',
+    ForgotPassword: API_DOMAIN + '/auth/forgot-password',
+    VerifyPasswordOtp: API_DOMAIN + '/auth/verify-forgot-password-otp',
     ResetPassword: API_DOMAIN + '/auth/reset-password',
-    CheckBvnStatus: API_DOMAIN + '/check-user-status',
-    CheckBvnVerified: API_DOMAIN + '/check-bvn-status',
   },
 
   ACCOUNT_MANAGEMENT: {

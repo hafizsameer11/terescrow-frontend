@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { apiCall } from '../customApiCalls';
+import { apiCall, ApiResponse } from '../customApiCalls';
 import { API_ENDPOINTS } from '../apiConfig';
 
 export const getDepartments = async (
@@ -36,15 +36,11 @@ export const getSubCategories = async (
 };
 
 // department quick actions
-interface IDepartmentResponse extends genericResponse {
+interface IDepartmentResponse extends ApiResponse {
   data: { id: number; icon: string; title: string; description: string };
 }
-export interface genericResponse {
-  status: string;
-  message: string;
-}
 
-interface ICategoryResponse extends genericResponse {
+interface ICategoryResponse extends ApiResponse {
   data: {
     departmentId: number;
     categories: [
@@ -62,7 +58,7 @@ interface ICategoryResponse extends genericResponse {
   };
 }
 
-interface ISubCategoryResponse extends genericResponse {
+interface ISubCategoryResponse extends ApiResponse {
   data: {
     departmentId: string;
     categoryId: string;

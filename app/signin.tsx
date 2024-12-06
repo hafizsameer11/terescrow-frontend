@@ -17,7 +17,7 @@ import { validationSignInSchema } from '@/utils/validation';
 import { useTheme } from '@/contexts/themeContext';
 import { useNavigation, useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
-import { loginUser } from '@/utils/mutations';
+import { forgotPassword, loginUser } from '@/utils/mutations';
 import { NavigationProp } from '@react-navigation/native';
 import { showTopToast } from '@/utils/helpers';
 import { ApiError } from '@/utils/customApiCalls';
@@ -27,15 +27,15 @@ const Signin = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const { setToken } = useAuth();
-  const { mutate: handleLogin, isPending } = useMutation({
+  const { mutate: handleLogin, isPending: loginPending } = useMutation({
     mutationFn: loginUser,
     mutationKey: ['login'],
     onSuccess: async (data) => {
+      await setToken(data.token);
       reset({
         index: 0,
         routes: [{ name: '(tabs)' }],
       });
-      await setToken(data.token);
       navigate('(tabs)');
     },
     onError: (error: ApiError) => {
@@ -46,6 +46,18 @@ const Signin = () => {
       });
     },
   });
+
+  const { mutate: handleForgotPassword, isPending: forgotPasswordPending } =
+    useMutation({
+      mutationKey: ['forgot-password'],
+      mutationFn: forgotPassword,
+      onSuccess: (data) => {
+        navigate('otpverification', {
+          context: 'forgot-password',
+          email: data.data.email,
+        });
+      },
+    });
 
   return (
     <SafeAreaView
@@ -147,9 +159,15 @@ const Signin = () => {
                       Forgot Password?{' '}
                       <Text
                         style={styles.resetPasswordText}
-                        onPress={() => navigate('forgetpassword')}
+                        onPress={() => {
+                          if (values.email) {
+                            handleForgotPassword({
+                              email: values.email,
+                            });
+                          }
+                        }}
                       >
-                        Click here
+                        {forgotPasswordPending ? 'Loading...' : 'Click here'}
                       </Text>
                     </Text>
                   </View>
@@ -159,7 +177,7 @@ const Signin = () => {
                   <Button
                     title="Sign in"
                     onPress={handleSubmit as () => void}
-                    isLoading={isPending}
+                    isLoading={loginPending}
                     style={[
                       styles.button,
                       {
