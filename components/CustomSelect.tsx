@@ -8,7 +8,7 @@ import SelectModal from '@/components/SelectModal';
 interface SelectProps {
   error?: string | undefined;
   touched?: boolean | undefined;
-  options: { label: string; value: string }[];
+  options: { id: number; title: string }[];
   id: string;
   modalLabel: string;
   setFieldValue: (field: string, value: any) => void;
@@ -59,7 +59,7 @@ const CustomSelect = ({
             }}
           >
             {currValue
-              ? options.find((o) => o.value === currValue)?.label
+              ? options.find((o) => o.id.toString() === currValue)?.title
               : placeholder}
           </Text>
 

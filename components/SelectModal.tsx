@@ -22,7 +22,7 @@ interface CustomModalProps {
   onSelect: (value: string) => void;
   title: string;
   prefilledValue?: string;
-  options: { label: string; value: string }[];
+  options: { id: number; title: string }[];
 }
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -95,18 +95,18 @@ const SelectModal: React.FC<CustomModalProps> = ({
   }, [isVisible]);
 
   // Render each option
-  const renderOption = ({ label, value }: { label: string; value: string }) => {
-    const handleSelectValue = () => {
+  const renderOption = ({ title, id }: { title: string; id: number }) => {
+    const handleSelectId = () => {
       setIsVisible(false);
-      onSelect(value);
+      onSelect(id.toString());
     };
     return (
-      <TouchableOpacity style={styles.option} onPress={handleSelectValue}>
+      <TouchableOpacity style={styles.option} onPress={handleSelectId}>
         <Text style={[styles.optionText, { color: dark ? '#fff' : '#000' }]}>
-          {label}
+          {title}
         </Text>
         <View style={styles.optionRight}>
-          {label === prefilledValue && <View style={styles.redDot} />}
+          {title === prefilledValue && <View style={styles.redDot} />}
           <Ionicons
             name="chevron-forward"
             size={20}
@@ -153,7 +153,7 @@ const SelectModal: React.FC<CustomModalProps> = ({
             <FlatList
               data={options}
               renderItem={({ item }) => renderOption(item)}
-              keyExtractor={(item) => item.value}
+              keyExtractor={(item) => item.id.toString()}
             />
           </Animated.View>
         </View>

@@ -26,10 +26,12 @@ export const getCategories = async (
 };
 
 export const getSubCategories = async (
-  token: string
+  token: string,
+  departmentId: string,
+  categoryId: string
 ): Promise<ISubCategoryResponse> => {
   return await apiCall(
-    API_ENDPOINTS.QUICK_ACTIONS.GetActionSubacategories,
+    `${API_ENDPOINTS.QUICK_ACTIONS.GetActionSubacategories}?departmentId=${departmentId}&categoryId=${categoryId}`,
     'GET',
     undefined,
     token
@@ -63,11 +65,13 @@ export interface ISubCategoryResponse extends ApiResponse {
     categoryId: string;
     subCategories: [
       {
-        id: number;
-        title: string;
-        createdAt: Date;
-        updatedAt: Date;
-        price: number;
+        subCategory: {
+          id: number;
+          title: string;
+          createdAt: Date;
+          updatedAt: Date;
+          price: number;
+        };
       }
     ];
   };

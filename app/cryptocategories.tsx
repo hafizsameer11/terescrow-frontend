@@ -115,8 +115,9 @@ const CryptoCategories = () => {
             title={item.category.title}
             subTitle={item.category.subTitle || ''}
             onSend={() =>
-              navigate(`crypto/${item.category.id}`, {
+              navigate(`cryptosubcategories`, {
                 departmentId: departmentId,
+                categoryData: item.category,
               })
             } // Use `as string` for type assertion
           />

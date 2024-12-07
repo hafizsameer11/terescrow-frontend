@@ -1,4 +1,4 @@
-const API_DOMAIN = 'http://192.168.1.6:8000/api';
+const API_DOMAIN = 'http://192.168.18.9:8000/api';
 
 export const API_ENDPOINTS = {
   AUTH: {

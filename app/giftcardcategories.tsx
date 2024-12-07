@@ -8,7 +8,8 @@ import { Colors } from '@/constants/Colors';
 import { useEffect, useState } from 'react';
 import { FlatList } from 'react-native';
 import CardItem from '@/components/SellGifts/CardItem';
-import { router, useNavigation } from 'expo-router';
+import { Route, router, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { images } from '@/constants';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -67,8 +68,9 @@ const cardData: CardData[] = [
   },
 ];
 
-const GiftCard = () => {
+const GiftCardCategories = () => {
   const route = useRoute();
+  const { push } = useRouter();
   const { navigate, goBack } = useNavigation<NavigationProp<any>>();
   const { departmentId }: { departmentId: string } = route.params as any;
   if (!departmentId) {
@@ -91,31 +93,33 @@ const GiftCard = () => {
 
   useEffect(() => {
     const categoriesData = categories?.data?.categories;
+    console.log(categoriesData);
     if (categoriesData) {
-      if (searchTerm === '') {
-        setDisplayCategories(categoriesData);
+      if (searchTerm != '') {
+        setDisplayCategories((prev) => {
+          const displayCards = prev?.filter((card) =>
+            card.category.title.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          return displayCards;
+        });
         return;
       }
-      setDisplayCategories((prev) => {
-        const displayCards = prev?.filter((card) =>
-          card.category.title.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        return displayCards;
-      });
+      setDisplayCategories(categoriesData);
     }
-  }, [searchTerm, categories]);
+  }, [categories, searchTerm]);
 
   const renderCardsList = () => {
     return (
       <FlatList
-        data={displayCategories}
+        data={displayCategories || categories?.data?.categories}
         renderItem={({ item }) => (
           <CardItem
             card={images[item.category.image as keyof typeof images] as string}
             text={item.category.title}
             onSend={() =>
-              navigate(`cards/${item.category.id}`, {
+              navigate(`giftcardsubcategories`, {
                 departmentId: departmentId,
+                categoryData: item.category,
               })
             } // Navigate to the dynamic route with `id`
           />
@@ -144,4 +148,4 @@ const GiftCard = () => {
   );
 };
 
-export default GiftCard;
+export default GiftCardCategories;

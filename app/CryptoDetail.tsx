@@ -24,12 +24,8 @@ const CryptoDetail = ({ icon, heading }: CryptoDetailProps) => {
     >
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View>
             <NavigateBack text={heading} />
-          </View>
-          <View>
             <CryptoCardCom card={icon} />
-          </View>
           <View>
             <InformationFields />
           </View>

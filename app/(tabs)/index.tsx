@@ -69,12 +69,12 @@ export default function HomeScreen() {
   const handleClickDepartment = (item: IDepartmentResponse['data'][number]) => {
     console.log(item.title);
     if (item.title.includes('Gift Card')) {
-      navigate('giftcard', {
+      navigate('giftcardcategories', {
         departmentId: item.id.toString(),
       });
     }
     if (item.title.includes('crypto')) {
-      navigate('buycrypto', {
+      navigate('cryptocategories', {
         departmentId: item.id.toString(),
       });
     }

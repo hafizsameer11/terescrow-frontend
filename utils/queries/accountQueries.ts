@@ -1,4 +1,3 @@
-import axios from "axios";
 import { apiCall } from "../customApiCalls";
 import { API_ENDPOINTS } from "../apiConfig";
 
@@ -36,8 +35,8 @@ export interface IUserProfileData {
     lastName: string,
     phone: string,
     profilePicture?: string | null,
-    gender: string | null,
-    country: string | null,
+    gender: string ,
+    country: string ,
     email: string,
     userName: string, 
 }

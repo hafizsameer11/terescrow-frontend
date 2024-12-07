@@ -91,9 +91,18 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen name="+not-found" />
-            <Stack.Screen name="giftcard" options={{ headerShown: false }} />
-            <Stack.Screen name="buygiftcard" options={{ headerShown: false }} />
-            <Stack.Screen name="sellcrypto" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="giftcardcategories"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="giftcardsubcategories"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="cryptosubcategories"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="cryptocategories"
               options={{ headerShown: false }}
