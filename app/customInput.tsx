@@ -88,7 +88,7 @@ const Input: FC<InputProps> = (props) => {
           styles.inputContainer,
           props.errorText
             ? styles.errorInput
-            : { borderColor: isFocused ? COLORS.primary : COLORS.greyscale600 },
+            : { borderColor: isFocused ? COLORS.primary : COLORS.greyscale300 },
         ]}
       >
         {props.icon && (

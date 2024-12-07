@@ -33,7 +33,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      [
+        "expo-secure-store",
+          {
+            "configureAndroidBackup": true,
+            "faceIDPermission": "Allow terescrow-frontend to access your Face ID biometric data."
+          }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

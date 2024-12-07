@@ -18,23 +18,35 @@ import { useMutation } from '@tanstack/react-query';
 import { registerUser } from '@/utils/mutations';
 import { ApiError } from '@/utils/customApiCalls';
 import { showTopToast } from '@/utils/helpers';
+import { useAuth } from '@/contexts/authContext';
 
 const SignUp = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
+  const { setToken } = useAuth();
 
   const { mutate: signUp, isPending } = useMutation({
     mutationKey: ['signup'],
     mutationFn: registerUser,
-    onSuccess: () => {
-      reset({
-        index: 0,
-        routes: [{ name: 'otpverification' }],
-      });
-      navigate('otpverification', {
-        context: 'signup',
-        email: null,
-      });
+    onSuccess: async (data) => {
+      setToken(data.token)
+        .then(() => {
+          reset({
+            index: 0,
+            routes: [{ name: 'otpverification' }],
+          });
+          navigate('otpverification', {
+            context: 'signup',
+            email: null,
+          });
+        })
+        .catch((error) => {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: error.message,
+          });
+        });
     },
     onError: (error: ApiError) => {
       showTopToast({

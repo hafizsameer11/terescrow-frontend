@@ -25,6 +25,8 @@ import {
 } from '@/utils/mutations';
 import { useAuth } from '@/contexts/authContext';
 import { NavigationProp, useRoute } from '@react-navigation/native';
+import { showTopToast } from '@/utils/helpers';
+import { ApiError } from '@/utils/customApiCalls';
 
 const OTPVerification = () => {
   const { goBack, navigate, reset } = useNavigation<NavigationProp<any>>();
@@ -36,11 +38,14 @@ const OTPVerification = () => {
   const route = useRoute();
   const { context, email } = route.params as { context: string; email: string };
 
+  // console.log(otp);
+  // console.log(context);
+  // console.log(token);
   const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
     mutationFn:
       context == 'signup'
-        ? () => verifyEmailOtp(token)
-        : () => verifyPasswordOtp(email),
+        ? () => verifyEmailOtp(token, otp)
+        : () => verifyPasswordOtp(email, otp),
     mutationKey: ['verify-otp'],
     onSuccess: () => {
       if (context === 'signup') {
@@ -56,6 +61,13 @@ const OTPVerification = () => {
         });
         navigate('resetpassword');
       }
+    },
+    onError: (error: ApiError) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message,
+      });
     },
   });
 

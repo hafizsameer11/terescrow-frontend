@@ -14,10 +14,11 @@ export const getDepartments = async (
 };
 
 export const getCategories = async (
-  token: string
+  token: string,
+  departmentId: string
 ): Promise<ICategoryResponse> => {
   return await apiCall(
-    API_ENDPOINTS.QUICK_ACTIONS.GetActionCatagories,
+    API_ENDPOINTS.QUICK_ACTIONS.GetActionCatagories + '/' + departmentId,
     'GET',
     undefined,
     token
@@ -36,29 +37,27 @@ export const getSubCategories = async (
 };
 
 // department quick actions
-interface IDepartmentResponse extends ApiResponse {
-  data: { id: number; icon: string; title: string; description: string };
+export interface IDepartmentResponse extends ApiResponse {
+  data: { id: number; icon: string; title: string; description: string }[];
 }
 
-interface ICategoryResponse extends ApiResponse {
+export interface ICategoryResponse extends ApiResponse {
   data: {
     departmentId: number;
-    categories: [
-      {
-        category: {
-          id: number;
-          title: string;
-          createdAt: Date;
-          updatedAt: Date;
-          subTitle: string | null;
-          image: string | null;
-        };
-      }
-    ];
+    categories: {
+      category: {
+        id: number;
+        title: string;
+        createdAt: Date;
+        updatedAt: Date;
+        subTitle: string | null;
+        image: string | null;
+      };
+    }[];
   };
 }
 
-interface ISubCategoryResponse extends ApiResponse {
+export interface ISubCategoryResponse extends ApiResponse {
   data: {
     departmentId: string;
     categoryId: string;

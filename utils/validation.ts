@@ -23,11 +23,10 @@ export const validationSignUpSchema = Yup.object().shape({
 
   password: Yup.string()
     .required('Password is required')
-    .min(8, 'Password must be at least 8 characters')
-    .matches(/[a-zA-Z]/, 'Password must contain at least one letter')
-    .matches(/[0-9]/, 'Password must contain at least one number')
-    .matches(/[\W_]/, 'Password must contain at least one special character'),
-
+    .min(8, 'Password must be at least 8 characters'),
+  // .matches(/[a-zA-Z]/, 'Password must contain at least one letter')
+  // .matches(/[0-9]/, 'Password must contain at least one number')
+  // .matches(/[\W_]/, 'Password must contain at least one special character')
   phoneNumber: Yup.string()
     .matches(/^\d+$/, 'Phone number must be numeric')
     .required('Phone number is required'),
@@ -57,10 +56,10 @@ export const validationSignInSchema = Yup.object().shape({
     ),
   password: Yup.string()
     .required('Password is required')
-    .min(8, 'Password must be at least 8 characters')
-    .matches(/[a-zA-Z]/, 'Password must contain at least one letter')
-    .matches(/[0-9]/, 'Password must contain at least one number')
-    .matches(/[\W_]/, 'Password must contain at least one special character'),
+    .min(8, 'Password must be at least 8 characters'),
+  // .matches(/[a-zA-Z]/, 'Password must contain at least one letter')
+  // .matches(/[0-9]/, 'Password must contain at least one number')
+  // .matches(/[\W_]/, 'Password must contain at least one special character'),
 });
 
 // forgetPassword form validation

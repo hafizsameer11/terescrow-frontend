@@ -1,4 +1,4 @@
-const API_DOMAIN = 'https://api.thecatapi.com/v1/';
+const API_DOMAIN = 'http://192.168.1.6:8000/api';
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -21,6 +21,9 @@ export const API_ENDPOINTS = {
     MarkAllNotificationsAsRead: API_DOMAIN + '/mark-all-read',
   },
 
+  PUBLIC: {
+    GetCountries: API_DOMAIN + '/customer/countries',
+  },
   QUICK_ACTIONS: {
     GetActionCatagories: API_DOMAIN + '/customer/categories', //with dept id parameter
     GetActionSubacategories: API_DOMAIN + '/customer/subcategories', //inside query parameter, need dept id and cat id
@@ -28,7 +31,9 @@ export const API_ENDPOINTS = {
   },
 
   CHATS: {
-    GetAllChats: API_DOMAIN + '/chat/get-all-chats',
+    GetAllChats: API_DOMAIN + '/customer/get-all-chats',
+    GetChatDetails: API_DOMAIN + '/customer/get-chat', //with chatid parameter
+    SendMessage: API_DOMAIN + '/customer/send-message',
   },
 
   TRANSACTIONS: {

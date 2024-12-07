@@ -5,14 +5,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import RecentContainer from '@/components/index/RecentContainer';
 import { useTheme } from '@/contexts/themeContext';
 import { COLORS, icons } from '@/constants';
-import { Route, useRouter } from 'expo-router';
+import { Route, useNavigation, useRouter } from 'expo-router';
 import QuickBoxItem from '@/components/index/QuickBoxItem';
 import { Colors } from '@/constants/Colors';
 import ChatItem from '@/components/ChatItem';
 import { DUMMY_DATA_ALL } from '@/utils/DummyData';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/authContext';
-import { getCategories } from '@/utils/queries/quickActionQueries';
+import {
+  getCategories,
+  getDepartments,
+  IDepartmentResponse,
+} from '@/utils/queries/quickActionQueries';
+import { NavigationProp } from '@react-navigation/native';
 
 const data = [
   {
@@ -48,17 +53,35 @@ const data = [
 export default function HomeScreen() {
   const { dark } = useTheme();
   const { token } = useAuth();
-  const router = useRouter();
+  const { navigate } = useNavigation<NavigationProp<any>>();
+
   const {
-    data: categories,
-    isLoading: categoriesLoading,
-    error: categoriesError,
-    isError: categoriesIsError,
+    data: departmentsData,
+    isLoading: departmentsLoading,
+    error: departmentsError,
+    isError: departmentsIsError,
   } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => getCategories(token),
+    queryFn: () => getDepartments(token),
     enabled: token !== '',
   });
+
+  const handleClickDepartment = (item: IDepartmentResponse['data'][number]) => {
+    console.log(item.title);
+    if (item.title.includes('Gift Card')) {
+      navigate('giftcard', {
+        departmentId: item.id.toString(),
+      });
+    }
+    if (item.title.includes('crypto')) {
+      navigate('buycrypto', {
+        departmentId: item.id.toString(),
+      });
+    }
+    // navigate('');
+  };
+
+  // console.log('caegory', token);
 
   const QuickActions = () => {
     const { dark } = useTheme();
@@ -75,21 +98,23 @@ export default function HomeScreen() {
           </Text>
         </View>
         <View style={{ flex: 1, marginHorizontal: 16 }}>
-          <FlatList
-            data={data}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <QuickBoxItem
-                icon={item.icon}
-                heading={item.heading}
-                text={item.text}
-                onSend={() => router.push(item.route as Route)}
-              />
-            )}
-            keyExtractor={(item) => item.key}
-            columnWrapperStyle={{ justifyContent: 'space-between' }}
-            numColumns={2}
-          />
+          {departmentsData?.data && (
+            <FlatList
+              data={departmentsData.data}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <QuickBoxItem
+                  icon={icons[item.icon as keyof typeof icons] as string}
+                  title={item.title}
+                  description={item.description}
+                  onClick={() => handleClickDepartment(item)}
+                />
+              )}
+              keyExtractor={(item) => item.id.toString()}
+              columnWrapperStyle={{ justifyContent: 'space-between' }}
+              numColumns={2}
+            />
+          )}
         </View>
       </View>
     );

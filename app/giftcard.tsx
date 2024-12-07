@@ -8,8 +8,15 @@ import { Colors } from '@/constants/Colors';
 import { useEffect, useState } from 'react';
 import { FlatList } from 'react-native';
 import CardItem from '@/components/SellGifts/CardItem';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { images } from '@/constants';
+import { NavigationProp, useRoute } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import {
+  getCategories,
+  ICategoryResponse,
+} from '@/utils/queries/quickActionQueries';
+import { useAuth } from '@/contexts/authContext';
 
 interface CardData {
   id: string;
@@ -60,34 +67,60 @@ const cardData: CardData[] = [
   },
 ];
 
-const SellGiftCard = () => {
+const GiftCard = () => {
+  const route = useRoute();
+  const { navigate, goBack } = useNavigation<NavigationProp<any>>();
+  const { departmentId }: { departmentId: string } = route.params as any;
+  if (!departmentId) {
+    return goBack();
+  }
   const [searchTerm, setSearchTerm] = useState('');
-  const [displayCards, setDisplayCards] = useState<CardData[]>(cardData);
+  const [displayCategories, setDisplayCategories] =
+    useState<ICategoryResponse['data']['categories']>();
   const { dark } = useTheme();
+  const { token } = useAuth();
+  const {
+    data: categories,
+    isLoading: isLoadingCategories,
+    isError: isErrorCategories,
+    error: errorCategories,
+  } = useQuery({
+    queryKey: [departmentId, 'categories'],
+    queryFn: () => getCategories(token, departmentId),
+  });
 
   useEffect(() => {
-    if (searchTerm === '') {
-      setDisplayCards(cardData);
-      return;
+    const categoriesData = categories?.data?.categories;
+    if (categoriesData) {
+      if (searchTerm === '') {
+        setDisplayCategories(categoriesData);
+        return;
+      }
+      setDisplayCategories((prev) => {
+        const displayCards = prev?.filter((card) =>
+          card.category.title.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        return displayCards;
+      });
     }
-    const displayCards = cardData.filter((card) =>
-      card.text.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setDisplayCards(displayCards);
-  }, [searchTerm]);
+  }, [searchTerm, categories]);
 
   const renderCardsList = () => {
     return (
       <FlatList
-        data={displayCards}
+        data={displayCategories}
         renderItem={({ item }) => (
           <CardItem
-            card={item.card}
-            text={item.text}
-            onSend={() => router.push(`/cards/${item.id}`)} // Navigate to the dynamic route with `id`
+            card={images[item.category.image as keyof typeof images] as string}
+            text={item.category.title}
+            onSend={() =>
+              navigate(`cards/${item.category.id}`, {
+                departmentId: departmentId,
+              })
+            } // Navigate to the dynamic route with `id`
           />
         )}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.category.id.toString()}
         numColumns={2}
         columnWrapperStyle={{ marginHorizontal: 16 }}
         contentContainerStyle={{ padding: 0 }}
@@ -106,9 +139,9 @@ const SellGiftCard = () => {
     >
       <NavigateBack text="Giftcards" />
       <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-      {renderCardsList()}
+      {displayCategories && renderCardsList()}
     </SafeAreaView>
   );
 };
 
-export default SellGiftCard;
+export default GiftCard;

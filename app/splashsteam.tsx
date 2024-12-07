@@ -110,7 +110,8 @@ const SplashSteam = () => {
               title="Next"
               style={{ width: '50%' }}
               onPress={() => {
-                router.push('/instantuserschat');
+                router.push('/signin');
+                // router.push('/instantuserschat');
                 console.log('clicked');
               }}
             />

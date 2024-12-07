@@ -1,13 +1,13 @@
-import { StyleSheet, View, Text, Pressable } from "react-native";
-import { Image } from "expo-image";
-import { COLORS } from "@/constants";
-import { useTheme } from "@/contexts/themeContext";
+import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { Image } from 'expo-image';
+import { COLORS } from '@/constants';
+import { useTheme } from '@/contexts/themeContext';
 
 const QuickBoxItem: React.FC<{
   icon: string;
-  heading: string;
-  text: string;
-  onSend: () => void;
+  title: string;
+  description: string;
+  onClick: (item: any) => void;
 }> = (props) => {
   const { dark } = useTheme();
   return (
@@ -18,7 +18,7 @@ const QuickBoxItem: React.FC<{
           ? { backgroundColor: COLORS.dark3 }
           : { backgroundColor: COLORS.grayscale100 },
       ]}
-      onPress={props.onSend}
+      onPress={props.onClick}
     >
       <View
         style={[
@@ -33,11 +33,11 @@ const QuickBoxItem: React.FC<{
       <View style={styles.textContainer}>
         <Text
           style={[
-            styles.heading,
+            styles.title,
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
         >
-          {props.heading}
+          {props.title}
         </Text>
         <Text
           style={[
@@ -45,7 +45,7 @@ const QuickBoxItem: React.FC<{
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
         >
-          {props.text}
+          {props.description}
         </Text>
       </View>
     </Pressable>
@@ -58,19 +58,19 @@ const styles = StyleSheet.create({
   container: {
     width: '47%',
     padding: 12,
-    flexDirection: "column",
-    backgroundColor: "#F7F7F7",
+    flexDirection: 'column',
+    backgroundColor: '#F7F7F7',
     marginBottom: 20,
     borderRadius: 12,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 8,
     marginBottom: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: {
     width: 20,
@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
   textContainer: {
     marginTop: 5,
   },
-  heading: {
-    fontWeight: "bold",
+  title: {
+    fontWeight: 'bold',
     fontSize: 12,
     marginBottom: 2,
   },

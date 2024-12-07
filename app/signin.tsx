@@ -27,6 +27,7 @@ const Signin = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const { setToken } = useAuth();
+
   const { mutate: handleLogin, isPending: loginPending } = useMutation({
     mutationFn: loginUser,
     mutationKey: ['login'],
@@ -157,14 +158,23 @@ const Signin = () => {
                       ]}
                     >
                       Forgot Password?{' '}
+                      {/* <TouchableOpacity>
+                        
+                      </TouchableOpacity> */}
                       <Text
                         style={styles.resetPasswordText}
                         onPress={() => {
-                          if (values.email) {
-                            handleForgotPassword({
-                              email: values.email,
+                          if (!values.email) {
+                            showTopToast({
+                              type: 'error',
+                              text1: 'Error',
+                              text2: 'Please enter your email',
                             });
+                            return;
                           }
+                          handleForgotPassword({
+                            email: values.email,
+                          });
                         }}
                       >
                         {forgotPasswordPending ? 'Loading...' : 'Click here'}

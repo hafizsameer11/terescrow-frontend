@@ -2,6 +2,7 @@ import { API_ENDPOINTS } from './apiConfig';
 import { apiCall, ApiResponse } from './customApiCalls';
 
 export const registerUser = async (data: IRegisterReq) => {
+  //   console.log(data);
   return await apiCall(API_ENDPOINTS.AUTH.Register, 'POST', data);
 };
 
@@ -12,21 +13,21 @@ export const loginUser = async (data: {
   return await apiCall(API_ENDPOINTS.AUTH.Login, 'POST', data);
 };
 
-export const verifyEmailOtp = async (token: string) => {
-  return await apiCall(
-    API_ENDPOINTS.AUTH.VerifyEmailOtp,
-    'POST',
-    undefined,
-    token
-  );
+export const verifyEmailOtp = async (token: string, otp: string) => {
+  const data = { otp: otp };
+  return await apiCall(API_ENDPOINTS.AUTH.VerifyEmailOtp, 'POST', data, token);
 };
 
-export const verifyPasswordOtp = async (token: string) => {
+export const verifyPasswordOtp = async (email: string, otp: string) => {
+  const data = {
+    email: email,
+    otp: otp,
+  };
   return await apiCall(
     API_ENDPOINTS.AUTH.VerifyPasswordOtp,
     'POST',
-    undefined,
-    token
+    data,
+    undefined
   );
 };
 

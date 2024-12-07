@@ -1,12 +1,12 @@
-import { StyleSheet, View, Text, Pressable } from "react-native";
-import { Image } from "expo-image";
-import { COLORS } from "@/constants";
-import { useTheme } from "@/contexts/themeContext";
+import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { Image } from 'expo-image';
+import { COLORS } from '@/constants';
+import { useTheme } from '@/contexts/themeContext';
 
 const CryptoItem: React.FC<{
   icon: string;
-  heading: string;
-  text: string;
+  title: string;
+  subTitle: string;
   onSend: () => void;
 }> = (props) => {
   const { dark } = useTheme();
@@ -26,11 +26,11 @@ const CryptoItem: React.FC<{
       <View style={styles.textContainer}>
         <Text
           style={[
-            styles.heading,
+            styles.title,
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
         >
-          {props.heading}
+          {props.title}
         </Text>
         <Text
           style={[
@@ -38,7 +38,7 @@ const CryptoItem: React.FC<{
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
         >
-          {props.text}
+          {props.subTitle}
         </Text>
       </View>
     </Pressable>
@@ -49,21 +49,21 @@ export default CryptoItem;
 
 const styles = StyleSheet.create({
   container: {
-    width: "45%",
+    width: '45%',
     padding: 12,
-    flexDirection: "column",
+    flexDirection: 'column',
     marginHorizontal: 10,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: '#F7F7F7',
     marginBottom: 20,
     borderRadius: 12,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   iconContainer: {
     width: 40,
     borderRadius: 8,
     marginBottom: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: {
     width: 40,
@@ -72,8 +72,8 @@ const styles = StyleSheet.create({
   textContainer: {
     marginTop: 5,
   },
-  heading: {
-    fontWeight: "bold",
+  title: {
+    fontWeight: 'bold',
     fontSize: 12,
     marginBottom: 2,
   },
