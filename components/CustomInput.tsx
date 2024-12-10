@@ -13,7 +13,7 @@ import CheckBox from '@react-native-community/checkbox';
 import { COLORS, icons, SIZES } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { Image } from 'expo-image';
-import CustomModal from '../components/SelectModal'; // Modal still present
+import CustomModal from './SelectModal'; // Modal still present
 import FONTS from '@/constants/fonts';
 
 type InputType = string | number | boolean;

@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/themeContext';
 import { validationforgetPasswordSchema } from '@/utils/validation';
-import Input from './customInput';
+import Input from '../components/CustomInput';
 import Button from '@/components/Button';
 import { useNavigation } from 'expo-router';
 

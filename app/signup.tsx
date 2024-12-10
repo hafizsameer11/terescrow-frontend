@@ -4,7 +4,7 @@ import { ScrollView, Text, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/themeContext'; // Assuming you have a theme context
 import { validationSignUpSchema } from '../utils/validation';
-import Input from './customInput';
+import Input from '../components/CustomInput';
 import { COLORS, icons, SIZES } from '@/constants';
 import { Image } from 'expo-image';
 import Button from '../components/Button';
@@ -15,7 +15,7 @@ import { COUNTRIES, GENDERS } from '@/utils/dummyTrans';
 import CustomSelect from '@/components/CustomSelect';
 import { NavigationProp } from '@react-navigation/native';
 import { useMutation } from '@tanstack/react-query';
-import { registerUser } from '@/utils/mutations';
+import { registerUser } from '@/utils/mutations/authMutations';
 import { ApiError } from '@/utils/customApiCalls';
 import { showTopToast } from '@/utils/helpers';
 import { useAuth } from '@/contexts/authContext';

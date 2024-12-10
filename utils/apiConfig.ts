@@ -1,4 +1,6 @@
-const API_DOMAIN = 'http://192.168.18.9:8000/api';
+export const API_BASE_URL = 'http://192.168.18.9:8000';
+
+export const API_DOMAIN = 'http://192.168.18.9:8000/api';
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -41,5 +43,3 @@ export const API_ENDPOINTS = {
     GetRecentTransactionsItems: API_DOMAIN + '/transactions/get-recent-items',
   },
 };
-
-export default API_DOMAIN;

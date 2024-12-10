@@ -16,34 +16,130 @@ import { Image } from 'expo-image';
 import { FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MessageInput from '@/components/ChatAgent/MessageInput';
+import MessageItem from '@/components/ChatAgent/MessageItem';
+import { useSocket } from '@/contexts/socketContext';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  getChatDetails,
+  ISendMessageReq,
+  sendMessageController,
+} from '@/utils/mutations/chatMutations';
+import { ApiError } from '@/utils/customApiCalls';
+import { showTopToast } from '@/utils/helpers';
+import { useAuth } from '@/contexts/authContext';
+import { useNavigation } from 'expo-router';
+import { NavigationProp, useRoute } from '@react-navigation/native';
+import LoadingOverlay from '@/components/LoadingOverlay';
 
-type Message = {
+export type Message = {
   id: string;
   text: string;
   isUser: boolean;
+  sentAt: Date;
   image?: string;
+};
+
+type newMessage = {
+  message: string;
+  id: number;
+  senderId: number;
+  receiverId: number;
+  chatId: number;
+  isRead: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 const ChatWithAgent = () => {
   const { dark } = useTheme();
+  const { navigate, goBack } = useNavigation<NavigationProp<any>>();
+  const route = useRoute();
+  const { chatId }: { chatId: string } = route.params as any;
+
+  if (!chatId) {
+    return goBack();
+  }
+
   const flatListRef = useRef<FlatList>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: 'Hello! Send details', isUser: true },
-    { id: '2', text: 'Checking!!!', isUser: false },
+    { id: '1', text: 'Hello! Send details', isUser: true, sentAt: new Date() },
+    { id: '2', text: 'Checking!!!', isUser: false, sentAt: new Date() },
     {
       id: '3',
       text: 'Valid bro. Your account has been credited.',
       isUser: false,
+      sentAt: new Date(),
     },
-    { id: '4', text: 'Thanks chief', isUser: true },
+    { id: '4', text: 'Thanks chief', isUser: true, sentAt: new Date() },
   ]);
+  const { socket } = useSocket();
+  const { token } = useAuth();
+  const {
+    data: chatDetailsData,
+    isLoading: loadingChatDetails,
+    isError: isErrorChatDetails,
+    error: errorChatDetails,
+  } = useQuery({
+    queryKey: ['messages', chatId],
+    queryFn: () => getChatDetails(chatId, token),
+  });
+  const { mutate, isPending: sendingMessage } = useMutation({
+    mutationKey: ['send-message'],
+    mutationFn: (data: ISendMessageReq) => sendMessageController(data, token),
+    onSuccess: (data) => {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          id: data.data.id.toString(),
+          text: data.data.message,
+          isUser: true,
+          sentAt: data.data.createdAt,
+        },
+      ]);
+    },
+    onError: (error: ApiError) => {
+      console.log(error);
+      showTopToast({ type: 'error', text1: 'Error', text2: error.message });
+    },
+  });
 
   const scrollToBottom = () => {
     flatListRef.current?.scrollToEnd({ animated: true });
   };
 
-  const sendMessage = (message?: string, image?: any) => {
+  useEffect(() => {
+    if (socket) {
+      socket.on('message', (newMessage: newMessage) => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            id: newMessage.id.toString(),
+            text: newMessage.message,
+            isUser: false,
+            sentAt: newMessage.createdAt,
+          },
+        ]);
+      });
+    }
+  }, [socket]);
+
+  //handling chat details
+  useEffect(() => {
+    if (chatDetailsData) {
+      const oldMessages = chatDetailsData.data.messages.map((message) => {
+        return {
+          id: message.id.toString(),
+          text: message.message,
+          isUser: message.senderId !== chatDetailsData.data.receiverDetails.id,
+          sentAt: message.createdAt,
+        };
+      });
+      setMessages((prevMessages) => [...prevMessages, ...oldMessages]);
+    }
+  }, [chatDetailsData]);
+
+  const handleSendMessage = (message?: string, image?: any) => {
     if (!image && !message) return;
 
     let newMessage: Message;
@@ -53,6 +149,7 @@ const ChatWithAgent = () => {
         id: (messages.length + 1).toString(),
         text: message || '',
         isUser: true,
+        sentAt: new Date(),
       };
     } else {
       newMessage = {
@@ -60,57 +157,15 @@ const ChatWithAgent = () => {
         text: message || '',
         isUser: true,
         image: image,
+        sentAt: new Date(),
       };
     }
 
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-
-    setTimeout(() => {
-      const responseMessage: Message = {
-        id: (messages.length + 2).toString(),
-        text: 'This is a dummy response!',
-        isUser: false,
-      };
-      setMessages((prevMessages) => [...prevMessages, responseMessage]);
-      scrollToBottom();
-    }, 1000);
-    scrollToBottom();
+    mutate({
+      message: newMessage.text,
+      chatId,
+    });
   };
-
-  const renderMessage = ({ item }: { item: Message }) => (
-    <View
-      style={[
-        styles.messageContainer,
-        item.isUser ? styles.userMessage : styles.otherMessage,
-      ]}
-    >
-      {item.image && (
-        <TouchableOpacity onPress={() => setImagePreview(item.image as string)}>
-          <Image source={{ uri: item.image }} style={styles.dynamicImage} />
-        </TouchableOpacity>
-      )}
-      {!item.image && (
-        <Text
-          style={[
-            styles.messageText,
-            item.isUser
-              ? styles.userMessageTextColor
-              : styles.otherMessageTextColor,
-          ]}
-        >
-          {item.text}
-        </Text>
-      )}
-      <Text
-        style={[
-          styles.timestamp,
-          { alignSelf: item.isUser ? 'flex-end' : 'flex-start' },
-        ]}
-      >
-        {new Date().toLocaleTimeString()}
-      </Text>
-    </View>
-  );
 
   //this event listener scrolls to bottom to view full content
   useEffect(() => {
@@ -139,12 +194,17 @@ const ChatWithAgent = () => {
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
+          renderItem={({ item }) => (
+            <MessageItem item={item} setImagePreview={setImagePreview} />
+          )}
           contentContainerStyle={styles.chatContainer}
           onContentSizeChange={scrollToBottom}
         />
 
-        <MessageInput sendMessage={sendMessage} />
+        <MessageInput
+          sendMessage={handleSendMessage}
+          sendingMessage={sendingMessage}
+        />
 
         {imagePreview && (
           <Modal transparent={true} visible={!!imagePreview}>
@@ -181,6 +241,7 @@ const ChatWithAgent = () => {
         image={images.maskGroup}
       />
       {renderAgentChat()}
+      <LoadingOverlay visible={loadingChatDetails} />
     </SafeAreaView>
   );
 };
@@ -190,19 +251,6 @@ export default ChatWithAgent;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   chatContainer: { padding: 10 },
-  messageContainer: {
-    maxWidth: '70%',
-    borderRadius: 10,
-    marginVertical: 5,
-    paddingVertical: 10,
-  },
-  userMessage: { alignSelf: 'flex-end' },
-  otherMessage: { alignSelf: 'flex-start' },
-  userMessageTextColor: { backgroundColor: '#DCF8C6' },
-  otherMessageTextColor: { backgroundColor: '#E5E5E5' },
-  messageText: { fontSize: 16, padding: 15, borderRadius: 8 },
-  timestamp: { fontSize: 12, marginTop: 5, color: COLORS.grayscale400 },
-  dynamicImage: { width: '100%', height: undefined, aspectRatio: 1 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',

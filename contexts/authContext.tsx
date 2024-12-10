@@ -1,51 +1,80 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-
-// Define types for user and context
+// Define the AuthContextType interface
 interface AuthContextType {
   token: string;
+  userData: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+    profilePicture?: string;
+  } | null;
   setToken: (token: string) => Promise<void>;
+  setUserData: (userData: AuthContextType['userData']) => void;
   logout: () => Promise<void>;
 }
 
-interface AuthProviderProps {
-  children: ReactNode;
+// Define the initial state type
+interface AuthState {
+  token: string;
+  userData: AuthContextType['userData'];
 }
 
-// Create the context with default values
+// Define action types
+type AuthAction =
+  | { type: 'SET_TOKEN'; payload: string }
+  | { type: 'SET_USER_DATA'; payload: AuthContextType['userData'] }
+  | { type: 'LOGOUT' };
+
+// Define the initial state
+const initialState: AuthState = {
+  token: '',
+  userData: null,
+};
+
+// Reducer function
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
+  switch (action.type) {
+    case 'SET_TOKEN':
+      return { ...state, token: action.payload };
+    case 'SET_USER_DATA':
+      return { ...state, userData: action.payload };
+    case 'LOGOUT':
+      return { ...initialState }; // Clear token and userData
+    default:
+      throw new Error(`Unhandled action type: ${(action as any).type}`);
+  }
+};
+
+// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create the provider component
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  // State to hold the token
-  const [token, setTokenState] = useState<string>('');
+// Provider Component
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Load token from AsyncStorage when the app starts
-  useEffect(() => {
-    const loadToken = async () => {
-      const storedToken = await SecureStore.getItemAsync('auth_token');
-      if (storedToken) {
-        setTokenState(storedToken);
-      }
-    };
-    loadToken();
-  }, []);
-
-  // Function to set token and save it in AsyncStorage
   const setToken = async (token: string) => {
-    await SecureStore.setItemAsync('auth_token', token);
-    setTokenState(token);
+    // Example: Save token to localStorage or perform other async tasks
+    await SecureStore.setItemAsync('authToken', token);
+    dispatch({ type: 'SET_TOKEN', payload: token });
   };
 
-  // Function to logout (remove token from AsyncStorage)
+  const setUserData = (userData: AuthContextType['userData']) => {
+    dispatch({ type: 'SET_USER_DATA', payload: userData });
+  };
+
   const logout = async () => {
-    await SecureStore.deleteItemAsync('auth_token');
-    setTokenState('');
+    // Example: Remove token from localStorage or perform other cleanup
+    await SecureStore.deleteItemAsync('authToken');
+    dispatch({ type: 'LOGOUT' });
   };
 
   return (
-    <AuthContext.Provider value={{ token, setToken, logout }}>
+    <AuthContext.Provider value={{ ...state, setToken, setUserData, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -53,8 +82,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
 // Custom hook to use the AuthContext
 export const useAuth = (): AuthContextType => {
-  const context = React.useContext(AuthContext);
-  if (!context) {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

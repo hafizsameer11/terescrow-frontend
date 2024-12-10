@@ -16,13 +16,13 @@ import { useRouter, useNavigation } from 'expo-router';
 import { useSearchParams } from 'expo-router/build/hooks';
 import { Image } from 'expo-image';
 import FONTS from '@/constants/fonts';
-import Input from './customInput';
+import Input from '../components/CustomInput';
 import { useMutation } from '@tanstack/react-query';
 import {
   resendOtp,
   verifyEmailOtp,
   verifyPasswordOtp,
-} from '@/utils/mutations';
+} from '@/utils/mutations/authMutations';
 import { useAuth } from '@/contexts/authContext';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { showTopToast } from '@/utils/helpers';

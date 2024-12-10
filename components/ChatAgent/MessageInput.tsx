@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   FlatList,
   Modal,
   StyleSheet,
@@ -15,9 +16,13 @@ import * as ImagePicker from 'expo-image-picker';
 
 interface MessageInputProps {
   sendMessage: (message?: string, image?: string) => void;
+  sendingMessage: boolean;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ sendMessage }) => {
+const MessageInput: React.FC<MessageInputProps> = ({
+  sendMessage,
+  sendingMessage,
+}) => {
   const { dark } = useTheme();
   const [input, setInput] = useState<string>('');
   const [isImagePickerOpen, setIsImagePickerOpen] = useState<boolean>(false);
@@ -82,6 +87,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ sendMessage }) => {
         <TouchableOpacity
           onPress={handleSendMessage}
           style={styles.sendMessage}
+          disabled={sendingMessage}
         >
           <Text
             style={[
@@ -89,7 +95,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ sendMessage }) => {
               dark ? { color: COLORS.white } : { color: COLORS.black },
             ]}
           >
-            Send
+            {sendingMessage ? <ActivityIndicator size="small" /> : 'Send'}
           </Text>
         </TouchableOpacity>
       </View>

@@ -13,7 +13,7 @@ import { useNavigation } from 'expo-router';
 
 import { Formik } from 'formik';
 import { validationBVNValidation } from '@/utils/validation';
-import Input from './customInput';
+import Input from '../components/CustomInput';
 import Button from '@/components/Button';
 
 const BvnVerification = () => {

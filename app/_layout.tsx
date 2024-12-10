@@ -10,6 +10,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Toast from 'react-native-toast-message';
 import { AuthProvider } from '@/contexts/authContext';
+import { SocketProvider } from '@/contexts/socketContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -34,119 +35,133 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <QueryClientProvider client={new QueryClient()}>
-          <Stack>
-            <Stack.Screen name="signup" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="otpverification"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="setpinscreen"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="notificationpage"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="tercescrow" options={{ headerShown: false }} />
-            <Stack.Screen name="splashsteam" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="splashcrypto"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="setnewpassword"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="forgetpassword"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="successmodal"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="signin" options={{ headerShown: false }} />
-            <Stack.Screen name="editprofile" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="updatekyclevel"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="instantuserschat"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="bvnverification"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="profilesecurity"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="changepassword"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="+not-found" />
-            <Stack.Screen
-              name="giftcardcategories"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="giftcardsubcategories"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="cryptosubcategories"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="cryptocategories"
-              options={{ headerShown: false }}
-            />
-            {/* <Stack.Screen name="amazon" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="americanexpress" options={{ headerShown: false }}  /> */}
-            <Stack.Screen
-              name="connectingagent"
-              options={{ headerShown: false }}
-            />
-            {/* <Stack.Screen name="ebaycard" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="visacard" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="footlocker" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="googleplaycard" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="itunescard" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="nikecard" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="btc" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="usdt" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="eth" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="solana" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="shibuinu" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="dogecoin" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="usdc" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="bnb" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="toncoin" options={{ headerShown: false }}  /> */}
-            {/* <Stack.Screen name="tron" options={{ headerShown: false }}  /> */}
-            <Stack.Screen
-              name="giftcardsold"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="giftcardbought"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="cryptosold" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="cryptobought"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="chatwithagent"
-              options={{ headerShown: false }}
-            />
-          </Stack>
+          <SocketProvider>
+            <Stack>
+              <Stack.Screen name="signup" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="otpverification"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="setpinscreen"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="notificationpage"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="tercescrow"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="splashsteam"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="splashcrypto"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="setnewpassword"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="forgetpassword"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="successmodal"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="signin" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="editprofile"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="updatekyclevel"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="instantuserschat"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="bvnverification"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="profilesecurity"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="changepassword"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="+not-found" />
+              <Stack.Screen
+                name="giftcardcategories"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="giftcardsubcategories"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="cryptosubcategories"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="cryptocategories"
+                options={{ headerShown: false }}
+              />
+              {/* <Stack.Screen name="amazon" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="americanexpress" options={{ headerShown: false }}  /> */}
+              <Stack.Screen
+                name="connectingagent"
+                options={{ headerShown: false }}
+              />
+              {/* <Stack.Screen name="ebaycard" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="visacard" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="footlocker" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="googleplaycard" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="itunescard" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="nikecard" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="btc" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="usdt" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="eth" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="solana" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="shibuinu" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="dogecoin" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="usdc" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="bnb" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="toncoin" options={{ headerShown: false }}  /> */}
+              {/* <Stack.Screen name="tron" options={{ headerShown: false }}  /> */}
+              <Stack.Screen
+                name="giftcardsold"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="giftcardbought"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="cryptosold"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="cryptobought"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="chatwithagent"
+                options={{ headerShown: false }}
+              />
+            </Stack>
+          </SocketProvider>
           <Toast />
           <StatusBar style="auto" />
         </QueryClientProvider>

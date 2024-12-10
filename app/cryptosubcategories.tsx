@@ -90,6 +90,16 @@ const CryptoScreen = () => {
     setSelectedBlockchainId(value);
   };
 
+  const handleNavigateToAgentConnection = () => {
+    if (selectedBlockchainId && token) {
+      navigate('connectingagent', {
+        departmentId,
+        categoryId: categoryData.id.toString(),
+        subCategoryId: selectedBlockchainId,
+      });
+    }
+  };
+
   useEffect(() => {
     const options = subcategoriesData?.data?.subCategories;
     if (options) {
@@ -169,12 +179,7 @@ const CryptoScreen = () => {
           {renderInformationFields()}
         </ScrollView>
         <View style={styles.footer}>
-          <Button
-            title="Proceed"
-            onPress={() => {
-              router.push('/connectingagent');
-            }}
-          />
+          <Button title="Proceed" onPress={handleNavigateToAgentConnection} />
         </View>
       </View>
     </SafeAreaView>

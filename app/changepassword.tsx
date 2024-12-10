@@ -12,7 +12,7 @@ import { useTheme } from '@/contexts/themeContext';
 import { Formik } from 'formik';
 import { validationChangePassword } from '@/utils/validation';
 import Toast from 'react-native-toast-message';
-import Input from './customInput';
+import Input from '../components/CustomInput';
 import Button from '@/components/Button';
 import { router, useNavigation } from 'expo-router';
 import { useState } from 'react';

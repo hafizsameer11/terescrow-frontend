@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Input from './customInput';
+import Input from '../components/CustomInput';
 import { useNavigation } from 'expo-router';
 import Button from '@/components/Button';
 import { useTheme } from '@/contexts/themeContext';

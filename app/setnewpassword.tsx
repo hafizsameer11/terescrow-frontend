@@ -13,7 +13,7 @@ import { useTheme } from '@/contexts/themeContext';
 import { COLORS } from '@/constants';
 import { Formik } from 'formik';
 import { validationSetNewPassword } from '@/utils/validation';
-import Input from './customInput';
+import Input from '../components/CustomInput';
 import Button from '@/components/Button';
 import NavigateBack from '@/components/NavigateBack';
 import { useNavigation, useRouter } from 'expo-router'; // Importing useRouter

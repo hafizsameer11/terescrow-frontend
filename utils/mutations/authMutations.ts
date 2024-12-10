@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from './apiConfig';
-import { apiCall, ApiResponse } from './customApiCalls';
+import { API_ENDPOINTS } from '../apiConfig';
+import { apiCall, ApiResponse } from '../customApiCalls';
 
 export const registerUser = async (data: IRegisterReq) => {
   //   console.log(data);
