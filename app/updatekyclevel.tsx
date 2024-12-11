@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/themeContext';
 import { useNavigation } from 'expo-router';
 import Button from '@/components/Button';
-import DraggableModal from './kycModal';
+import DraggableModal from '../components/KycModal';
 import { useState } from 'react';
 
 const UpdateKycLevel = () => {

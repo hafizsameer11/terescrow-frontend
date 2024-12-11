@@ -89,14 +89,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
           style={styles.sendMessage}
           disabled={sendingMessage}
         >
-          <Text
-            style={[
-              { fontWeight: 'bold' },
-              dark ? { color: COLORS.white } : { color: COLORS.black },
-            ]}
-          >
-            {sendingMessage ? <ActivityIndicator size="small" /> : 'Send'}
-          </Text>
+          {sendingMessage ? (
+            <ActivityIndicator size="small" />
+          ) : (
+            <Text
+              style={[
+                { fontWeight: 'bold' },
+                dark ? { color: COLORS.white } : { color: COLORS.black },
+              ]}
+            >
+              Send
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

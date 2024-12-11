@@ -20,7 +20,6 @@ import MessageItem from '@/components/ChatAgent/MessageItem';
 import { useSocket } from '@/contexts/socketContext';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
-  getChatDetails,
   ISendMessageReq,
   sendMessageController,
 } from '@/utils/mutations/chatMutations';
@@ -30,6 +29,7 @@ import { useAuth } from '@/contexts/authContext';
 import { useNavigation } from 'expo-router';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import LoadingOverlay from '@/components/LoadingOverlay';
+import { getChatDetails } from '@/utils/queries/chatQueries';
 
 export type Message = {
   id: string;
@@ -62,19 +62,9 @@ const ChatWithAgent = () => {
 
   const flatListRef = useRef<FlatList>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: 'Hello! Send details', isUser: true, sentAt: new Date() },
-    { id: '2', text: 'Checking!!!', isUser: false, sentAt: new Date() },
-    {
-      id: '3',
-      text: 'Valid bro. Your account has been credited.',
-      isUser: false,
-      sentAt: new Date(),
-    },
-    { id: '4', text: 'Thanks chief', isUser: true, sentAt: new Date() },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const { socket } = useSocket();
-  const { token } = useAuth();
+  const { token, userData } = useAuth();
   const {
     data: chatDetailsData,
     isLoading: loadingChatDetails,
@@ -110,18 +100,38 @@ const ChatWithAgent = () => {
 
   useEffect(() => {
     if (socket) {
-      socket.on('message', (newMessage: newMessage) => {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            id: newMessage.id.toString(),
-            text: newMessage.message,
-            isUser: false,
-            sentAt: newMessage.createdAt,
-          },
-        ]);
-      });
+      socket.on(
+        'message',
+        ({ from, message }: { from: number; message: newMessage }) => {
+          console.log(from, message);
+          console.log('My id: ', userData?.id);
+          console.log('agentId: ', chatDetailsData?.data.receiverDetails.id);
+          if (
+            from == userData?.id ||
+            from != chatDetailsData?.data.receiverDetails.id
+          )
+            return;
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              id: message.id.toString(),
+              text: message.message,
+              isUser: false,
+              sentAt: message.createdAt,
+            },
+          ]);
+          setTimeout(() => {
+            scrollToBottom();
+          }, 100);
+        }
+      );
     }
+
+    return () => {
+      if (socket) {
+        socket.off('message');
+      }
+    };
   }, [socket]);
 
   //handling chat details
@@ -135,7 +145,11 @@ const ChatWithAgent = () => {
           sentAt: message.createdAt,
         };
       });
+      
       setMessages((prevMessages) => [...prevMessages, ...oldMessages]);
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }
   }, [chatDetailsData]);
 
@@ -161,16 +175,19 @@ const ChatWithAgent = () => {
       };
     }
 
-    mutate({
-      message: newMessage.text,
-      chatId,
-    });
+    if (message) {
+      console.log(message);
+      mutate({
+        message: message,
+        chatId,
+      });
+    }
   };
 
   //this event listener scrolls to bottom to view full content
   useEffect(() => {
     Keyboard.addListener('keyboardDidShow', () => {
-      console.log('ok');
+      // console.log('ok');
       setTimeout(() => scrollToBottom(), 200);
     });
 
@@ -236,9 +253,16 @@ const ChatWithAgent = () => {
       ]}
     >
       <ChatPfpNav
-        name="Obi Junior"
+        name={
+          chatDetailsData?.data?.receiverDetails.firstname +
+          ' ' +
+          chatDetailsData?.data?.receiverDetails.lastname
+        }
         status="Always Online"
-        image={images.maskGroup}
+        image={
+          chatDetailsData?.data?.receiverDetails.profilePicture ||
+          images.maskGroup
+        }
       />
       {renderAgentChat()}
       <LoadingOverlay visible={loadingChatDetails} />

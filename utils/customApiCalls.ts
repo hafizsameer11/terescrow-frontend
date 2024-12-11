@@ -59,6 +59,7 @@ export const apiCall = async (
     return response?.data;
   } catch (error) {
     if (isAxiosError(error) && error.response) {
+      console.log(error?.response?.data);
       throw new ApiError(
         error.response?.data,
         error.response.data?.message || 'Something went wrong',

@@ -5,19 +5,8 @@ export const sendMessageController = async (
   data: ISendMessageReq,
   token: string
 ): Promise<ISendMessageResponse> => {
+  console.log(data);
   return await apiCall(API_ENDPOINTS.CHATS.SendMessage, 'POST', data, token);
-};
-
-export const getChatDetails = async (
-  chatId: string,
-  token: string
-): Promise<IChatDetailsResponse> => {
-  return await apiCall(
-    API_ENDPOINTS.CHATS.GetChatDetails + '/' + chatId,
-    'GET',
-    undefined,
-    token
-  );
 };
 
 export interface ISendMessageReq {
@@ -27,20 +16,6 @@ export interface ISendMessageReq {
 
 interface ISendMessageResponse extends ApiResponse {
   data: IMessageRes;
-}
-
-interface IChatDetailsResponse extends ApiResponse {
-  data: {
-    id: number;
-    chatType: IChatType;
-    receiverDetails: {
-      id: number;
-      username: string;
-      firstname: string;
-      lastname: string;
-    };
-    messages: IMessageRes[];
-  };
 }
 
 export interface IMessageRes {

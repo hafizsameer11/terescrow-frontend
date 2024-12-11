@@ -98,6 +98,16 @@ const CardScreen = () => {
     setSelectedCardId(id);
   };
 
+  const handleNavigateToAgentConnection = () => {
+    if (selectedCardId && token) {
+      navigate('connectingagent', {
+        departmentId,
+        categoryId: categoryData.id.toString(),
+        subCategoryId: selectedCardId,
+      });
+    }
+  };
+
   const renderCard = () => {
     return (
       <View style={styles.cardContainer}>
@@ -178,9 +188,7 @@ const CardScreen = () => {
         </ScrollView>
         <View style={styles.footer}>
           <Button
-            onPress={() => {
-              navigate('connectingagent');
-            }}
+            onPress={handleNavigateToAgentConnection}
             title="Proceed"
             filled
           />

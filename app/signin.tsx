@@ -26,18 +26,20 @@ import { useAuth } from '@/contexts/authContext';
 const Signin = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
-  const { setToken } = useAuth();
+  const { setToken, setUserData } = useAuth();
 
   const { mutate: handleLogin, isPending: loginPending } = useMutation({
     mutationFn: loginUser,
     mutationKey: ['login'],
     onSuccess: async (data) => {
-      await setToken(data.token);
-      reset({
-        index: 0,
-        routes: [{ name: '(tabs)' }],
+      setToken(data.token).then(() => {
+        setUserData(data.data);
+        reset({
+          index: 0,
+          routes: [{ name: '(tabs)' }],
+        });
+        navigate('(tabs)');
       });
-      navigate('(tabs)');
     },
     onError: (error: ApiError) => {
       showTopToast({

@@ -5,8 +5,8 @@ interface AuthContextType {
   token: string;
   userData: {
     id: number;
-    firstName: string;
-    lastName: string;
+    firstname: string;
+    lastname: string;
     username: string;
     email: string;
     profilePicture?: string;

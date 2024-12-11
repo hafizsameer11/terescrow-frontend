@@ -47,9 +47,9 @@ export const resendOtp = async (token?: string, email?: string) => {
 };
 
 export enum UserRoles {
-  ADMIN = 'ADMIN',
-  CUSTOMER = 'CUSTOMER',
-  AGENT = 'AGENT',
+  admin = 'admin',
+  customer = 'customer',
+  agent = 'agent',
 }
 
 interface LoginResponse {
@@ -57,8 +57,11 @@ interface LoginResponse {
   data: {
     id: number;
     username: string;
+    firstname: string;
+    lastname: string;
     email: string;
-    role: UserRoles.CUSTOMER;
+    role: UserRoles;
+    profilePicture: string | undefined;
   };
   token: string;
 }

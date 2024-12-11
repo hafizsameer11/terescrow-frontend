@@ -66,6 +66,8 @@ export default function HomeScreen() {
     enabled: token !== '',
   });
 
+  // console.log(token, departmentsData, 'token');
+
   const handleClickDepartment = (item: IDepartmentResponse['data'][number]) => {
     console.log(item.title);
     if (item.title.includes('Gift Card')) {

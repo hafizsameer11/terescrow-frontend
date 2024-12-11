@@ -4,7 +4,7 @@ export const API_DOMAIN = 'http://192.168.18.9:8000/api';
 
 export const API_ENDPOINTS = {
   AUTH: {
-    Login: API_DOMAIN + '/auth/login',
+    Login: API_DOMAIN + '/public/login',
     Register: API_DOMAIN + '/auth/customer/register',
     Logout: API_DOMAIN + '/auth/logout',
     VerifyEmailOtp: API_DOMAIN + '/auth/verify-email-otp',
@@ -27,9 +27,9 @@ export const API_ENDPOINTS = {
     GetCountries: API_DOMAIN + '/customer/countries',
   },
   QUICK_ACTIONS: {
-    GetActionCatagories: API_DOMAIN + '/customer/categories', //with dept id parameter
-    GetActionSubacategories: API_DOMAIN + '/customer/subcategories', //inside query parameter, need dept id and cat id
-    GetActionDepartments: API_DOMAIN + '/customer/departments',
+    GetActionCatagories: API_DOMAIN + '/public/categories', //with dept id parameter
+    GetActionSubacategories: API_DOMAIN + '/public/subcategories', //inside query parameter, need dept id and cat id
+    GetActionDepartments: API_DOMAIN + '/public/departments',
   },
 
   CHATS: {

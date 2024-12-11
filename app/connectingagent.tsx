@@ -22,31 +22,42 @@ const ConnnectingAgent = () => {
   if (!departmentId || !categoryId || !subCategoryId) {
     return goBack();
   }
-  const { connectToSocket, socket } = useSocket();
+  const { onlineAgents, socket, connectToSocket, requestAgentConnection } =
+    useSocket();
   const [isConnectingToSocket, setIsConnectingToSocket] = useState(true);
   const [isWaitingForAgent, setIsWaitingForAgent] = useState(false);
+  const [isContinuingPrevChat, setIsContinuingPrevChat] = useState(false);
 
   useEffect(() => {
     if (!socket) {
-      connectToSocket(departmentId, categoryId, subCategoryId);
+      connectToSocket();
     }
     if (socket) {
-      if (isConnectingToSocket) {
-        setIsConnectingToSocket(false);
-        setIsWaitingForAgent(true);
-      }
+      requestAgentConnection(departmentId, categoryId, subCategoryId);
+
       socket.on('agentAssigned', (chatId: string) => {
+        console.log('agent assigned');
         setIsWaitingForAgent(false);
         navigate('chatwithagent', { chatId: chatId.toString() });
       });
-      socket.on('disconnect', () => {
-        console.log('Disconnected from Socket.io server');
-        setIsConnectingToSocket(true);
-        setIsWaitingForAgent(false);
-        goBack();
+
+      socket.on('alreadyPendingChat', (chatId: string) => {
+        setIsContinuingPrevChat(true);
+
+        setTimeout(() => {
+          navigate('chatwithagent', { chatId: chatId.toString() });
+        }, 2000);
       });
     }
+
+    return () => {
+      if (socket) {
+        socket.off('agentAssigned');
+        socket.off('alreadyPendingChat');
+      }
+    };
   }, [socket]);
+
   // router.push('/chatwithagent');
   return (
     <SafeAreaView
@@ -69,6 +80,8 @@ const ConnnectingAgent = () => {
               ? 'Connecting to Server'
               : isWaitingForAgent
               ? 'Connecting you to an agent'
+              : isContinuingPrevChat
+              ? 'Continuing your previous chat'
               : 'Connected to an agent'}
           </Text>
           <Text style={styles.textContent2}>.. This will take few seconds</Text>
