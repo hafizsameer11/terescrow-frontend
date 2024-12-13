@@ -48,15 +48,13 @@ export const validationSignUpSchema = Yup.object().shape({
 });
 
 export const validationSignInSchema = Yup.object().shape({
-  email: Yup.string()
-    .required('Email is required')
-    .matches(
-      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-      'Please enter a valid email address'
-    ),
-  password: Yup.string()
-    .required('Password is required')
-    .min(8, 'Password must be at least 8 characters'),
+  email: Yup.string().required('Email is required'),
+  // .matches(
+  //   /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  //   'Please enter a valid email address'
+  // ),
+  password: Yup.string().required('Password is required'),
+  // .min(8, 'Password must be at least 8 characters'),
   // .matches(/[a-zA-Z]/, 'Password must contain at least one letter')
   // .matches(/[0-9]/, 'Password must contain at least one number')
   // .matches(/[\W_]/, 'Password must contain at least one special character'),

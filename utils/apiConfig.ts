@@ -1,6 +1,6 @@
-export const API_BASE_URL = 'http://192.168.18.9:8000';
+export const API_BASE_URL = 'http://192.168.1.13:8000';
 
-export const API_DOMAIN = 'http://192.168.18.9:8000/api';
+export const API_DOMAIN = API_BASE_URL + '/api';
 
 export const API_ENDPOINTS = {
   AUTH: {

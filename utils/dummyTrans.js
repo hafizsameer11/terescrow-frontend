@@ -206,15 +206,15 @@ export const DUMMY_CRYPTO_SOLDS_BOUGHT = [
 ];
 
 export const COUNTRIES = [
-  { label: 'Nigeria', value: 'nigeria' },
-  { label: 'Ghana', value: 'ghana' },
-  { label: 'Cameroon', value: 'cameroon' },
-  { label: 'South Africa', value: 'south africa' },
-  { label: 'Kenya', value: 'kenya' },
+  { title: 'Nigeria', id: 'nigeria' },
+  { title: 'Ghana', id: 'ghana' },
+  { title: 'Cameroon', id: 'cameroon' },
+  { title: 'South Africa', id: 'south africa' },
+  { title: 'Kenya', id: 'kenya' },
 ];
 
 export const GENDERS = [
-  { label: 'Male', value: 'male' },
-  { label: 'Female', value: 'female' },
-  { label: 'Other', value: 'other' },
+  { id: 1, title: 'male' },
+  { id: 2, title: 'female' },
+  { id: 3, title: 'other' },
 ];

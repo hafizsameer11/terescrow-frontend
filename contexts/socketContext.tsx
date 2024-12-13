@@ -33,12 +33,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     return () => {
+      console.log('disconnecting from socket');
       disconnectFromSocket();
     };
   }, [token]);
 
   const connectToSocket = async () => {
     if (socket) {
+      console.log('cleaning up previous socket');
       socket.disconnect(); // Clean up existing socket connection
     }
     if (token) {
@@ -68,8 +70,9 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       });
 
-      newSocket.on('disconnect', () => {
+      newSocket.on('disconnect', (reason) => {
         console.log('Disconnected from Socket.io server');
+        console.log(reason);
         setSocket(null);
       });
     }
@@ -81,7 +84,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     subCategoryId: string
   ) => {
     if (socket) {
-      socket.emit('requestAgentConnection', {
+      socket.emit('requestAssignment', {
         departmentId: departmentId,
         categoryId: categoryId,
         subCategoryId: subCategoryId,
@@ -98,6 +101,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const disconnectFromSocket = () => {
     if (socket) {
       socket.removeAllListeners();
+      console.log('socket disconnecting');
       socket.disconnect();
       setSocket(null);
     }

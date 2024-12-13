@@ -14,16 +14,27 @@ import * as Yup from 'yup';
 import { COUNTRIES, GENDERS } from '@/utils/dummyTrans';
 import CustomSelect from '@/components/CustomSelect';
 import { NavigationProp } from '@react-navigation/native';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { registerUser } from '@/utils/mutations/authMutations';
 import { ApiError } from '@/utils/customApiCalls';
 import { showTopToast } from '@/utils/helpers';
 import { useAuth } from '@/contexts/authContext';
+import { getAllCountries } from '@/utils/queries/quickActionQueries';
 
 const SignUp = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const { setToken } = useAuth();
+
+  const {
+    data: CountriesData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['get-countries'],
+    queryFn: () => getAllCountries(),
+  });
 
   const { mutate: signUp, isPending } = useMutation({
     mutationKey: ['signup'],
@@ -176,16 +187,18 @@ const SignUp = () => {
                   id="email"
                 />
 
-                <CustomSelect
-                  options={COUNTRIES}
-                  currValue={values.country}
-                  error={errors.country}
-                  touched={touched.country}
-                  placeholder="Select Country"
-                  id="country"
-                  setFieldValue={setFieldValue}
-                  modalLabel="Country"
-                />
+                {CountriesData?.data && (
+                  <CustomSelect
+                    options={CountriesData.data}
+                    currValue={values.country}
+                    error={errors.country}
+                    touched={touched.country}
+                    placeholder="Select Country"
+                    id="country"
+                    setFieldValue={setFieldValue}
+                    modalLabel="Country"
+                  />
+                )}
 
                 <Input
                   keyboardType="phone-pad"
@@ -196,7 +209,7 @@ const SignUp = () => {
                   errorText={
                     touched.phoneNumber && errors.phoneNumber
                       ? errors.phoneNumber
-                      : ''
+                      : undefined
                   }
                   showCheckbox={false}
                   prefilledValue={values.phoneNumber}

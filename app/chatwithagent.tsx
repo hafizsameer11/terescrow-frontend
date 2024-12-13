@@ -65,6 +65,7 @@ const ChatWithAgent = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const { socket } = useSocket();
   const { token, userData } = useAuth();
+  const currReceiverId = useRef<number | null>(null);
   const {
     data: chatDetailsData,
     isLoading: loadingChatDetails,
@@ -98,6 +99,8 @@ const ChatWithAgent = () => {
     flatListRef.current?.scrollToEnd({ animated: true });
   };
 
+  // console.log(chatDetailsData?.data?.receiverDetails);
+
   useEffect(() => {
     if (socket) {
       socket.on(
@@ -105,12 +108,8 @@ const ChatWithAgent = () => {
         ({ from, message }: { from: number; message: newMessage }) => {
           console.log(from, message);
           console.log('My id: ', userData?.id);
-          console.log('agentId: ', chatDetailsData?.data.receiverDetails.id);
-          if (
-            from == userData?.id ||
-            from != chatDetailsData?.data.receiverDetails.id
-          )
-            return;
+          console.log('agentId: ', currReceiverId?.current);
+          if (from == userData?.id || from != currReceiverId?.current) return;
           setMessages((prevMessages) => [
             ...prevMessages,
             {
@@ -137,6 +136,7 @@ const ChatWithAgent = () => {
   //handling chat details
   useEffect(() => {
     if (chatDetailsData) {
+      currReceiverId.current = chatDetailsData.data.receiverDetails.id;
       const oldMessages = chatDetailsData.data.messages.map((message) => {
         return {
           id: message.id.toString(),
@@ -145,7 +145,7 @@ const ChatWithAgent = () => {
           sentAt: message.createdAt,
         };
       });
-      
+
       setMessages((prevMessages) => [...prevMessages, ...oldMessages]);
       setTimeout(() => {
         scrollToBottom();
@@ -157,6 +157,8 @@ const ChatWithAgent = () => {
     if (!image && !message) return;
 
     let newMessage: Message;
+
+    // console.log('hi');
 
     if (!image) {
       newMessage = {

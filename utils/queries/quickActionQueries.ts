@@ -38,6 +38,10 @@ export const getSubCategories = async (
   );
 };
 
+export const getAllCountries = async (): Promise<ICountriesRes> => {
+  return await apiCall(API_ENDPOINTS.PUBLIC.GetCountries, 'GET');
+};
+
 // department quick actions
 export interface IDepartmentResponse extends ApiResponse {
   data: { id: number; icon: string; title: string; description: string }[];
@@ -75,4 +79,8 @@ export interface ISubCategoryResponse extends ApiResponse {
       }
     ];
   };
+}
+
+interface ICountriesRes extends ApiResponse {
+  data: { id: number; title: string }[];
 }
