@@ -14,6 +14,7 @@ interface SelectProps {
   setFieldValue: (field: string, value: any) => void;
   currValue: string;
   placeholder: string;
+  onSelectOverride?: (value: any) => void; // New prop for custom logic
 }
 const CustomSelect = ({
   error,
@@ -24,6 +25,7 @@ const CustomSelect = ({
   setFieldValue,
   currValue,
   placeholder,
+  onSelectOverride
 }: SelectProps) => {
   const { dark } = useTheme();
   const [modalVisible, setIsVisible] = React.useState(false);
@@ -90,7 +92,15 @@ const CustomSelect = ({
       <SelectModal
         isVisible={modalVisible}
         setIsVisible={setIsVisible}
-        onSelect={(value) => setFieldValue(id, value)}
+        onSelect={(value) => {
+          if (onSelectOverride) {
+            // Use custom selection logic if provided
+            onSelectOverride(value);
+          } else {
+            // Default logic: set the selected id
+            setFieldValue(id, value);
+          }
+        }}
         title={modalLabel}
         options={options}
       />

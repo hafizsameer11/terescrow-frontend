@@ -128,8 +128,9 @@ const SignUp = () => {
             termsAccepted: false,
             country: '',
           }}
-          validationSchema={validationSignUpSchema}
+          // validationSchema={validationSignUpSchema}
           onSubmit={(values) => {
+            console.log(values);
             handleSubmit(values);
           }}
         >
@@ -248,14 +249,21 @@ const SignUp = () => {
                 {/* Gender text container */}
                 <CustomSelect
                   options={GENDERS}
-                  currValue={values.gender}
+                  currValue={values.gender}  // Correctly bound to Formik's state
                   error={errors.gender}
                   touched={touched.gender}
                   placeholder="Select Gender"
                   id="gender"
                   setFieldValue={setFieldValue}
                   modalLabel="Gender"
+                  onSelectOverride={(value) => {
+                    const selectedOption = GENDERS.find((o) => o.id === value);
+                    if (selectedOption) {
+                      setFieldValue("gender", selectedOption.title);  // Update Formik state
+                    }
+                  }}
                 />
+
 
                 <View
                   style={{
