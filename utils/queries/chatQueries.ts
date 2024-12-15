@@ -23,27 +23,42 @@ export const getChatDetails = async (
   );
 };
 
-interface IChatResponse {
-  id: number;
-  icon: string;
-  heading: string;
-  price: string;
-  categories: string[];
-  time: string;
-  productId: string;
+interface IChatResponse extends ApiResponse {
+  data: {
+    id: number;
+    customer: IUser;
+    recentMessage: string;
+    recentMessageTimestamp: Date;
+    chatStatus: ChatStatus;
+    messagesCount: number;
+  }[];
 }
 
 interface IChatDetailsResponse extends ApiResponse {
   data: {
     id: number;
     chatType: IChatType;
-    receiverDetails: {
-      id: number;
-      username: string;
-      firstname: string;
-      lastname: string;
-      profilePicture: string | null;
-    };
+    receiverDetails: IUser;
     messages: IMessageRes[];
   };
+}
+
+export enum ChatStatus {
+  pending = 'pending',
+  successful = 'successful',
+  declined = 'declined',
+}
+
+export enum ChatType {
+  customer_to_agent = 'customer_to_agent',
+  team_chat = 'team_chat',
+  group_chat = 'group_chat',
+}
+
+export interface IUser {
+  id: number;
+  username: string;
+  firstname: string;
+  lastname: string;
+  profilePicture: string | null;
 }
