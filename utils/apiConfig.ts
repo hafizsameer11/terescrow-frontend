@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'http://192.168.0.103:8000';
+export const API_BASE_URL = 'http://192.168.18.9:8000';
 
 export const API_DOMAIN = API_BASE_URL + '/api';
 
@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
 
   PUBLIC: {
     GetCountries: API_DOMAIN + '/public/countries',
+    ReadAllMessages: API_DOMAIN + '/customer/read-all-messages',
   },
   QUICK_ACTIONS: {
     GetActionCatagories: API_DOMAIN + '/public/categories', //with dept id parameter

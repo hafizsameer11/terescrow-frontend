@@ -24,12 +24,13 @@ import {
   sendMessageController,
 } from '@/utils/mutations/chatMutations';
 import { ApiError } from '@/utils/customApiCalls';
-import { showTopToast } from '@/utils/helpers';
+import { checkOnlineStatus, showTopToast } from '@/utils/helpers';
 import { useAuth } from '@/contexts/authContext';
 import { useNavigation } from 'expo-router';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { getChatDetails } from '@/utils/queries/chatQueries';
+import chat from './(tabs)/chat';
 
 export type Message = {
   id: string;
@@ -52,7 +53,7 @@ type newMessage = {
 
 const ChatWithAgent = () => {
   const { dark } = useTheme();
-  const { navigate, goBack } = useNavigation<NavigationProp<any>>();
+  const { navigate, goBack, reset } = useNavigation<NavigationProp<any>>();
   const route = useRoute();
   const { chatId }: { chatId: string } = route.params as any;
 
@@ -63,7 +64,7 @@ const ChatWithAgent = () => {
   const flatListRef = useRef<FlatList>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const { socket } = useSocket();
+  const { socket, onlineAgents } = useSocket();
   const { token, userData } = useAuth();
   const currReceiverId = useRef<number | null>(null);
   const {
@@ -122,6 +123,26 @@ const ChatWithAgent = () => {
           setTimeout(() => {
             scrollToBottom();
           }, 100);
+        }
+      );
+
+      socket.on(
+        'chat-successful',
+        ({ chatId: currChatId }: { chatId: number }) => {
+          if (currChatId == +chatId) {
+            showTopToast({
+              type: 'success',
+              text1: 'Transaction Successful',
+              text2: 'You transaction has been made successfully',
+            });
+          }
+          setTimeout(() => {
+            reset({
+              index: 0,
+              routes: [{ name: '(tabs)' }],
+            });
+            navigate('(tabs)');
+          }, 2000);
         }
       );
     }
@@ -260,7 +281,11 @@ const ChatWithAgent = () => {
           ' ' +
           chatDetailsData?.data?.receiverDetails.lastname
         }
-        status="Always Online"
+        status={
+          checkOnlineStatus(currReceiverId?.current, onlineAgents)
+            ? 'Online'
+            : 'Offline'
+        }
         image={
           chatDetailsData?.data?.receiverDetails.profilePicture ||
           images.maskGroup

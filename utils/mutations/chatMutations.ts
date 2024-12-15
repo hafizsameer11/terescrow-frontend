@@ -9,6 +9,18 @@ export const sendMessageController = async (
   return await apiCall(API_ENDPOINTS.CHATS.SendMessage, 'POST', data, token);
 };
 
+export const readAllMessagesController = async (data: {
+  chatId: string;
+  token: string;
+}) => {
+  return apiCall(
+    API_ENDPOINTS.PUBLIC.ReadAllMessages,
+    'POST',
+    { chatId: data.chatId },
+    data.token
+  );
+};
+
 export interface ISendMessageReq {
   message: string;
   chatId: string;

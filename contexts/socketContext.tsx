@@ -3,6 +3,20 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './authContext';
 import { showTopToast } from '@/utils/helpers';
+import { UserRoles } from '@/utils/mutations/authMutations';
+
+export interface Agent {
+  userId: string;
+  socketId: string;
+  assignedDepartments: {
+    id: string;
+  };
+}
+
+export interface NonAgentUser {
+  userId: string;
+  socketId: string;
+}
 
 interface SocketContextType {
   socket: Socket | null;
@@ -12,7 +26,7 @@ interface SocketContextType {
     subCategoryId: string
   ) => void;
   connectToSocket: () => void;
-  onlineAgents: { userId: string; socketId: string }[];
+  onlineAgents: NonAgentUser[];
   disconnectFromSocket: () => void;
 }
 
@@ -22,9 +36,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [onlineAgents, setOnlineAgents] = useState<
-    { userId: string; socketId: string }[]
-  >([]);
+  const [onlineAgents, setOnlineAgents] = useState<Agent[]>([]);
+  const [isAdminOnline, setIsAdminOnline] = useState<
+    | {
+        userId: string;
+        socketId: string;
+      }
+    | false
+  >(false);
   const { token } = useAuth();
 
   useEffect(() => {
@@ -55,11 +74,26 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       newSocket.on(
-        'newAgentJoined',
-        (agent: { userId: string; socketId: string }) => {
-          setOnlineAgents((prevOnlineAgents) => [...prevOnlineAgents, agent]);
+        'onlineUsers',
+        ({ agents, admin }: { agents: Agent[]; admin: NonAgentUser }) => {
+          if (agents.length > 0) {
+            setOnlineAgents((previous) => {
+              return [...previous, ...agents];
+            });
+          }
+          if (admin) {
+            setIsAdminOnline({
+              userId: admin.userId,
+              socketId: admin.socketId,
+            });
+          }
         }
       );
+
+      newSocket.on('newAgentJoined', (agent: Agent) => {
+        console.log(agent);
+        setOnlineAgents((prevOnlineAgents) => [...prevOnlineAgents, agent]);
+      });
 
       newSocket.on('connect_error', (error) => {
         console.error('Error Connecting toSocket : ', error);
@@ -69,6 +103,26 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
           text2: 'Failed to connect to Socket server',
         });
       });
+
+      newSocket.on(
+        'user-disconnected',
+        ({ id, role }: { id: number; role: UserRoles }) => {
+          if (role == UserRoles.admin) {
+            setIsAdminOnline(false);
+          }
+          if (role == UserRoles.agent) {
+            setOnlineAgents((prevOnlineAgents) =>
+              prevOnlineAgents.filter((agent) => +agent.userId !== id)
+            );
+          }
+
+          showTopToast({
+            type: 'error',
+            text1: 'Alert!',
+            text2: `A ${role} has been disconnected`,
+          });
+        }
+      );
 
       newSocket.on('disconnect', (reason) => {
         console.log('Disconnected from Socket.io server');
