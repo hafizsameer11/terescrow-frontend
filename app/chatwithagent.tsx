@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MessageInput from '@/components/ChatAgent/MessageInput';
 import MessageItem from '@/components/ChatAgent/MessageItem';
 import { useSocket } from '@/contexts/socketContext';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ISendMessageReq,
   sendMessageController,
@@ -60,7 +60,7 @@ const ChatWithAgent = () => {
   if (!chatId) {
     return goBack();
   }
-
+const queryClient = useQueryClient()
   const flatListRef = useRef<FlatList>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -80,6 +80,7 @@ const ChatWithAgent = () => {
     mutationKey: ['send-message'],
     mutationFn: (data: ISendMessageReq) => sendMessageController(data, token),
     onSuccess: (data) => {
+      queryClient.invalidateQueries(['allchats'])
       setMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -158,21 +159,17 @@ const ChatWithAgent = () => {
   useEffect(() => {
     if (chatDetailsData) {
       currReceiverId.current = chatDetailsData.data.receiverDetails.id;
-      const oldMessages = chatDetailsData.data.messages.map((message) => {
-        return {
-          id: message.id.toString(),
-          text: message.message,
-          isUser: message.senderId !== chatDetailsData.data.receiverDetails.id,
-          sentAt: message.createdAt,
-        };
-      });
-
-      setMessages((prevMessages) => [...prevMessages, ...oldMessages]);
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
+      const oldMessages = chatDetailsData.data.messages.map((message) => ({
+        id: message.id.toString(),
+        text: message.message,
+        isUser: message.senderId !== chatDetailsData.data.receiverDetails.id,
+        sentAt: message.createdAt,
+      }));
+      setMessages(oldMessages);
+      setTimeout(scrollToBottom, 100);
     }
   }, [chatDetailsData]);
+
 
   const handleSendMessage = (message?: string, image?: any) => {
     if (!image && !message) return;
@@ -220,6 +217,9 @@ const ChatWithAgent = () => {
   }, []);
 
   const renderAgentChat = () => {
+    const isChatClosed =
+      chatDetailsData?.data?.status === 'declined' ||
+      chatDetailsData?.data?.status === 'successful';
     return (
       <KeyboardAvoidingView
         style={[
@@ -233,7 +233,7 @@ const ChatWithAgent = () => {
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${item.id}-${Date.now()}`}
           renderItem={({ item }) => (
             <MessageItem item={item} setImagePreview={setImagePreview} />
           )}
@@ -241,11 +241,17 @@ const ChatWithAgent = () => {
           onContentSizeChange={scrollToBottom}
         />
 
-        <MessageInput
-          sendMessage={handleSendMessage}
-          sendingMessage={sendingMessage}
-        />
-
+        {isChatClosed ? (
+          <View style={styles.chatClosedContainer}>
+            <Text style={styles.chatClosedText}>
+              {chatDetailsData?.data?.status === 'declined'
+                ? 'This chat was declined and is now closed.'
+                : 'This chat was successfully completed.'}
+            </Text>
+          </View>
+        ) : (
+          <MessageInput sendMessage={handleSendMessage} sendingMessage={sendingMessage} />
+        )}
         {imagePreview && (
           <Modal transparent={true} visible={!!imagePreview}>
             <View style={styles.previewContainer}>
@@ -366,5 +372,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 50,
     padding: 5,
+  },
+  chatClosedContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.account,
+    borderRadius: 10,
+    margin: 20,
+  },
+  chatClosedText: {
+    fontSize: 16,
+    color: 'white',
+    textAlign: 'center',
   },
 });

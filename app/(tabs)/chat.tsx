@@ -1,33 +1,62 @@
-import { StyleSheet, Text, View, FlatList } from 'react-native';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/contexts/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '@/constants';
+import { COLORS, icons } from '@/constants';
 import ChatCategories from '@/components/ChatCategories';
 import ChatItem from '@/components/ChatItem';
-import {
-  DUMMY_DATA_ALL,
-  DUMMY_DATA_COMP,
-  DUMMY_DATA_DECLINE,
-  DUMMY_DATA_PROCESS,
-} from '../../utils/DummyData';
+import { useQuery } from '@tanstack/react-query';
+import { getAllChats } from '@/utils/queries/chatQueries';
+import { useAuth } from '@/contexts/authContext';
 
-const chat = () => {
-  const [selectedCategory, setSelectedCategory] = React.useState('all');
+const Chat = () => {
+  const { token } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  const {
+    data: chatData,
+    isLoading: chatLoading,
+    error: chatError,
+    isError: chatisError,
+  } = useQuery({
+    queryKey: ['allchats'],
+    queryFn: () => getAllChats(token),
+    enabled: !!token,
+  });
+
   const getFilteredData = () => {
+    if (!chatData) return [];
+
     switch (selectedCategory) {
       case 'completed':
-        return DUMMY_DATA_COMP;
+        return chatData.data.filter((chat) => chat.chatStatus === 'successful');
       case 'processing':
-        return DUMMY_DATA_PROCESS;
+        return chatData.data.filter((chat) => chat.chatStatus === 'pending');
       case 'declined':
-        return DUMMY_DATA_DECLINE;
+        return chatData.data.filter((chat) => chat.chatStatus === 'declined');
       default:
-        return DUMMY_DATA_ALL;
+        return chatData.data;
     }
   };
 
   const { dark } = useTheme();
+
+  if (chatLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.green} />
+      </View>
+    );
+  }
+
+  if (chatisError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error fetching chats: {chatError.message}</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mainHeadingContainer}>
@@ -36,9 +65,7 @@ const chat = () => {
       <View
         style={[
           styles.mainContent,
-          dark
-            ? { backgroundColor: COLORS.black }
-            : { backgroundColor: COLORS.white },
+          dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
         ]}
       >
         <ChatCategories
@@ -47,15 +74,16 @@ const chat = () => {
         />
         <FlatList
           data={getFilteredData()}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <ChatItem
-              icon={item.icon}
-              heading={item.heading}
-              text={item.text}
-              date={item.date}
-              price={item.price}
-              productId={item.productId}
+            id={item.id.toString()}
+              icon={icons.chat}
+              heading={`${item.agent.firstname} ${item.agent.lastname}`}
+              text={item.recentMessage}
+              date={new Date(item.recentMessageTimestamp).toLocaleTimeString()}
+              productId={item.id.toString()}
+              price='$0.00'
             />
           )}
           style={styles.dataList}
@@ -72,17 +100,14 @@ const styles = StyleSheet.create({
   },
   mainHeadingContainer: {
     flex: 0.15,
-    flexDirection: 'column',
     justifyContent: 'center',
   },
   mainHeading: {
-    flex: 1,
     fontSize: 24,
     marginBottom: 20,
     color: COLORS.white,
     fontWeight: 'bold',
     textAlign: 'center',
-    textAlignVertical: 'bottom',
   },
   mainContent: {
     flex: 1,
@@ -90,11 +115,24 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    backgroundColor: COLORS.white,
   },
   dataList: {
     marginTop: 10,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: COLORS.red,
+    fontSize: 16,
+  },
 });
 
-export default chat;
+export default Chat;

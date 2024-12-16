@@ -1,11 +1,48 @@
-import { Text, View, StyleSheet, FlatList } from "react-native";
+import { Text, View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import { COLORS, icons } from "@/constants";
 import TransactionItem from "./TransactionItem";
-import { DUMMY_TRANS } from "../../utils/dummyTrans";
 import { useTheme } from "@/contexts/themeContext";
+import { useQuery } from "@tanstack/react-query";
+import { transactionHistory } from "@/utils/queries/transactionQueries";
+import { useAuth } from "@/contexts/authContext";
+import { useNavigation } from "expo-router";
+
 const TransactionList = () => {
   const { dark } = useTheme();
-  const data = DUMMY_TRANS;
+  const { token } = useAuth();
+  const { navigate } = useNavigation();
+
+  const {
+    data: transactionData,
+    isLoading: transactionLoading,
+    error: transactionError,
+    isError: transactionIsError,
+  } = useQuery({
+    queryKey: ["transactionHistory"],
+    queryFn: () => transactionHistory(token),
+    enabled: !!token,
+  });
+
+  // Render loading state
+  if (transactionLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.green} />
+      </View>
+    );
+  }
+
+  // Render error state
+  if (transactionIsError) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>
+          Error fetching transactions: {transactionError?.message || "Unknown error"}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View>
       <View>
@@ -19,20 +56,20 @@ const TransactionList = () => {
         </Text>
       </View>
       <FlatList
-        data={data}
+        data={transactionData?.data || []}
         renderItem={({ item }) => (
           <TransactionItem
-            icon={item.icon}
-            heading={item.heading}
-            date={item.date}
-            price={item.price}
-            productId={item.productId}
-            route={item.route}
+            icon={item.department.icon || icons.gift} // Use default icon if null or empty
+            heading={item.department.title}
+            date={new Date(item.createdAt).toLocaleDateString()}
+            price={`₦${item.amountNaira.toLocaleString()}`}
+            productId={item.id.toString()}
+            id={item.department.id}
+            route="giftcardsold"
           />
         )}
-        keyExtractor={(item) => item.key}
+        keyExtractor={(item) => item.id.toString()}
         numColumns={1}
-        scrollEnabled={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       />
     </View>
@@ -45,6 +82,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 16,
     marginRight: 16,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: COLORS.red,
   },
 });
 

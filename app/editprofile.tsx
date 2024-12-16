@@ -15,6 +15,11 @@ import Input from '../components/CustomInput';
 import { useNavigation } from 'expo-router';
 import Button from '@/components/Button';
 import { useTheme } from '@/contexts/themeContext';
+import { useAuth } from '@/contexts/authContext';
+import { useMutation } from '@tanstack/react-query';
+import { editUser } from '@/utils/mutations/authMutations';
+import { ApiError } from '@/utils/customApiCalls';
+import { showTopToast } from '@/utils/helpers';
 const EditProfile = () => {
   const dummyData = {
     firstName: 'John',
@@ -25,12 +30,32 @@ const EditProfile = () => {
     gender: 'Male',
     userName: 'johndoe',
   };
+  const {userData}=useAuth();
   const { dark } = useTheme();
   const { goBack } = useNavigation();
   const themeStyles = {
-    background: dark ? COLORS.dark1 : COLORS.white,
-    normalText: dark ? COLORS.white : COLORS.black,
+    background:COLORS.white,
+    normalText: COLORS.black,
   };
+  const {token}=useAuth();
+  const { mutate: edit, isPending } = useMutation({
+    mutationKey: ['editProfile'],
+    mutationFn: (values: any) => editUser(values, token), // Pass values when calling mutate
+    onSuccess: async (data) => {
+      showTopToast({
+        type: 'success',
+        text1: 'Profile Updated',
+        text2: 'Your profile has been updated successfully',
+      });
+    },
+    onError: (error: ApiError) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Something went wrong',
+      });
+    },
+  });
   return (
     <SafeAreaView style={{ backgroundColor: themeStyles.background }}>
       <ScrollView>
@@ -57,19 +82,24 @@ const EditProfile = () => {
             Edit Profile
           </Text>
         </View>
-        <View style={{ padding: 20 }}>
+        <View style={{ padding: 20,height: '100%' }}>
           <Formik
             initialValues={{
-              firstName: '',
-              lastName: '',
-              email: '',
-              country: '',
-              mobileNumber: '',
-              gender: '',
-              userName: '',
+              firstName: userData?.firstname || '',
+              lastName: userData?.lastname || '',
+              email: userData?.email || '',
+              country: userData?.country || '',
+              phoneNumber:userData?.phoneNumber || '',
+              gender: userData?.gender || '',
+              userName: userData?.username || '',
             }}
+            enableReinitialize={true}  // Ensures prefilled data works correctly
+
             validationSchema={validationEditProfile}
-            onSubmit={(values) => console.log(values)}
+            onSubmit={(values) => {
+              edit(values);
+              
+            }}
           >
             {({
               handleChange,
@@ -131,14 +161,14 @@ const EditProfile = () => {
                 <Input
                   label="Mobile Number"
                   keyboardType="phone-pad"
-                  prefilledValue={values.mobileNumber}
-                  value={values.mobileNumber}
-                  onChangeText={handleChange('mobileNumber')}
-                  onBlur={handleBlur('mobileNumber')}
-                  id="mobileNumber"
+                  prefilledValue={values.phoneNumber}
+                  value={values.phoneNumber}
+                  onChangeText={handleChange('phoneNumber')}
+                  onBlur={handleBlur('phoneNumber')}
+                  id="phoneNumber"
                   errorText={
-                    touched.mobileNumber && errors.mobileNumber
-                      ? errors.mobileNumber
+                    touched.phoneNumber && errors.phoneNumber
+                      ? errors.phoneNumber
                       : ''
                   }
                 />
@@ -171,43 +201,28 @@ const EditProfile = () => {
                     title="Save Changes"
                     onPress={handleSubmit as () => void}
                     disabled={
-                      !(
-                        values.firstName &&
-                        values.lastName &&
-                        values.email &&
-                        values.country &&
-                        values.mobileNumber &&
-                        values.gender &&
-                        values.userName &&
-                        !errors.firstName &&
-                        !errors.lastName &&
-                        !errors.email &&
-                        !errors.country &&
-                        !errors.mobileNumber &&
-                        !errors.gender &&
-                        !errors.userName
-                      )
+                      false
                     }
-                    style={{
-                      opacity: !(
-                        values.firstName &&
-                        values.lastName &&
-                        values.email &&
-                        values.country &&
-                        values.mobileNumber &&
-                        values.gender &&
-                        values.userName &&
-                        !errors.firstName &&
-                        !errors.lastName &&
-                        !errors.email &&
-                        !errors.country &&
-                        !errors.mobileNumber &&
-                        !errors.gender &&
-                        !errors.userName
-                      )
-                        ? 0.5
-                        : 1,
-                    }}
+                    // style={{
+                    //   opacity: !(
+                    //     values.firstName &&
+                    //     values.lastName &&
+                    //     values.email &&
+                    //     values.country &&
+                    //     values.mobileNumber &&
+                    //     values.gender &&
+                    //     values.userName &&
+                    //     !errors.firstName &&
+                    //     !errors.lastName &&
+                    //     !errors.email &&
+                    //     !errors.country &&
+                    //     !errors.mobileNumber &&
+                    //     !errors.gender &&
+                    //     !errors.userName
+                    //   )
+                    //     ? 0.5
+                    //     : 1,
+                    // }}
                   />
                 </View>
               </View>
@@ -225,6 +240,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 10,
+    
   },
 });
 

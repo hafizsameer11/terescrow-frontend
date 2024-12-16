@@ -1,9 +1,12 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { COLORS } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
+import { useNavigation } from 'expo-router';
+import { NavigationProp } from '@react-navigation/native';
 const ChatItem: React.FC<{
   icon: string;
+  id?: string;
   heading: string;
   text: string;
   date: string;
@@ -11,7 +14,11 @@ const ChatItem: React.FC<{
   productId: string;
 }> = (props) => {
   const { dark } = useTheme();
+  const { navigate, goBack } = useNavigation<NavigationProp<any>>();
   return (
+    <TouchableOpacity
+    onPress={() => { navigate('chatwithagent', { chatId: props.id?.toString() });}}
+    >
     <View
       style={[
         styles.container,
@@ -94,6 +101,7 @@ const ChatItem: React.FC<{
         </View>
       </View>
     </View>
+    </TouchableOpacity>
   );
 };
 

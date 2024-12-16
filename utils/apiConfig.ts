@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'http://192.168.18.9:8000';
+export const API_BASE_URL = 'http://192.168.0.103:8000';
 
 export const API_DOMAIN = API_BASE_URL + '/api';
 
@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
     ForgotPassword: API_DOMAIN + '/auth/forgot-password',
     VerifyPasswordOtp: API_DOMAIN + '/auth/verify-forgot-password-otp',
     ResetPassword: API_DOMAIN + '/auth/reset-password',
+    EditProfile: API_DOMAIN + '/auth/edit-profile',
   },
 
   ACCOUNT_MANAGEMENT: {
@@ -42,5 +43,7 @@ export const API_ENDPOINTS = {
   TRANSACTIONS: {
     GetRecentTransactions: API_DOMAIN + '/transactions/get-recent',
     GetRecentTransactionsItems: API_DOMAIN + '/transactions/get-recent-items',
+    GetTransactionHistory: API_DOMAIN + '/customer/utilities/get-transaction-group',
+    GetTransactionByDepartment: API_DOMAIN + '/customer/utilities/get-transaction-by-department',
   },
 };

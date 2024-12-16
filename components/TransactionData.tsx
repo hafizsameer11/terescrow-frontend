@@ -47,7 +47,7 @@ const TransactionData: React.FC<{
               alignItems: "center",
             }}
           >
-            <Text style={styles.detailProduct}>{props.productId}</Text>
+            {/* <Text style={styles.detailProduct}>{props.productId}</Text> */}
           </View>
         </View>
       </View>

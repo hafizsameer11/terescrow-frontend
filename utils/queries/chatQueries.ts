@@ -39,6 +39,7 @@ interface IChatDetailsResponse extends ApiResponse {
     id: number;
     chatType: IChatType;
     receiverDetails: IUser;
+    status?:'pending' | 'successful' | 'declined';
     messages: IMessageRes[];
   };
 }

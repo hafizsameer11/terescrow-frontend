@@ -11,70 +11,9 @@ import { NavigationProp, useRoute } from '@react-navigation/native';
 import { useAuth } from '@/contexts/authContext';
 import { useQuery } from '@tanstack/react-query';
 import { getCategories } from '@/utils/queries/quickActionQueries';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const data: CryptoBox[] = [
-  {
-    id: '1',
-    icon: icons.btc,
-    heading: 'BTC',
-    text: 'Bitcoin Wallet',
-  },
-  {
-    icon: icons.usdt,
-    id: '2',
-    heading: 'USDT',
-    text: 'Tether Wallet',
-  },
-  {
-    icon: icons.eth,
-    id: '3',
-    heading: 'ETH',
-    text: 'Ethereum Wallet',
-  },
-  {
-    icon: icons.solana,
-    id: '4',
-    heading: 'SOLANA',
-    text: 'Tether Wallet',
-  },
-  {
-    icon: icons.shibaInu,
-    id: '5',
-    heading: 'SHIBU INU',
-    text: 'Tether Wallet',
-  },
-  {
-    icon: icons.dogeCoin,
-    id: '6',
-    heading: 'DOGE COIN',
-    text: 'Tether Wallet',
-  },
-  {
-    icon: icons.dollarCoin,
-    id: '7',
-    heading: 'USDC',
-    text: 'Ethereum Wallet',
-  },
-  {
-    icon: icons.bnb,
-    id: '8',
-    heading: 'BNB',
-    text: 'Tether Wallet',
-  },
-  {
-    icon: icons.tonCoin,
-    id: '9',
-    heading: 'TONCOIN',
-    text: 'Ethereum Wallet',
-  },
-  {
-    icon: icons.tron,
-    id: '10',
-    heading: 'TRON',
-    text: 'Tether Wallet',
-  },
-];
+
 
 const CryptoCategories = () => {
   const { dark } = useTheme();
@@ -95,7 +34,11 @@ const CryptoCategories = () => {
     queryKey: [departmentId, 'categories'],
     queryFn: () => getCategories(token, departmentId),
   });
-
+useEffect(() => {
+  if(categories){
+    console.log(categories.data.categories);
+  }
+})
   return (
     <SafeAreaView
       style={[
@@ -111,7 +54,7 @@ const CryptoCategories = () => {
         style={{ flex: 1, marginTop: 16 }}
         renderItem={({ item }) => (
           <CryptoItem
-            icon={icons[item.category.image as keyof typeof icons] as string}
+            icon={item.category.image || icons.gift}
             title={item.category.title}
             subTitle={item.category.subTitle || ''}
             onSend={() =>

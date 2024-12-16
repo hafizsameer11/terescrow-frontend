@@ -110,13 +110,13 @@ export const validationEditProfile = Yup.object().shape({
       'Invalid country'
     ),
 
-  mobileNumber: Yup.string()
+  phoneNumber: Yup.string()
     .matches(/^\d+$/, 'Phone number must be numeric')
     .required('Phone number is required'),
 
   gender: Yup.string()
     .required('Gender is required')
-    .oneOf(['Male', 'Female', 'Other'], 'Invalid gender'),
+    .oneOf(['male', 'female', 'other'], 'Invalid gender'),
 
   userName: Yup.string()
     .required('Username is required')

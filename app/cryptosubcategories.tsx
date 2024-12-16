@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
-import { COLORS, icons } from '@/constants';
+import { COLORS, icons, images } from '@/constants';
 import {
   View,
   Text,
@@ -173,7 +173,7 @@ const CryptoScreen = () => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {<NavigateBack text={categoryData.title} />}
           <CryptoCardCom
-            card={icons[categoryData.image as keyof typeof icons] as string}
+            card={categoryData.image || images.cryptoCard}
           />
           {/* <InformationFields /> */}
           {renderInformationFields()}

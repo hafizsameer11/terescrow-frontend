@@ -27,14 +27,13 @@ const transactions = () => {
           Transaction
         </Text>
       </View>
-      <ScrollView style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
           <DoughnutChart />
         </View>
         <View style={styles.transList}>
           <TransactionList />
         </View>
-      </ScrollView>
+    
     </SafeAreaView>
   );
 };

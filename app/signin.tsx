@@ -32,6 +32,7 @@ const Signin = () => {
     mutationFn: loginUser,
     mutationKey: ['login'],
     onSuccess: async (data) => {
+      console.log(data)
       setToken(data.token).then(() => {
         setUserData(data.data);
         reset({

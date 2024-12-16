@@ -1,8 +1,9 @@
 import { StyleSheet, View, Text, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { COLORS } from "@/constants";
-import { Route, useRouter } from "expo-router";
+import { Route, useNavigation, useRouter } from "expo-router";
 import { useTheme } from "@/contexts/themeContext";
+import { NavigationProp } from "@react-navigation/native";
 const TransactionItem: React.FC<{
   icon: string;
   heading: string;
@@ -10,11 +11,14 @@ const TransactionItem: React.FC<{
   price: string;
   productId: string;
   route: string;
+  id?:number
 }> = (props) => {
   const { dark } = useTheme();
   const router = useRouter();
+  const { navigate } = useNavigation<NavigationProp<any>>();
+
   const transPressHandler = () => {
-    router.push(props.route as Route);
+    navigate(props.route, { id: props.id?.toString() });
   };
   return (
     <Pressable onPress={transPressHandler} style={styles.container}>
@@ -53,7 +57,7 @@ const TransactionItem: React.FC<{
               alignItems: "center",
             }}
           >
-            <Text style={styles.detailProduct}>{props.productId}</Text>
+            {/* <Text style={styles.detailProduct}>{props.productId}</Text> */}
           </View>
         </View>
       </View>

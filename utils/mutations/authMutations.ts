@@ -5,6 +5,10 @@ export const registerUser = async (data: IRegisterReq) => {
   //   console.log(data);
   return await apiCall(API_ENDPOINTS.AUTH.Register, 'POST', data);
 };
+export const editUser = async (data: IRegisterReq, token: string) => {
+  //   console.log(data);
+  return await apiCall(API_ENDPOINTS.AUTH.EditProfile, 'POST', data, token);
+};
 
 export const loginUser = async (data: {
   email: string;
@@ -76,7 +80,7 @@ interface IRegisterReq {
   lastName: string;
   email: string;
   phoneNumber: string;
-  password: string;
+  password?: string;
   username: string;
   gender: string;
   country: string;
