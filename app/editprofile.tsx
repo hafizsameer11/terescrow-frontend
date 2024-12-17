@@ -97,8 +97,8 @@ const EditProfile = () => {
 
             validationSchema={validationEditProfile}
             onSubmit={(values) => {
+              console.log(values);
               edit(values);
-              
             }}
           >
             {({

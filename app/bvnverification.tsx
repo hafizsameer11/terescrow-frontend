@@ -13,17 +13,35 @@ import { useNavigation } from 'expo-router';
 
 import { Formik } from 'formik';
 import { validationBVNValidation } from '@/utils/validation';
-import Input from '../components/CustomInput';
+import Input from '@/components/CustomInput';
 import Button from '@/components/Button';
+import { KyCRequest } from '@/utils/mutations/authMutations';
+import { useMutation } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+// import { useMutation } from 'react-query';
 
 const BvnVerification = () => {
   const { dark } = useTheme();
   const { goBack } = useNavigation();
+  // const token = 'your-auth-token'; // Replace with actual token
+const {token,userData}=useAuth();
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
     normalText: dark ? COLORS.white : COLORS.black,
     verifiedBackground: dark ? COLORS.grayscale200 : COLORS.transparentAccount,
   };
+
+  const { mutate: submitBVN } = useMutation({
+    mutationKey: ['submitBVN'],
+    mutationFn: (values) => KyCRequest(values, token),
+    onSuccess: (data) => {
+      console.log('Submission Successful:', data);
+      // Add success message or navigation here
+    },
+    onError: (error) => {
+      console.error('Submission Failed:', error);
+    },
+  });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
@@ -63,7 +81,7 @@ const BvnVerification = () => {
                   dateOfBirth: '',
                 }}
                 validationSchema={validationBVNValidation}
-                onSubmit={(values) => console.log(values)}
+                onSubmit={(values) => submitBVN(values)}
               >
                 {({
                   handleChange,
@@ -75,6 +93,7 @@ const BvnVerification = () => {
                 }) => (
                   <View>
                     <Input
+                      id="surName"
                       label="Surname"
                       onChangeText={handleChange('surName')}
                       keyboardType="default"
@@ -83,11 +102,10 @@ const BvnVerification = () => {
                       errorText={
                         touched.surName && errors.surName ? errors.surName : ''
                       }
-                      id="surName"
-                      prefilledValue={values.surName}
                     />
                     <Input
-                      label="First name"
+                      id="firstName"
+                      label="First Name"
                       onChangeText={handleChange('firstName')}
                       keyboardType="default"
                       onBlur={handleBlur('firstName')}
@@ -97,21 +115,19 @@ const BvnVerification = () => {
                           ? errors.firstName
                           : ''
                       }
-                      id="firstName"
-                      prefilledValue={values.firstName}
                     />
                     <Input
+                      id="bvn"
                       label="BVN"
                       onChangeText={handleChange('bvn')}
-                      keyboardType="default"
+                      keyboardType="numeric"
                       onBlur={handleBlur('bvn')}
                       value={values.bvn}
                       errorText={touched.bvn && errors.bvn ? errors.bvn : ''}
-                      id="bvn"
-                      prefilledValue={values.bvn}
                     />
                     <Input
-                      label="Date of birth"
+                      id="dateOfBirth"
+                      label="Date of Birth"
                       onChangeText={handleChange('dateOfBirth')}
                       keyboardType="default"
                       onBlur={handleBlur('dateOfBirth')}
@@ -121,68 +137,26 @@ const BvnVerification = () => {
                           ? errors.dateOfBirth
                           : ''
                       }
-                      id="dateOfBirth"
-                      prefilledValue={values.dateOfBirth}
+                    />
+                    <Button
+                      title={ 'Continue'}
+                      onPress={() => handleSubmit()}
+                      // disabled={isLoading}
                     />
                   </View>
                 )}
               </Formik>
             </View>
           </View>
-
-          {/* Button at the bottom */}
-          <View style={{ padding: 20 }}>
-            <Formik
-              initialValues={{
-                surName: '',
-                firstName: '',
-                bvn: '',
-                dateOfBirth: '',
-              }}
-              validationSchema={validationBVNValidation}
-              onSubmit={(values) => console.log(values)}
-            >
-              {({ handleSubmit, values, errors }) => (
-                <Button
-                  title="Continue"
-                  onPress={() => handleSubmit()}
-                  disabled={
-                    !(
-                      values.surName &&
-                      values.firstName &&
-                      values.bvn &&
-                      values.dateOfBirth &&
-                      !errors.surName &&
-                      !errors.firstName &&
-                      !errors.bvn &&
-                      !errors.dateOfBirth
-                    )
-                  }
-                  style={{
-                    opacity:
-                      values.surName &&
-                      values.firstName &&
-                      values.bvn &&
-                      values.dateOfBirth &&
-                      !errors.surName &&
-                      !errors.firstName &&
-                      !errors.bvn &&
-                      !errors.dateOfBirth
-                        ? 1
-                        : 0.5,
-                  }}
-                />
-              )}
-            </Formik>
-          </View>
         </View>
+
         <Text
           style={[
             { textAlign: 'center', paddingHorizontal: 20, paddingBottom: 10 },
             { color: themeStyles.normalText },
           ]}
         >
-          An OTP will be send to the number registered to your BNV
+          An OTP will be sent to the number registered to your BVN
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -195,11 +169,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 15,
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'space-between',
   },
   formContainer: {
     padding: 20,

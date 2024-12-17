@@ -22,12 +22,13 @@ import { NavigationProp } from '@react-navigation/native';
 import { showTopToast } from '@/utils/helpers';
 import { ApiError } from '@/utils/customApiCalls';
 import { useAuth } from '@/contexts/authContext';
+// import { useNavigation } from '@react-navigation/native';
 
 const Signin = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const { setToken, setUserData } = useAuth();
-
+  const navigation=useNavigation();
   const { mutate: handleLogin, isPending: loginPending } = useMutation({
     mutationFn: loginUser,
     mutationKey: ['login'],
@@ -39,7 +40,8 @@ const Signin = () => {
           index: 0,
           routes: [{ name: '(tabs)' }],
         });
-        navigate('(tabs)');
+        navigation.replace('(tabs)');
+
       });
     },
     onError: (error: ApiError) => {

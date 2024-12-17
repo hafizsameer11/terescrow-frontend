@@ -99,7 +99,10 @@ export default function HomeScreen() {
             icon={icons.chat}
             heading={`${item.agent.firstname} ${item.agent.lastname}`}
             text={item.recentMessage}
-            date={new Date(item.recentMessageTimestamp).toLocaleTimeString()}
+            date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
             productId={item.id.toString()}
             price="$0.00"
           />

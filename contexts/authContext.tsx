@@ -14,6 +14,8 @@ interface AuthContextType {
     gender?: string;
     role?: string;
     country?: string;
+    isVerified?: boolean;
+    KycStateTwo?:any
   } | null;
   setToken: (token: string) => Promise<void>;
   setUserData: (userData: AuthContextType['userData']) => void;

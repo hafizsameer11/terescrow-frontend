@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'http://192.168.0.103:8000';
+export const API_BASE_URL = 'http://192.168.18.11:8000';
 
 export const API_DOMAIN = API_BASE_URL + '/api';
 
@@ -13,6 +13,8 @@ export const API_ENDPOINTS = {
     VerifyPasswordOtp: API_DOMAIN + '/auth/verify-forgot-password-otp',
     ResetPassword: API_DOMAIN + '/auth/reset-password',
     EditProfile: API_DOMAIN + '/auth/edit-profile',
+    KyCRequest: API_DOMAIN + '/auth/kyc-request',
+    ChangePassword: API_DOMAIN + '/auth/change-password',
   },
 
   ACCOUNT_MANAGEMENT: {

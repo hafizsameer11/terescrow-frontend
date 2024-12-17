@@ -80,7 +80,7 @@ const queryClient = useQueryClient()
     mutationKey: ['send-message'],
     mutationFn: (data: ISendMessageReq) => sendMessageController(data, token),
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['allchats'])
+      queryClient.invalidateQueries(['agentsData'])
       setMessages((prevMessages) => [
         ...prevMessages,
         {

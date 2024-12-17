@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/contexts/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,12 +21,14 @@ const Chat = () => {
   } = useQuery({
     queryKey: ['allchats'],
     queryFn: () => getAllChats(token),
+    refetchInterval: 1000,       // Refetch every second
+    refetchIntervalInBackground: true,  // Continue fetching even when app is minimized
     enabled: !!token,
   });
 
-  const getFilteredData = () => {
+  const getFilteredData = useMemo(() => {
     if (!chatData) return [];
-
+  
     switch (selectedCategory) {
       case 'completed':
         return chatData.data.filter((chat) => chat.chatStatus === 'successful');
@@ -37,7 +39,7 @@ const Chat = () => {
       default:
         return chatData.data;
     }
-  };
+  }, [chatData, selectedCategory]);
 
   const { dark } = useTheme();
 
@@ -73,7 +75,7 @@ const Chat = () => {
           setSelectedCategory={setSelectedCategory}
         />
         <FlatList
-          data={getFilteredData()}
+          data={getFilteredData}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <ChatItem
@@ -81,7 +83,11 @@ const Chat = () => {
               icon={icons.chat}
               heading={`${item.agent.firstname} ${item.agent.lastname}`}
               text={item.recentMessage}
-              date={new Date(item.recentMessageTimestamp).toLocaleTimeString()}
+              date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              
               productId={item.id.toString()}
               price='$0.00'
             />

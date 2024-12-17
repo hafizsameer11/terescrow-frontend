@@ -150,22 +150,14 @@ export const validationChangePassword = Yup.object().shape({
   currentPassword: Yup.string()
     .required('Current Password is required')
     .min(8, 'Current Password must be at least 8 characters')
-    .matches(/[a-zA-Z]/, 'Current Password must contain at least one letter')
     .matches(/[0-9]/, 'Current Password must contain at least one number')
-    .matches(
-      /[\W_]/,
-      'Current Password must contain at least one special character'
-    ),
+  ,
 
   newPassword: Yup.string()
     .required('New Password is required')
     .min(8, 'New Password must be at least 8 characters')
-    .matches(/[a-zA-Z]/, 'New Password must contain at least one letter')
     .matches(/[0-9]/, 'New Password must contain at least one number')
-    .matches(
-      /[\W_]/,
-      'New Password must contain at least one special character'
-    ),
+  ,
 
   confirmPassword: Yup.string()
     .required('Confirm Password is required')

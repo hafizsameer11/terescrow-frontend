@@ -12,24 +12,11 @@ import { useTheme } from '@/contexts/themeContext';
 import { useNavigation } from 'expo-router';
 import Button from '@/components/Button';
 import DraggableModal from '../components/KycModal';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/authContext';
 
 const UpdateKycLevel = () => {
-  const { dark } = useTheme();
-  const { goBack } = useNavigation();
-
-  const [isModalVisible, setModalVisible] = useState(false);
-
-  const themeStyles = {
-    background: dark ? COLORS.dark1 : COLORS.white,
-    normalText: dark ? COLORS.white : COLORS.black,
-    verifiedBackground: dark ? COLORS.grayscale200 : COLORS.transparentAccount,
-  };
-  const openModal = () => setModalVisible(true);
-
-  const closeModal = () => setModalVisible(false);
-
-  const currentLimits = [
+  const verifiedLimits = [
     {
       icon: icons.activity2,
       title: 'Crypto limit',
@@ -47,6 +34,46 @@ const UpdateKycLevel = () => {
       ],
     },
   ];
+  const unverifiedLimits = [
+    {
+      icon: icons.activity2,
+      title: 'Crypto limit',
+      limits: [
+        { label: 'Receive', value: 'Limited' },
+        { label: 'Sell', value: 'Limited' },
+      ],
+    },
+    {
+      icon: icons.gift,
+      title: 'Gift Card limit',
+      limits: [
+        { label: 'Receive', value: 'Limited' },
+        { label: 'Sell', value: 'Limited' },
+      ],
+    },
+  ];
+  const { dark } = useTheme();
+  const { goBack } = useNavigation();
+  const  [currentLimits, setCurrentLimits] = useState(verifiedLimits);
+const  {userData}=useAuth();
+  const [isModalVisible, setModalVisible] = useState(false);
+
+  const themeStyles = {
+    background: dark ? COLORS.dark1 : COLORS.white,
+    normalText: dark ? COLORS.white : COLORS.black,
+    verifiedBackground: dark ? COLORS.grayscale200 : COLORS.transparentAccount,
+  };
+  const openModal = () => setModalVisible(true);
+
+  const closeModal = () => setModalVisible(false);
+useEffect(() => {
+  if(userData?.isVerified){
+    setCurrentLimits(verifiedLimits);
+  }else{
+    setCurrentLimits(unverifiedLimits); 
+  }
+}, [userData?.isVerified])
+ 
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
@@ -97,7 +124,8 @@ const UpdateKycLevel = () => {
                     { backgroundColor: themeStyles.verifiedBackground },
                   ]}
                 >
-                  <Text style={styles.verifiedText}>Verified</Text>
+                  {}
+                  <Text style={styles.verifiedText}>{userData?.isVerified ? 'Verified' : 'Not Verified'}</Text>
                 </View>
               </View>
 
@@ -149,9 +177,21 @@ const UpdateKycLevel = () => {
         </ScrollView>
 
         <DraggableModal isVisible={isModalVisible} onClose={closeModal} />
+        {!userData?.isVerified && (
+          
         <View style={styles.buttonContainer}>
-          <Button title="Upgrade to Tier 2" onPress={openModal} />
+          {
+            userData?.KycStateTwo ? (
+              <Text > Your Request is submitted and will be processed soon </Text>
+            ) : (
+              <Button title="Upgrade to Tier 2" onPress={openModal} />
+            )
+
+          }
+          {/* <Button title="Upgrade to Tier 2" onPress={openModal} /> */}
         </View>
+        )  
+      }
       </View>
     </SafeAreaView>
   );

@@ -9,6 +9,14 @@ export const editUser = async (data: IRegisterReq, token: string) => {
   //   console.log(data);
   return await apiCall(API_ENDPOINTS.AUTH.EditProfile, 'POST', data, token);
 };
+export const KyCRequest = async (data: IKycReques, token: string) => {
+  //   console.log(data);
+  return await apiCall(API_ENDPOINTS.AUTH.KyCRequest, 'POST', data, token);
+};
+export const chnagePassword = async (data: IChangePasswordReq, token: string) => {
+  //   console.log(data);
+  return await apiCall(API_ENDPOINTS.AUTH.ChangePassword, 'POST', data, token);
+};
 
 export const loginUser = async (data: {
   email: string;
@@ -84,4 +92,16 @@ interface IRegisterReq {
   username: string;
   gender: string;
   country: string;
+}
+
+interface IKycReques{
+  surName?: string;
+  firstName?: string;
+  bvn?: string;
+dob?: string;
+}
+
+interface IChangePasswordReq {
+  oldPassword: string;
+  newPassword: string;
 }

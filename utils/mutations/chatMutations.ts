@@ -24,6 +24,7 @@ export const readAllMessagesController = async (data: {
 export interface ISendMessageReq {
   message: string;
   chatId: string;
+  image?: string;
 }
 
 interface ISendMessageResponse extends ApiResponse {
@@ -39,6 +40,7 @@ export interface IMessageRes {
   isRead: boolean;
   createdAt: Date;
   updatedAt: Date;
+  image?: string;
 }
 
 export enum IChatType {

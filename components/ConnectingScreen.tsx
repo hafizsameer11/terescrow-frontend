@@ -8,7 +8,7 @@ const ConnectingScreen = () => {
   const router = useRouter();
   const sendToChatHandler = () => {
     setTimeout(() => {
-      router.push('/chatwithagent');
+      router.replace('/chatwithagent');
     }, 2000);
   }
   sendToChatHandler();
