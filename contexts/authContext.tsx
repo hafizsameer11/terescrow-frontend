@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 // Define the AuthContextType interface
 interface AuthContextType {
   token: string;
@@ -15,7 +16,8 @@ interface AuthContextType {
     role?: string;
     country?: string;
     isVerified?: boolean;
-    KycStateTwo?:any
+    KycStateTwo?:any,
+    unReadNotification?: number
   } | null;
   setToken: (token: string) => Promise<void>;
   setUserData: (userData: AuthContextType['userData']) => void;
@@ -77,6 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     // Example: Remove token from localStorage or perform other cleanup
     await SecureStore.deleteItemAsync('authToken');
     dispatch({ type: 'LOGOUT' });
+    router.replace('/signin');
   };
 
   return (

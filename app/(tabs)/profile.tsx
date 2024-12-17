@@ -8,8 +8,11 @@ import ProfileListItem from "@/components/profileListItem";
 import { AntDesign } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/themeContext";
 import { router } from "expo-router";
+import { useAuth } from "@/contexts/authContext";
 
 const Profile = () => {
+  const {userData}=useAuth();
+  const {logout}=useAuth();
   const { dark } = useTheme();
   return (
     <View style={{ flex: 1 }}>
@@ -45,14 +48,11 @@ const Profile = () => {
             >
               Profile
             </Text>
-            <Image
-              source={icons.notification}
-              style={{ width: 30, height: 30, tintColor: COLORS.white }}
-            />
+           
           </View>
           <View style={{ paddingHorizontal: 10 }}>
             <Image
-              source={images.coverImage}
+              source={ userData?.profilePicture ? {uri: userData?.profilePicture} : images.coverImage}
               style={{ width: 100, height: 100, borderRadius: 50 }}
             />
             <Text
@@ -63,10 +63,10 @@ const Profile = () => {
                 fontSize: 18,
               }}
             >
-              Emmanuel Richards
+              {userData?.username}
             </Text>
             <Text style={{ color: COLORS.white }}>
-              @emmanuelrichards • Tier 1
+           {userData?.email}
             </Text>
           </View>
         </View>
@@ -114,7 +114,9 @@ const Profile = () => {
           <ProfileListItem
             text="Log out"
             icon={icons.logout}
-            onPress={() => {}}
+            onPress={() => {
+              logout();
+            }}
           />
           <ProfileListItem
             text="Delete Account"

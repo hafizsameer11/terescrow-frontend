@@ -60,7 +60,8 @@
     "react-native-webview": "13.12.4",
     "react-toastify": "^10.0.6",
     "socket.io-client": "^4.8.1",
-    "yup": "^1.4.0"
+    "yup": "^1.4.0",
+    "expo-local-authentication": "~15.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

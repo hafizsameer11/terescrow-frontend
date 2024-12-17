@@ -5,6 +5,8 @@ export const API_DOMAIN = API_BASE_URL + '/api';
 export const API_ENDPOINTS = {
   AUTH: {
     Login: API_DOMAIN + '/public/login',
+    Notifications: API_DOMAIN + '/public/get-all-notifications',
+    MarkAllRead: API_DOMAIN + '/public/mark-all-read',
     Register: API_DOMAIN + '/auth/customer/register',
     Logout: API_DOMAIN + '/auth/logout',
     VerifyEmailOtp: API_DOMAIN + '/auth/verify-email-otp',

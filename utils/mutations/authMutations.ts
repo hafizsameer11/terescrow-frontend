@@ -58,6 +58,45 @@ export const resendOtp = async (token?: string, email?: string) => {
   }
 };
 
+// notifications
+
+
+
+export const getNotifications = async (
+  token: string
+): Promise<NotificationResponse> => {
+  return await apiCall(
+    API_ENDPOINTS.AUTH.Notifications ,
+    'GET',
+    undefined,
+    token
+  );
+};
+export const markAllRead = async (
+  token: string
+): Promise<NotificationResponse> => {
+  return await apiCall(
+    API_ENDPOINTS.AUTH.MarkAllRead ,
+    'GET',
+    undefined,
+    token
+  );
+};
+interface Notification {
+  id: number;
+  title: string;
+  description: string;
+  userId: number;
+  isRead: boolean;
+  createdAt: string;
+}
+
+interface NotificationResponse {
+  status: string;
+  message: string;
+  data: Notification[];
+}
+
 export enum UserRoles {
   admin = 'admin',
   customer = 'customer',

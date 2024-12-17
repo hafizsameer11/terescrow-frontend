@@ -4,14 +4,18 @@ import { useTheme } from "@/contexts/themeContext";
 import { icons } from "@/constants";
 import { Colors } from "@/constants/Colors";
 import { COLORS } from "@/constants";
-import { Route, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
+import { useAuth } from "@/contexts/authContext";
+
 const Header = () => {
   const { dark } = useTheme();
   const router = useRouter();
+  const { userData } = useAuth();
 
   const notificationUrlHandler = () => {
     router.push("/notificationpage");
   };
+
   return (
     <View style={styles.container}>
       <View>
@@ -21,7 +25,7 @@ const Header = () => {
             dark ? { color: Colors.dark.text } : { color: Colors.light.text },
           ]}
         >
-          Hi, John!
+          {userData?.username}
         </Text>
         <Text
           style={[
@@ -32,7 +36,8 @@ const Header = () => {
           Welcome to Tercescrow
         </Text>
       </View>
-      <Pressable onPress={notificationUrlHandler}>
+      
+      <Pressable onPress={notificationUrlHandler} style={styles.notificationContainer}>
         <Image
           source={icons.notification}
           style={[
@@ -43,6 +48,10 @@ const Header = () => {
           ]}
           contentFit="contain"
         />
+        
+        {userData?.unReadNotification > 0 && (
+          <View style={styles.redDot} />
+        )}
       </Pressable>
     </View>
   );
@@ -69,8 +78,19 @@ const styles = StyleSheet.create({
     color: COLORS.greyscale600,
   },
   image: {
-    flex: 1,
     width: 27,
     height: 27,
+  },
+  notificationContainer: {
+    position: "relative",
+  },
+  redDot: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary, // Red color for the dot
   },
 });
