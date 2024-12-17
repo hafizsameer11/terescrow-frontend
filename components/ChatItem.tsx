@@ -52,17 +52,16 @@ const ChatItem: React.FC<{
             <Text
               style={[dark ? { color: COLORS.white } : { color: COLORS.black }]}
             >
-              {' '}
-              -{' '}
+           
             </Text>
-            <Text
+            {/* <Text
               style={[
                 styles.detailPriceProduct,
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
               {props.productId}
-            </Text>
+            </Text> */}
           </View>
         </View>
         <View style={styles.contentTwo}>
@@ -86,7 +85,7 @@ const ChatItem: React.FC<{
             <Text
               style={[
                 styles.date,
-                dark ? { color: COLORS.white } : { color: COLORS.black },
+              { color: COLORS.black } 
               ]}
             >
               {props.date}
@@ -94,9 +93,11 @@ const ChatItem: React.FC<{
             <Text
               style={[
                 styles.circle,
-                dark ? { color: COLORS.white } : { color: COLORS.black },
+                { color: COLORS.white },
               ]}
-            ></Text>
+            >
+              {props.productId}
+            </Text>
           </View>
         </View>
       </View>
@@ -118,11 +119,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F7F7',
   },
   circle: {
-    width: 10,
-    height: 10,
+    width: 15,
+    height: 15,
     marginLeft: 5,
-    borderRadius: 5,
+    textAlign:'center',
+    borderRadius: 999,
     justifyContent: 'center',
+    fontSize: 10,
     backgroundColor: COLORS.green,
   },
   iconContainer: {

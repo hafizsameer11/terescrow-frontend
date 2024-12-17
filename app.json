@@ -35,14 +35,23 @@
       ],
       [
         "expo-secure-store",
-          {
-            "configureAndroidBackup": true,
-            "faceIDPermission": "Allow terescrow-frontend to access your Face ID biometric data."
-          }
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow terescrow-frontend to access your Face ID biometric data."
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "70fa8777-f1aa-4ec2-b693-1050626b5e78"
+      }
+    },
+    "owner": "hafizsameer12"
   }
 }

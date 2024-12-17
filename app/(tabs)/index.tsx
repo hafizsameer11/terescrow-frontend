@@ -36,6 +36,7 @@ export default function HomeScreen() {
     queryKey: ['allchats'],
     queryFn: () => getAllChats(token),
     enabled: !!token,
+    refetchInterval: 1000,       // Refetch every second
   });
 
   const handleClickDepartment = (item: IDepartmentResponse['data'][number]) => {
@@ -103,7 +104,7 @@ export default function HomeScreen() {
               hour: '2-digit',
               minute: '2-digit',
             })}
-            productId={item.id.toString()}
+            productId={item.messagesCount.toString()}
             price="$0.00"
           />
         )}

@@ -1,0 +1,58 @@
+[
+  {
+    "agent": {
+      "firstname": "Hafiz",
+      "id": 14,
+      "lastname": "jutjutt",
+      "profilePicture": "",
+      "username": "jutjutu!"
+    },
+    "chatStatus": "pending",
+    "id": 4,
+    "messagesCount": 11,
+    "recentMessage": "Hryyeye",
+    "recentMessageTimestamp": "2024-12-17T18:59:14.388Z"
+  },
+  {
+    "agent": {
+      "firstname": "Hafiz",
+      "id": 14,
+      "lastname": "jutjutt",
+      "profilePicture": "",
+      "username": "jutjutu!"
+    },
+    "chatStatus": "pending",
+    "id": 3,
+    "messagesCount": 3,
+    "recentMessage": "Hehd",
+    "recentMessageTimestamp": "2024-12-17T12:20:22.950Z"
+  },
+  {
+    "agent": {
+      "firstname": "Hafiz",
+      "id": 14,
+      "lastname": "jutjutt",
+      "profilePicture": "",
+      "username": "jutjutu!"
+    },
+    "chatStatus": "declined",
+    "id": 2,
+    "messagesCount": 1,
+    "recentMessage": "Hello",
+    "recentMessageTimestamp": "2024-12-17T11:51:33.413Z"
+  },
+  {
+    "agent": {
+      "firstname": "Hafiz",
+      "id": 14,
+      "lastname": "jutjutt",
+      "profilePicture": "",
+      "username": "jutjutu!"
+    },
+    "chatStatus": "successful",
+    "id": 1,
+    "messagesCount": 0,
+    "recentMessage": null,
+    "recentMessageTimestamp": null
+  }
+]

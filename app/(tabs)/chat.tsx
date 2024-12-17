@@ -28,6 +28,7 @@ const Chat = () => {
 
   const getFilteredData = useMemo(() => {
     if (!chatData) return [];
+    console.log(chatData.data?.[0].messagesCount);
   
     switch (selectedCategory) {
       case 'completed':
@@ -88,7 +89,7 @@ const Chat = () => {
                 minute: '2-digit',
               })}
               
-              productId={item.id.toString()}
+              productId={item.messagesCount.toString()}
               price='$0.00'
             />
           )}

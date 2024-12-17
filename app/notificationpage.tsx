@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { COLORS, icons } from "@/constants";
 import { Colors } from "@/constants/Colors";
@@ -16,21 +16,24 @@ import { useTheme } from "@/contexts/themeContext";
 import { getNotifications, markAllRead } from "@/utils/mutations/authMutations";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
-import { router } from 'expo-router';
+// import * as Notifications from "expo-notifications";
+
 const NotificationPage: React.FC = () => {
   const router = useRouter();
   const { dark } = useTheme();
-  const { token, setUserData, userData } = useAuth();
-  // const { navigate } = useNavigation();
+  const { token, setUserData } = useAuth();
+
+  // Track notification count
+  const [notificationCount, setNotificationCount] = useState<number>(0);
+
   // Fetch Notifications
   const {
     data: notificationData,
-    isLoading: notificationLoading,
-    isError: notificationError,
+    refetch: refetchNotifications,
   } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => getNotifications(token),
-    refetchInterval: 1000,
+    refetchInterval: 5000, // Every 5 seconds
     refetchIntervalInBackground: true,
     enabled: !!token,
   });
@@ -39,12 +42,16 @@ const NotificationPage: React.FC = () => {
   const { mutate: handleMarkAllRead } = useMutation({
     mutationFn: () => markAllRead(token),
     onSuccess: () => {
-      router.push('(tabs)')
+      setNotificationCount(0); // Reset count
+      router.push("(tabs)");
     },
     onError: (error) => {
-      console.log(error);
-    }
+      console.error("Error marking notifications as read:", error);
+    },
   });
+
+  // Trigger push notifications when count increases
+ 
 
   return (
     <SafeAreaView
@@ -90,7 +97,9 @@ const NotificationPage: React.FC = () => {
           onPress={() => handleMarkAllRead()}
           style={[
             styles.markAllButton,
-            dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.primary },
+            dark
+              ? { backgroundColor: COLORS.dark2 }
+              : { backgroundColor: COLORS.primary },
           ]}
         >
           <Text style={styles.markAllText}>Mark All Read</Text>
