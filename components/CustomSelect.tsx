@@ -93,13 +93,8 @@ const CustomSelect = ({
         isVisible={modalVisible}
         setIsVisible={setIsVisible}
         onSelect={(value) => {
-          if (onSelectOverride) {
-            // Use custom selection logic if provided
-            onSelectOverride(value);
-          } else {
-            // Default logic: set the selected id
-            setFieldValue(id, value);
-          }
+
+          setFieldValue(id, value);
         }}
         title={modalLabel}
         options={options}

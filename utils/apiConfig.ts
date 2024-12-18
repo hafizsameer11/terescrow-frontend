@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'http://192.168.0.103:8000';
+export const API_BASE_URL = 'http://192.168.18.11:8000';
 
 export const API_DOMAIN = API_BASE_URL + '/api';
 

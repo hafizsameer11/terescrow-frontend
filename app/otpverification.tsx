@@ -147,17 +147,20 @@ const OTPVerification = () => {
             </Text>
             <Text style={styles.subtitle}>
               A 4 digits code has been sent to your email address
-              emmanuel@gmail.com
+              {' '} {email}
             </Text>
-            <Input
-              id="password"
-              label="OTP"
-              value={otp}
-              onChangeText={(text) => setOtp(text)}
-              keyboardType="numeric"
-              maxLength={4}
-              style={styles.otpInput}
-            />
+            <View >
+
+              <Input
+                id="password"
+                label="OTP"
+                value={otp}
+                onChangeText={(text) => setOtp(text)}
+                keyboardType="numeric"
+                maxLength={4}
+                style={styles.otpInput}
+              />
+            </View>
           </View>
         </ScrollView>
 
@@ -237,16 +240,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
   },
+  otpWrapper: {
+    width: '100%',      // Ensures the input takes full screen width
+    paddingHorizontal: 16, // Consistent padding from screen edges
+    marginBottom: 24,
+  },
+
   otpInput: {
-    width: '100%',
-    height: 56,
-    borderWidth: 1,
+    width: '100%', // Ensures full width within the parent container
+    height: 56, // Consistent input height
+    borderWidth: 2,
     borderColor: COLORS.greyscale300,
     borderRadius: 8,
     textAlign: 'center',
     fontSize: 18,
     marginBottom: 24,
     color: COLORS.black,
+    paddingHorizontal: 16, // Adds padding inside the input
   },
   resendButton: {
     width: '100%',

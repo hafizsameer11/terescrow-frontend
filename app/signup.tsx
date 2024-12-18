@@ -256,12 +256,8 @@ const SignUp = () => {
                   id="gender"
                   setFieldValue={setFieldValue}
                   modalLabel="Gender"
-                  onSelectOverride={(value) => {
-                    const selectedOption = GENDERS.find((o) => o.title === value);
-                    if (selectedOption) {
-                      setFieldValue("gender", selectedOption.title);  // Update Formik state
-                    }
-                  }}
+                 
+                
                 />
 
 
