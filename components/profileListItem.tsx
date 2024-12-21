@@ -9,22 +9,39 @@ interface ProfileListItemProps {
   text: string;
   icon: React.ReactNode;
   onPress: () => void;
+  areLast?: boolean;
 }
 
 const ProfileListItem: React.FC<ProfileListItemProps> = ({
   text,
   icon,
   onPress,
+  areLast,
 }) => {
   const { dark } = useTheme();
   const themeStyles = {
-    backgroundIcon: dark ? COLORS.green : COLORS.grayscale200,
+    backgroundIcon: dark
+      ? COLORS.green
+      : areLast
+      ? COLORS.transparentRed
+      : COLORS.grayscale200,
     background: dark ? COLORS.transparentAccount : COLORS.white,
     text: dark ? COLORS.white : COLORS.black,
   };
 
   return (
-    <TouchableOpacity style={[styles.container, { backgroundColor: themeStyles.background, borderBottomColor: dark ? COLORS.transparentAccount : COLORS.greyscale300 }]} onPress={onPress}>
+    <TouchableOpacity
+      style={[
+        styles.container,
+        {
+          backgroundColor: themeStyles.background,
+          borderBottomColor: dark
+            ? COLORS.transparentAccount
+            : COLORS.greyscale300,
+        },
+      ]}
+      onPress={onPress}
+    >
       <View
         style={{
           flexDirection: "row",
@@ -33,13 +50,25 @@ const ProfileListItem: React.FC<ProfileListItemProps> = ({
           paddingLeft: 10,
         }}
       >
-        <View style={[styles.icon, { backgroundColor: themeStyles.backgroundIcon }]}>
-          <Image source={icon} style={{width: 23, height: 23}} />
+        <View
+          style={[styles.icon, { backgroundColor: themeStyles.backgroundIcon }]}
+        >
+          <Image
+            source={icon}
+            style={{ width: 23, height: 23, tintColor: areLast && COLORS.red }}
+          />
         </View>
         <Text style={[styles.text, { color: themeStyles.text }]}>{text}</Text>
       </View>
       <View>
-        <Image source={icons.arrowRight} style={{width: 27, height: 27, tintColor: dark ? COLORS.white : COLORS.black}} />
+        <Image
+          source={icons.arrowRight}
+          style={{
+            width: 23,
+            height: 23,
+            tintColor: dark ? COLORS.white : COLORS.black,
+          }}
+        />
       </View>
     </TouchableOpacity>
   );
@@ -52,6 +81,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     justifyContent: "space-between",
     borderBottomWidth: 1,
+    borderColor: "#eee",
     paddingRight: 8,
     marginVertical: 5,
   },

@@ -11,6 +11,7 @@ import {
 import { COLORS, icons, SIZES } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { Image } from 'expo-image';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 interface InputProps extends TextInputProps {
   id: string;
@@ -19,10 +20,12 @@ interface InputProps extends TextInputProps {
   errorText?: string;
   isEditable?: boolean;
   prefilledValue?: string;
+  isPassword?: boolean; 
 }
 
 const Input: React.FC<InputProps> = (props) => {
   const [isFocused, setIsFocused] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const labelPosition = useRef(new Animated.Value(18)).current;
   const { dark } = useTheme();
   const inputRef = useRef<TextInput>(null);
@@ -53,6 +56,10 @@ const Input: React.FC<InputProps> = (props) => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible((prev) => !prev);
+  };
+
   return (
     <View style={styles.container}>
       <View
@@ -77,6 +84,7 @@ const Input: React.FC<InputProps> = (props) => {
           {...props}
           ref={inputRef}
           editable={props.isEditable !== false}
+          secureTextEntry={props.isPassword && !isPasswordVisible}
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholderTextColor="#BCBCBC"
@@ -85,6 +93,7 @@ const Input: React.FC<InputProps> = (props) => {
             {
               color: dark ? COLORS.white : COLORS.black,
               paddingLeft: props.icon ? 40 : 15,
+              top: 6,
             },
           ]}
         />
@@ -109,6 +118,19 @@ const Input: React.FC<InputProps> = (props) => {
           >
             {props.label}
           </Animated.Text>
+        )}
+
+        {props.isPassword && (
+          <TouchableOpacity
+            onPress={togglePasswordVisibility}
+            style={styles.passwordToggle}
+          >
+            <MaterialIcons
+              name={isPasswordVisible ? 'visibility-off' : 'visibility'}
+              size={20}
+              color={isFocused ? COLORS.primary : '#BCBCBC'}
+            />
+          </TouchableOpacity>
         )}
       </View>
 
@@ -138,6 +160,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: SIZES.body3,
     paddingVertical: 16,
+    textAlignVertical: 'center',
   },
   icon: {
     width: 20,
@@ -151,6 +174,12 @@ const styles = StyleSheet.create({
     transitionProperty: 'all',
     transitionDuration: '0.3s',
     transitionTimingFunction: 'ease-in-out',
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 15,
+    top: '55%',
+    transform: [{ translateY: -10 }],
   },
   errorText: {
     marginTop: 5,

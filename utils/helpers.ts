@@ -9,6 +9,9 @@ export const showTopToast = (props: showTopToastProps) => {
     visibilityTime: 3000,
     autoHide: true,
     topOffset: 50,
+    props: {
+      backgroundColor: props.type === 'error' ? 'red' : 'green',
+    }
   });
 };
 

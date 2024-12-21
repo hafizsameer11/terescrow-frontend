@@ -39,6 +39,7 @@ const tercescrow = require('../assets/images/tercescrow.png')
 const amazonSplashCard = require('../assets/images/splash-amazon.png')
 const splashGradientCard = require('../assets/images/splash-gradient-card.png')
 const steamCard = require('../assets/images/steam-card.png')
+const userProfile = require('../assets/images/users/userProfile.jpg')
 const splashCoins = require('../assets/images/splash-coins.png')
 
 const images = {
@@ -47,6 +48,7 @@ const images = {
   splashGradientCard,
   splashCoins,
   steamCard,
+  userProfile,
   amazonSplashCard,
   amazonCard,
   tercescrow,
