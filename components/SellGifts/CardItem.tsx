@@ -9,6 +9,7 @@ const CardItem: React.FC<{
   onSend: () => void;
 }> = (props) => {
   const { dark } = useTheme();
+  console.log(props.card)
   return (
     <Pressable style={styles.container} onPress={props.onSend}>
       <Image source={props.card} style={styles.cardImage} />

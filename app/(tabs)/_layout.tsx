@@ -9,20 +9,17 @@ import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
+import { MaterialIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { dark } = useTheme();
 
   // Tab colors based on dark mode
-  const tabBarActiveTintColor = dark
-    ? COLORS.white
-    : Colors[colorScheme ?? "light"].text;
-  const tabBarInactiveTintColor = dark
-    ? COLORS.grayscale400
-    : Colors[colorScheme ?? "light"].text;
-  const tabBarActiveBackgroundColor = dark ? COLORS.black : COLORS.white;
-  const tabBarBackgroundColor = dark ? COLORS.black : COLORS.white;
+  const tabBarActiveTintColor =  COLORS.black;
+  const tabBarInactiveTintColor =  COLORS.black2;
+  const tabBarActiveBackgroundColor = COLORS.white 
+  const tabBarBackgroundColor =  COLORS.white;
 
   return (
     <Tabs
@@ -77,18 +74,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol
-              size={28}
-              name="chevron.left.forwardslash.chevron.right"
-              color={color}
-            />
-          ),
-        }}
-      />
+  name="profile"
+  options={{
+    title: "Profile",
+
+    tabBarIcon: ({ color, size }) => (
+      <MaterialIcons name="person" size={size || 28} color={color} />
+    ),
+  }}
+/>
+
     </Tabs>
   );
 }

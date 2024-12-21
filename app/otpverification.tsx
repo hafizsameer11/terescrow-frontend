@@ -47,7 +47,7 @@ const OTPVerification = () => {
         ? () => verifyEmailOtp(token, otp)
         : () => verifyPasswordOtp(email, otp),
     mutationKey: ['verify-otp'],
-    onSuccess: () => {
+    onSuccess: (data) => {
       if (context === 'signup') {
         reset({
           index: 0,
@@ -57,9 +57,14 @@ const OTPVerification = () => {
       } else {
         reset({
           index: 0,
-          routes: [{ name: 'resetpassword' }],
+          routes: [
+            {
+              name: 'setnewpassword',
+              params: { userId: data.data.userId }, // Pass userId as params
+            },
+          ],
         });
-        navigate('resetpassword');
+        navigate('setnewpassword', { userId: data.data.userId });
       }
     },
     onError: (error: ApiError) => {
@@ -149,7 +154,7 @@ const OTPVerification = () => {
               A 4 digits code has been sent to your email address
               {' '} {email}
             </Text>
-            <View >
+            <View style={{ width: '100%' }} >
 
               <Input
                 id="password"

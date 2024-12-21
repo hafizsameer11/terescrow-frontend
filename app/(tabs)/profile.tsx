@@ -9,11 +9,14 @@ import { AntDesign } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/themeContext";
 import { router } from "expo-router";
 import { useAuth } from "@/contexts/authContext";
+import { API_BASE_URL } from "@/utils/apiConfig";
 
 const Profile = () => {
-  const {userData}=useAuth();
-  const {logout}=useAuth();
+  const { userData } = useAuth();
+  const { logout } = useAuth();
   const { dark } = useTheme();
+  console.log(userData)
+  console.log(`{${API_BASE_URL}/uploads/${userData?.profilePicture}`)
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="auto" />
@@ -48,12 +51,12 @@ const Profile = () => {
             >
               Profile
             </Text>
-           
+
           </View>
           <View style={{ paddingHorizontal: 10 }}>
             <Image
-              source={ userData?.profilePicture ? {uri: userData?.profilePicture} : images.coverImage}
-              style={{ width: 100, height: 100, borderRadius: 50 }}
+              source={{ uri: `${API_BASE_URL}/uploads/${userData?.profilePicture}` }}
+              style={{ width: 120, height: 120, borderRadius: 60 }}
             />
             <Text
               style={{
@@ -66,7 +69,7 @@ const Profile = () => {
               {userData?.username}
             </Text>
             <Text style={{ color: COLORS.white }}>
-           {userData?.email}
+              {userData?.email}
             </Text>
           </View>
         </View>
@@ -99,18 +102,18 @@ const Profile = () => {
           <ProfileListItem
             text="Privacy Policy"
             icon={icons.wallet2Outline}
-            onPress={() => {}}
+            onPress={() => { }}
           />
           <ProfileListItem
             text="Terms of Services"
             icon={icons.more}
-            onPress={() => {}}
+            onPress={() => { }}
           />
-          <ProfileListItem
+          {/* <ProfileListItem
             text="Customer Support"
             icon={icons.analyticsOutline}
             onPress={() => {}}
-          />
+          /> */}
           <ProfileListItem
             text="Log out"
             icon={icons.logout}
@@ -121,7 +124,7 @@ const Profile = () => {
           <ProfileListItem
             text="Delete Account"
             icon={icons.trash}
-            onPress={() => {}}
+            onPress={() => { }}
           />
         </ScrollView>
       </View>

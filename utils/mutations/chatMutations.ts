@@ -2,7 +2,7 @@ import { API_ENDPOINTS } from '../apiConfig';
 import { apiCall, ApiResponse } from '../customApiCalls';
 
 export const sendMessageController = async (
-  data: ISendMessageReq,
+  data: FormData,
   token: string
 ): Promise<ISendMessageResponse> => {
   console.log(data);

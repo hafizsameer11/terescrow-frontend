@@ -13,9 +13,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.hafizsameer12.terescrowfrontend"
     },
     "web": {
       "bundler": "metro",
@@ -27,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -49,9 +50,8 @@
         "origin": false
       },
       "eas": {
-        "projectId": "70fa8777-f1aa-4ec2-b693-1050626b5e78"
+        "projectId": "02811a0a-06d6-43a8-9c60-6f2313eae054"
       }
-    },
-    "owner": "hafizsameer12"
+    }
   }
 }

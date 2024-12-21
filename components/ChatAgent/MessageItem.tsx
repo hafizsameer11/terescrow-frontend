@@ -3,12 +3,14 @@ import React, { SetStateAction } from 'react';
 import { Message } from '@/app/chatwithagent';
 import { Image } from 'expo-image';
 import { COLORS } from '@/constants';
+import { API_BASE_URL } from '@/utils/apiConfig';
 
 type PropTypes = {
   item: Message;
   setImagePreview: React.Dispatch<SetStateAction<string | null>>;
 };
 const MessageItem = ({ item, setImagePreview }: PropTypes) => {
+  // console.log(`${API_BASE_URL}/uploads/${item.image}`)
   return (
     <View
       style={[
@@ -17,8 +19,8 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
       ]}
     >
       {item.image && (
-        <TouchableOpacity onPress={() => setImagePreview(item.image as string)}>
-          <Image source={{ uri: item.image }} style={styles.dynamicImage} />
+        <TouchableOpacity onPress={() => setImagePreview(`${API_BASE_URL}/uploads/${item.image}` as string)}>
+          <Image source={{ uri: `${API_BASE_URL}/uploads/${item.image}` }} style={styles.dynamicImage} />
         </TouchableOpacity>
       )}
       {!item.image && (
@@ -39,7 +41,8 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
           { alignSelf: item.isUser ? 'flex-end' : 'flex-start' },
         ]}
       >
-        {new Date().toLocaleTimeString()}
+        {item?.sentAt && new Date(item.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
       </Text>
     </View>
   );

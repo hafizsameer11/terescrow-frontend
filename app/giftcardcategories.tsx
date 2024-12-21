@@ -10,7 +10,7 @@ import { FlatList } from 'react-native';
 import CardItem from '@/components/SellGifts/CardItem';
 import { Route, router, useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
-import { images } from '@/constants';
+import { icons, images } from '@/constants';
 import { NavigationProp, useRoute } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -107,6 +107,7 @@ const GiftCardCategories = () => {
       setDisplayCategories(categoriesData);
     }
   }, [categories, searchTerm]);
+  
 
   const renderCardsList = () => {
     return (
@@ -114,7 +115,7 @@ const GiftCardCategories = () => {
         data={displayCategories || categories?.data?.categories}
         renderItem={({ item }) => (
           <CardItem
-            card={images[item.category.image as keyof typeof images] as string}
+            card={item.category.image || icons.gift}
             text={item.category.title}
             onSend={() =>
               navigate(`giftcardsubcategories`, {
@@ -142,7 +143,7 @@ const GiftCardCategories = () => {
       ]}
     >
       <NavigateBack text="Giftcards" />
-      <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      {/* <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} /> */}
       {displayCategories && renderCardsList()}
     </SafeAreaView>
   );

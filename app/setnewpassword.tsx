@@ -23,12 +23,15 @@ const SetNewPassword = () => {
   const [modalVisible, setModalVisible] = useState(false); // Added state for modal visibility
   const { dark } = useTheme();
   const router = useRouter();
+  const { userId } = router.params;
+
   const { goBack } = useNavigation();
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
     normalText: dark ? COLORS.white : COLORS.black,
   };
-
+  
+  console.log('User ID:', userId);
   const handleModalPress = () => {
     setModalVisible(false);
     router.push('/(tabs)/chat');
@@ -79,7 +82,7 @@ const SetNewPassword = () => {
               values,
             }) => (
               <View style={[{ flex: 1 }, styles.secondryCont]}>
-                <View>
+                <View style={{ width: '100%' }}>
                   <Input
                     value={values.password}
                     onChangeText={handleChange('password')}

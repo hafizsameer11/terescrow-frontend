@@ -1,3 +1,4 @@
+
 import {
   Keyboard,
   StyleSheet,
@@ -78,9 +79,12 @@ const queryClient = useQueryClient()
   });
   const { mutate, isPending: sendingMessage } = useMutation({
     mutationKey: ['send-message'],
-    mutationFn: (data: ISendMessageReq) => sendMessageController(data, token),
+    mutationFn: (data: FormData) => sendMessageController(data, token),
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['agentsData'])
+      queryClient.invalidateQueries({
+        queryKey: ['agentsData'],
+      })
+      console.log(data)
       setMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -104,6 +108,7 @@ const queryClient = useQueryClient()
   // console.log(chatDetailsData?.data?.receiverDetails);
 
   useEffect(() => {
+    console.log(token);
     if (socket) {
       socket.on(
         'message',
@@ -151,6 +156,7 @@ const queryClient = useQueryClient()
     return () => {
       if (socket) {
         socket.off('message');
+        socket.off('chat-successful');
       }
     };
   }, [socket]);
@@ -163,6 +169,7 @@ const queryClient = useQueryClient()
         id: message.id.toString(),
         text: message.message,
         isUser: message.senderId !== chatDetailsData.data.receiverDetails.id,
+        image: message.image,
         sentAt: message.createdAt,
       }));
       setMessages(oldMessages);
@@ -171,38 +178,31 @@ const queryClient = useQueryClient()
   }, [chatDetailsData]);
 
 
-  const handleSendMessage = (message?: string, image?: any) => {
-    if (!image && !message) return;
-
-    let newMessage: Message;
-
-    // console.log('hi');
-
-    if (!image) {
-      newMessage = {
-        id: (messages.length + 1).toString(),
-        text: message || '',
-        isUser: true,
-        sentAt: new Date(),
-      };
-    } else {
-      newMessage = {
-        id: (messages.length + 1).toString(),
-        text: message || '',
-        isUser: true,
-        image: image,
-        sentAt: new Date(),
-      };
+  const handleSendMessage = (message?: string, image?: string) => {
+    // Prevent sending empty messages
+    if (!image && !message?.trim()) return;
+  
+    // Create FormData instance
+    const formData = new FormData();
+    formData.append('chatId', chatId.toString());
+  
+    // Append message if present
+    if (message?.trim()) {
+      formData.append('message', message);
     }
-
-    if (message) {
-      console.log(message);
-      mutate({
-        message: message,
-        chatId,
-      });
+  
+    // Append image if present
+    if (image) {
+      formData.append('image', {
+        uri: image,
+        type: 'image/jpeg',
+        name: 'chat-image.jpg',
+      } as unknown as Blob);
     }
+  
+    mutate(formData); // Call mutation
   };
+  
 
   //this event listener scrolls to bottom to view full content
   useEffect(() => {
@@ -215,6 +215,8 @@ const queryClient = useQueryClient()
       Keyboard.removeAllListeners;
     };
   }, []);
+
+  // console.log(messages)
 
   const renderAgentChat = () => {
     const isChatClosed =

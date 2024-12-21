@@ -1,100 +1,102 @@
-import React, { Component } from "react";
-import { StyleSheet, Text, View, Dimensions } from "react-native";
+import React from "react";
+import { StyleSheet, Text, View, Dimensions, ActivityIndicator } from "react-native";
 import PieChart from "react-native-pie-chart";
+import { useAuth } from "@/contexts/authContext";
+import { transactionHistory } from "@/utils/queries/transactionQueries";
+import { useQuery } from "@tanstack/react-query";
+
 const { width: screenWidth } = Dimensions.get("window");
 
-export default class TestChart extends Component {
-  render() {
-    const widthAndHeight = screenWidth * 0.6; // 300
-    const series = [200, 500, 300, 500];
-    const sliceColor = ["#0EF302", "#048096", "#191473", "#CA3900"];
+const TestChart = () => {
+  const widthAndHeight = screenWidth * 0.6;
+  const { token } = useAuth();
 
-    return (
-      <View style={{ flex: 1 }}>
-        <View style={styles.container}>
-          <View style={styles.chartContainer}>
-            <PieChart
-              widthAndHeight={widthAndHeight}
-              series={series}
-              sliceColor={sliceColor}
-              coverRadius={0.7}
-              coverFill={"#FFF"}
-            />
-            <Text style={styles.totalPercentage}>100%</Text>
-          </View>
-          {/* Legends */}
-          <View style={styles.legendContainer}>
-            <View style={styles.legendItem}>
-              <View style={[styles.colorBox, { backgroundColor: "#CA3900" }]} />
-              <Text style={[styles.legendText, { color: "#CA3900" }]}>
-                Gift Card Sold
+  const {
+    data: transactionData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["transactionHistory"],
+    queryFn: () => transactionHistory(token),
+    enabled: !!token,
+  });
+
+  if (isLoading) {
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  }
+
+  if (isError) {
+    return <Text>Error: {error?.message}</Text>;
+  }
+
+  const data = transactionData?.data || [];
+
+  const series = data.map((item) => item.amount);
+  const labels = data.map((item) => item.department.title);
+  const colors = ["#0EF302", "#048096", "#191473", "#CA3900", "#FF5733", "#C70039"];
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <View style={styles.chartContainer}>
+          <PieChart
+            widthAndHeight={widthAndHeight}
+            series={series}
+            sliceColor={colors.slice(0, series.length)}
+            coverRadius={0.7}
+            coverFill={"#FFF"}
+          />
+        </View>
+
+        {/* Legends */}
+        <View style={styles.legendContainer}>
+          {data.map((item, index) => (
+            <View key={item.id} style={styles.legendItem}>
+              <View style={[styles.colorBox, { backgroundColor: colors[index] }]} />
+              <Text style={[styles.legendText, { color: colors[index] }]}>
+                {item.department.title}
               </Text>
             </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.colorBox, { backgroundColor: "#191473" }]} />
-              <Text style={[styles.legendText, { color: "#191473" }]}>
-                Gift Card Bought
-              </Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.colorBox, { backgroundColor: "#048096" }]} />
-              <Text style={[styles.legendText, { color: "#048096" }]}>
-                Crypto Sold
-              </Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.colorBox, { backgroundColor: "#0EF302" }]} />
-              <Text style={[styles.legendText, { color: "#0EF302" }]}>
-                Crypto Bought
-              </Text>
-            </View>
-          </View>
+          ))}
         </View>
       </View>
-    );
-  }
-}
+    </View>
+  );
+};
+
+export default TestChart;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: "relative",
     alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    margin: 10,
+    padding: 20,
   },
   chartContainer: {
     width: "100%",
     justifyContent: "center",
     flexDirection: "row",
   },
-  totalPercentage: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    fontSize: 20,
-    fontWeight: "bold",
-    transform: "translate(-50%, -50%)",
-  },
   legendContainer: {
     flexDirection: "row",
     justifyContent: "center",
+    flexWrap: "wrap",
     marginTop: 25,
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
     marginRight: 15,
+    marginBottom: 10,
   },
   legendText: {
     fontWeight: "bold",
-    fontSize: 7,
+    fontSize: 12,
   },
   colorBox: {
-    width: 5,
-    height: 5,
+    width: 12,
+    height: 12,
     borderRadius: 50,
     marginRight: 5,
   },

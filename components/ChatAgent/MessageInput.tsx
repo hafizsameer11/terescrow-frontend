@@ -7,8 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/themeContext';
 import { COLORS } from '@/constants';
@@ -26,11 +27,19 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const { dark } = useTheme();
   const [input, setInput] = useState<string>('');
   const [isImagePickerOpen, setIsImagePickerOpen] = useState<boolean>(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleSendMessage = () => {
     if (input.trim()) {
       sendMessage(input);
       setInput('');
+    }
+  };
+
+  const confirmImageSend = () => {
+    if (selectedImage) {
+      sendMessage('', selectedImage); // Send the selected image
+      setSelectedImage(null); // Clear preview
     }
   };
 
@@ -41,9 +50,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
       quality: 1,
     });
 
-    if (!result.canceled) {
-      sendMessage('', result.assets[0].uri);
-      setIsImagePickerOpen(false);
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setSelectedImage(result.assets[0].uri); // Show preview
+      setIsImagePickerOpen(false); // Close picker modal
     }
   };
 
@@ -53,10 +62,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
       quality: 1,
     });
 
-    if (!result.canceled) {
-      sendMessage('', result.assets[0].uri);
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setSelectedImage(result.assets[0].uri); // Show preview
+      setIsImagePickerOpen(false); // Close picker modal
     }
-    setIsImagePickerOpen(false);
   };
 
   return (
@@ -72,6 +81,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             color={dark ? COLORS.white : COLORS.black}
           />
         </TouchableOpacity>
+
         <TextInput
           style={[
             styles.input,
@@ -84,6 +94,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           multiline
           maxLength={500}
         />
+
         <TouchableOpacity
           onPress={handleSendMessage}
           style={styles.sendMessage}
@@ -104,6 +115,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         </TouchableOpacity>
       </View>
 
+      {/* Image Picker Modal */}
       {isImagePickerOpen && (
         <Modal transparent={true} visible={isImagePickerOpen}>
           <View style={styles.imagePickerContainer}>
@@ -125,6 +137,32 @@ const MessageInput: React.FC<MessageInputProps> = ({
           </View>
         </Modal>
       )}
+
+      {/* Image Preview Modal */}
+      {selectedImage && (
+        <Modal transparent={true} visible={!!selectedImage}>
+          <View style={styles.previewContainer}>
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.previewImage}
+            />
+            <View style={styles.previewActions}>
+              <TouchableOpacity
+                style={styles.previewButton}
+                onPress={confirmImageSend}
+              >
+                <Text style={styles.optionText}>Send</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.previewButton}
+                onPress={() => setSelectedImage(null)}
+              >
+                <Text style={styles.optionText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </>
   );
 };
@@ -132,21 +170,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
 export default MessageInput;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  chatContainer: { padding: 10 },
-  messageContainer: {
-    maxWidth: '70%',
-    borderRadius: 10,
-    marginVertical: 5,
-    paddingVertical: 10,
-  },
-  userMessage: { alignSelf: 'flex-end' },
-  otherMessage: { alignSelf: 'flex-start' },
-  userMessageTextColor: { backgroundColor: '#DCF8C6' },
-  otherMessageTextColor: { backgroundColor: '#E5E5E5' },
-  messageText: { fontSize: 16, padding: 15, borderRadius: 8 },
-  timestamp: { fontSize: 12, marginTop: 5, color: COLORS.grayscale400 },
-  dynamicImage: { width: '100%', height: undefined, aspectRatio: 1 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,14 +225,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  previewImage: { width: '100%', height: '100%', resizeMode: 'contain' },
-  closeButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
+  previewImage: { width: '90%', height: '60%', resizeMode: 'contain' },
+  previewActions: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  previewButton: {
     backgroundColor: COLORS.white,
-    borderRadius: 50,
-    padding: 5,
+    padding: 15,
+    marginHorizontal: 10,
+    borderRadius: 10,
+    width: 120,
+    alignItems: 'center',
   },
 });

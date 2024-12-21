@@ -28,7 +28,7 @@ const Chat = () => {
 
   const getFilteredData = useMemo(() => {
     if (!chatData) return [];
-    console.log(chatData.data?.[0].messagesCount);
+    // console.log(chatData.data?.[0].messagesCount);
   
     switch (selectedCategory) {
       case 'completed':
@@ -82,7 +82,7 @@ const Chat = () => {
             <ChatItem
             id={item.id.toString()}
               icon={icons.chat}
-              heading={`${item.agent.firstname} ${item.agent.lastname}`}
+              heading={`${item.agent.username}`}
               text={item.recentMessage}
               date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
                 hour: '2-digit',

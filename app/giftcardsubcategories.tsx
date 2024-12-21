@@ -112,7 +112,7 @@ const CardScreen = () => {
     return (
       <View style={styles.cardContainer}>
         <Image
-          source={images[categoryData.image as keyof typeof images] as string}
+          source={categoryData.image || images.cryptoCard}
           style={styles.cardImage}
           contentFit="contain"
         />

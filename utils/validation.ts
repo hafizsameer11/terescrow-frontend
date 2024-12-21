@@ -45,6 +45,7 @@ export const validationSignUpSchema = Yup.object().shape({
   termsAccepted: Yup.boolean()
     .oneOf([true], 'You must accept the terms and conditions')
     .required('You must accept the terms and conditions'),
+    profilePicture: Yup.string().required('Profile picture is required'),
 });
 
 export const validationSignInSchema = Yup.object().shape({

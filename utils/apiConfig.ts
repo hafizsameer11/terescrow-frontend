@@ -1,11 +1,10 @@
-export const API_BASE_URL = 'http://192.168.18.11:8000';
+export const API_BASE_URL = 'https://46.202.154.203';
 
 export const API_DOMAIN = API_BASE_URL + '/api';
 
 export const API_ENDPOINTS = {
   AUTH: {
     Login: API_DOMAIN + '/public/login',
-    Notifications: API_DOMAIN + '/public/get-all-notifications',
     MarkAllRead: API_DOMAIN + '/public/mark-all-read',
     Register: API_DOMAIN + '/auth/customer/register',
     Logout: API_DOMAIN + '/auth/logout',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Formik } from 'formik';
-import { ScrollView, Text, View, TouchableOpacity } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/themeContext'; // Assuming you have a theme context
 import { validationSignUpSchema } from '../utils/validation';
@@ -20,11 +20,12 @@ import { ApiError } from '@/utils/customApiCalls';
 import { showTopToast } from '@/utils/helpers';
 import { useAuth } from '@/contexts/authContext';
 import { getAllCountries } from '@/utils/queries/quickActionQueries';
-
+import * as ImagePicker from 'expo-image-picker';
 const SignUp = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const { setToken } = useAuth();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const {
     data: CountriesData,
@@ -46,7 +47,7 @@ const SignUp = () => {
             index: 0,
             routes: [{ name: 'otpverification' }],
           });
-          navigate('otpverification', {
+        navigate('otpverification', {
             context: 'signup',
             email: null,
           });
@@ -68,11 +69,54 @@ const SignUp = () => {
     },
   });
 
+  const handleImagePicker = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Denied',
+        'Permission to access media is required!'
+      );
+      return;
+    }
+  
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+  
+    if (!result.canceled && result.assets?.length > 0) {
+      const imageUri = result.assets[0].uri;
+      setProfileImage(imageUri); 
+      console.log('Selected Profile Image:', imageUri); // Log directly
+    }
+  };
+  
+
   const handleSubmit = async (
     values: Yup.InferType<typeof validationSignUpSchema>
   ) => {
-    signUp(values);
+    const formData = new FormData();
+  
+    // Append text fields
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, value as string);
+    });
+  
+    // Append profile picture if available
+    if (profileImage) {
+      formData.append('profilePicture', {
+        uri: profileImage,
+        type: 'image/jpeg',
+        name: 'profile.jpg',
+      } as unknown as Blob);
+    }
+  
+    // Send formData to the backend
+    signUp(formData);
   };
+  
+  
 
   return (
     <SafeAreaView
@@ -116,6 +160,7 @@ const SignUp = () => {
           </Text>
         </View>
 
+
         <Formik
           initialValues={{
             firstName: '',
@@ -146,181 +191,201 @@ const SignUp = () => {
             // console.log(values);
             return (
               <View style={{ marginBottom: SIZES.padding3 }}>
-                <Input
-                  value={values.firstName}
-                  onChangeText={handleChange('firstName')}
-                  onBlur={handleBlur('firstName')}
-                  keyboardType="default"
-                  label="First Name"
-                  errorText={
-                    touched.firstName && errors.firstName
-                      ? errors.firstName
-                      : ''
-                  }
-                  showCheckbox={false}
-                  prefilledValue={values.firstName}
-                  id="firstName"
-                />
-
-                <Input
-                  value={values.lastName}
-                  onChangeText={handleChange('lastName')}
-                  keyboardType="default"
-                  onBlur={handleBlur('lastName')}
-                  label="Last Name"
-                  errorText={
-                    touched.lastName && errors.lastName ? errors.lastName : ''
-                  }
-                  showCheckbox={false}
-                  prefilledValue={values.lastName}
-                  id="lastName"
-                />
-
-                <Input
-                  value={values.email}
-                  onChangeText={handleChange('email')}
-                  onBlur={handleBlur('email')}
-                  label="Email"
-                  keyboardType="email-address"
-                  errorText={touched.email && errors.email ? errors.email : ''}
-                  showCheckbox={false}
-                  prefilledValue={values.email}
-                  id="email"
-                />
-
-                {CountriesData?.data && (
-                  <CustomSelect
-                    options={CountriesData.data}
-                    currValue={values.country}
-                    error={errors.country}
-                    touched={touched.country}
-                    placeholder="Select Country"
-                    id="country"
-                    setFieldValue={setFieldValue}
-                    modalLabel="Country"
-                  />
-                )}
-
-                <Input
-                  keyboardType="phone-pad"
-                  value={values.phoneNumber}
-                  onChangeText={handleChange('phoneNumber')}
-                  onBlur={handleBlur('phoneNumber')}
-                  label="Phone Number"
-                  errorText={
-                    touched.phoneNumber && errors.phoneNumber
-                      ? errors.phoneNumber
-                      : undefined
-                  }
-                  showCheckbox={false}
-                  prefilledValue={values.phoneNumber}
-                  id="phoneNumber"
-                />
-
-                <Input
-                  value={values.username}
-                  onChangeText={handleChange('username')}
-                  keyboardType="default"
-                  onBlur={handleBlur('username')}
-                  label="Username"
-                  errorText={
-                    touched.username && errors.username ? errors.username : ''
-                  }
-                  showCheckbox={false}
-                  prefilledValue={values.username}
-                  id="username"
-                />
-
-                <Input
-                  value={values.password}
-                  onChangeText={handleChange('password')}
-                  onBlur={handleBlur('password')}
-                  keyboardType="default"
-                  label="Password"
-                  secureTextEntry
-                  errorText={
-                    touched.password && errors.password ? errors.password : ''
-                  }
-                  showCheckbox={false}
-                  prefilledValue={values.password}
-                  id="password"
-                />
-
-                {/* Gender text container */}
-                <CustomSelect
-                  options={GENDERS}
-                  currValue={values.gender}  // Correctly bound to Formik's state
-                  error={errors.gender}
-                  touched={touched.gender}
-                  placeholder="Select Gender"
-                  id="gender"
-                  setFieldValue={setFieldValue}
-                  modalLabel="Gender"
-                 
-                
-                />
-
-
-                <View
+               <TouchableOpacity
+                onPress={handleImagePicker}
+                style={{
+                  alignItems: 'center',
+                  marginVertical: 20,
+                }}
+              >
+                <Image
+                  source={profileImage ? { uri: profileImage } : icons.userPlaceholder}
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginTop: 15,
+                    width: 120,
+                    height: 120,
+                    borderRadius: 60,
+                    marginBottom: 10,
                   }}
-                >
-                  <Checkbox
-                    style={{ borderRadius: 50, marginTop: 3 }}
-                    id="termsAccepted"
-                    value={values.termsAccepted}
-                    onValueChange={(value) =>
-                      setFieldValue('termsAccepted', value)
+                />
+                <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>
+                  {profileImage ? 'Change Profile Picture' : 'Add Profile Picture'}
+                </Text>
+              </TouchableOpacity>
+                  <Input
+                    value={values.firstName}
+                    onChangeText={handleChange('firstName')}
+                    onBlur={handleBlur('firstName')}
+                    keyboardType="default"
+                    label="First Name"
+                    errorText={
+                      touched.firstName && errors.firstName
+                        ? errors.firstName
+                        : ''
                     }
-                    // onValueChange={handleChange("") as unknown as ((value: boolean) => void)}
-                    color={values.termsAccepted ? COLORS.primary : undefined}
+                    showCheckbox={false}
+                    prefilledValue={values.firstName}
+                    id="firstName"
                   />
-                  <Text
+
+                  <Input
+                    value={values.lastName}
+                    onChangeText={handleChange('lastName')}
+                    keyboardType="default"
+                    onBlur={handleBlur('lastName')}
+                    label="Last Name"
+                    errorText={
+                      touched.lastName && errors.lastName ? errors.lastName : ''
+                    }
+                    showCheckbox={false}
+                    prefilledValue={values.lastName}
+                    id="lastName"
+                  />
+
+                  <Input
+                    value={values.email}
+                    onChangeText={handleChange('email')}
+                    onBlur={handleBlur('email')}
+                    label="Email"
+                    keyboardType="email-address"
+                    errorText={touched.email && errors.email ? errors.email : ''}
+                    showCheckbox={false}
+                    prefilledValue={values.email}
+                    id="email"
+                  />
+
+                  {CountriesData?.data && (
+                    <CustomSelect
+                      options={CountriesData.data}
+                      currValue={values.country}
+                      error={errors.country}
+                      touched={touched.country}
+                      placeholder="Select Country"
+                      id="country"
+                      setFieldValue={setFieldValue}
+                      modalLabel="Country"
+                    />
+                  )}
+
+                  <Input
+                    keyboardType="phone-pad"
+                    value={values.phoneNumber}
+                    onChangeText={handleChange('phoneNumber')}
+                    onBlur={handleBlur('phoneNumber')}
+                    label="Phone Number"
+                    errorText={
+                      touched.phoneNumber && errors.phoneNumber
+                        ? errors.phoneNumber
+                        : undefined
+                    }
+                    showCheckbox={false}
+                    prefilledValue={values.phoneNumber}
+                    id="phoneNumber"
+                  />
+
+                  <Input
+                    value={values.username}
+                    onChangeText={handleChange('username')}
+                    keyboardType="default"
+                    onBlur={handleBlur('username')}
+                    label="Username"
+                    errorText={
+                      touched.username && errors.username ? errors.username : ''
+                    }
+                    showCheckbox={false}
+                    prefilledValue={values.username}
+                    id="username"
+                  />
+
+                  <Input
+                    value={values.password}
+                    onChangeText={handleChange('password')}
+                    onBlur={handleBlur('password')}
+                    keyboardType="default"
+                    label="Password"
+                    secureTextEntry
+                    errorText={
+                      touched.password && errors.password ? errors.password : ''
+                    }
+                    showCheckbox={false}
+                    prefilledValue={values.password}
+                    id="password"
+                  />
+
+                  {/* Gender text container */}
+                  <CustomSelect
+                    options={GENDERS}
+                    currValue={values.gender}  // Correctly bound to Formik's state
+                    error={errors.gender}
+                    touched={touched.gender}
+                    placeholder="Select Gender"
+                    id="gender"
+                    setFieldValue={setFieldValue}
+                    modalLabel="Gender"
+
+
+                  />
+
+
+                  <View
                     style={{
-                      color: dark ? COLORS.greyscale300 : COLORS.greyscale600,
-                      fontSize: 12,
-                      marginLeft: 5,
-                      marginTop: 5,
-                      marginBottom: 5,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginTop: 15,
                     }}
                   >
-                    I agree to the{' '}
+                    <Checkbox
+                      style={{ borderRadius: 50, marginTop: 3 }}
+                      id="termsAccepted"
+                      value={values.termsAccepted}
+                      onValueChange={(value) =>
+                        setFieldValue('termsAccepted', value)
+                      }
+                      // onValueChange={handleChange("") as unknown as ((value: boolean) => void)}
+                      color={values.termsAccepted ? COLORS.primary : undefined}
+                    />
                     <Text
                       style={{
-                        color: COLORS.primary,
+                        color: dark ? COLORS.greyscale300 : COLORS.greyscale600,
                         fontSize: 12,
-                        textDecorationLine: 'underline',
+                        marginLeft: 5,
+                        marginTop: 5,
+                        marginBottom: 5,
                       }}
                     >
-                      Terms of Service
+                      I agree to the{' '}
+                      <Text
+                        style={{
+                          color: COLORS.primary,
+                          fontSize: 12,
+                          textDecorationLine: 'underline',
+                        }}
+                      >
+                        Terms of Service
+                      </Text>
+                      {' and '}
+                      <Text
+                        style={{
+                          color: COLORS.primary,
+                          fontSize: 12,
+                          textDecorationLine: 'underline',
+                        }}
+                      >
+                        Privacy Policy
+                      </Text>
                     </Text>
-                    {' and '}
-                    <Text
-                      style={{
-                        color: COLORS.primary,
-                        fontSize: 12,
-                        textDecorationLine: 'underline',
-                      }}
-                    >
-                      Privacy Policy
-                    </Text>
-                  </Text>
+                  </View>
+                  {/* <Button onPress={handleSubmit} title="Create an Account"/> */}
+                  <View style={{ marginTop: 25, width: '100%' }}>
+                    <Button
+                      title="Create an Account"
+                      isLoading={isPending}
+                      onPress={handleSubmit as any}
+                    />
+                  </View>
                 </View>
-                {/* <Button onPress={handleSubmit} title="Create an Account"/> */}
-                <View style={{ marginTop: 25, width: '100%' }}>
-                  <Button
-                    title="Create an Account"
-                    isLoading={isPending}
-                    onPress={handleSubmit as any}
-                  />
-                </View>
-              </View>
-            );
+                );
           }}
-        </Formik>
+              </Formik>
       </ScrollView>
     </SafeAreaView>
   );
