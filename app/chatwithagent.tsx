@@ -1,4 +1,3 @@
-
 import {
   Keyboard,
   StyleSheet,
@@ -6,32 +5,33 @@ import {
   Modal,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import ChatPfpNav from '@/components/ChatPfpNav';
-import { COLORS, images } from '@/constants';
-import { useTheme } from '@/contexts/themeContext';
-import { useEffect, useRef, useState } from 'react';
-import { Text } from 'react-native';
-import { Image } from 'expo-image';
-import { FlatList } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import MessageInput from '@/components/ChatAgent/MessageInput';
-import MessageItem from '@/components/ChatAgent/MessageItem';
-import { useSocket } from '@/contexts/socketContext';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import ChatPfpNav from "@/components/ChatPfpNav";
+import { COLORS, icons, images } from "@/constants";
+import { useTheme } from "@/contexts/themeContext";
+import { useEffect, useRef, useState } from "react";
+import { Text } from "react-native";
+import { Image } from "expo-image";
+import { FlatList } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import MessageInput from "@/components/ChatAgent/MessageInput";
+import MessageItem from "@/components/ChatAgent/MessageItem";
+import { useSocket } from "@/contexts/socketContext";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ISendMessageReq,
   sendMessageController,
-} from '@/utils/mutations/chatMutations';
-import { ApiError } from '@/utils/customApiCalls';
-import { checkOnlineStatus, showTopToast } from '@/utils/helpers';
-import { useAuth } from '@/contexts/authContext';
-import { useNavigation } from 'expo-router';
-import { NavigationProp, useRoute } from '@react-navigation/native';
-import LoadingOverlay from '@/components/LoadingOverlay';
-import { getChatDetails } from '@/utils/queries/chatQueries';
-import chat from './(tabs)/chat';
+} from "@/utils/mutations/chatMutations";
+import { ApiError } from "@/utils/customApiCalls";
+import { checkOnlineStatus, showTopToast } from "@/utils/helpers";
+import { useAuth } from "@/contexts/authContext";
+import { useNavigation } from "expo-router";
+import { NavigationProp, useRoute } from "@react-navigation/native";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import { getChatDetails } from "@/utils/queries/chatQueries";
+import chat from "./(tabs)/chat";
+import ChatStatusMessage from "@/components/ChatStatusMessage";
 
 export type Message = {
   id: string;
@@ -61,7 +61,7 @@ const ChatWithAgent = () => {
   if (!chatId) {
     return goBack();
   }
-const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,17 +74,17 @@ const queryClient = useQueryClient()
     isError: isErrorChatDetails,
     error: errorChatDetails,
   } = useQuery({
-    queryKey: ['messages', chatId],
+    queryKey: ["messages", chatId],
     queryFn: () => getChatDetails(chatId, token),
   });
   const { mutate, isPending: sendingMessage } = useMutation({
-    mutationKey: ['send-message'],
+    mutationKey: ["send-message"],
     mutationFn: (data: FormData) => sendMessageController(data, token),
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: ['agentsData'],
-      })
-      console.log(data)
+        queryKey: ["agentsData"],
+      });
+      console.log(data);
       setMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -97,7 +97,7 @@ const queryClient = useQueryClient()
     },
     onError: (error: ApiError) => {
       console.log(error);
-      showTopToast({ type: 'error', text1: 'Error', text2: error.message });
+      showTopToast({ type: "error", text1: "Error", text2: error.message });
     },
   });
 
@@ -111,11 +111,11 @@ const queryClient = useQueryClient()
     console.log(token);
     if (socket) {
       socket.on(
-        'message',
+        "message",
         ({ from, message }: { from: number; message: newMessage }) => {
           console.log(from, message);
-          console.log('My id: ', userData?.id);
-          console.log('agentId: ', currReceiverId?.current);
+          console.log("My id: ", userData?.id);
+          console.log("agentId: ", currReceiverId?.current);
           if (from == userData?.id || from != currReceiverId?.current) return;
           setMessages((prevMessages) => [
             ...prevMessages,
@@ -133,21 +133,21 @@ const queryClient = useQueryClient()
       );
 
       socket.on(
-        'chat-successful',
+        "chat-successful",
         ({ chatId: currChatId }: { chatId: number }) => {
           if (currChatId == +chatId) {
             showTopToast({
-              type: 'success',
-              text1: 'Transaction Successful',
-              text2: 'You transaction has been made successfully',
+              type: "success",
+              text1: "Transaction Successful",
+              text2: "You transaction has been made successfully",
             });
           }
           setTimeout(() => {
             reset({
               index: 0,
-              routes: [{ name: '(tabs)' }],
+              routes: [{ name: "(tabs)" }],
             });
-            navigate('(tabs)');
+            navigate("(tabs)");
           }, 2000);
         }
       );
@@ -155,8 +155,8 @@ const queryClient = useQueryClient()
 
     return () => {
       if (socket) {
-        socket.off('message');
-        socket.off('chat-successful');
+        socket.off("message");
+        socket.off("chat-successful");
       }
     };
   }, [socket]);
@@ -177,36 +177,34 @@ const queryClient = useQueryClient()
     }
   }, [chatDetailsData]);
 
-
   const handleSendMessage = (message?: string, image?: string) => {
     // Prevent sending empty messages
     if (!image && !message?.trim()) return;
-  
+
     // Create FormData instance
     const formData = new FormData();
-    formData.append('chatId', chatId.toString());
-  
+    formData.append("chatId", chatId.toString());
+
     // Append message if present
     if (message?.trim()) {
-      formData.append('message', message);
+      formData.append("message", message);
     }
-  
+
     // Append image if present
     if (image) {
-      formData.append('image', {
+      formData.append("image", {
         uri: image,
-        type: 'image/jpeg',
-        name: 'chat-image.jpg',
+        type: "image/jpeg",
+        name: "chat-image.jpg",
       } as unknown as Blob);
     }
-  
+
     mutate(formData); // Call mutation
   };
-  
 
   //this event listener scrolls to bottom to view full content
   useEffect(() => {
-    Keyboard.addListener('keyboardDidShow', () => {
+    Keyboard.addListener("keyboardDidShow", () => {
       // console.log('ok');
       setTimeout(() => scrollToBottom(), 200);
     });
@@ -220,8 +218,8 @@ const queryClient = useQueryClient()
 
   const renderAgentChat = () => {
     const isChatClosed =
-      chatDetailsData?.data?.status === 'declined' ||
-      chatDetailsData?.data?.status === 'successful';
+      chatDetailsData?.data?.status === "declined" ||
+      chatDetailsData?.data?.status === "successful";
     return (
       <KeyboardAvoidingView
         style={[
@@ -244,15 +242,41 @@ const queryClient = useQueryClient()
         />
 
         {isChatClosed ? (
-          <View style={styles.chatClosedContainer}>
-            <Text style={styles.chatClosedText}>
-              {chatDetailsData?.data?.status === 'declined'
-                ? 'This chat was declined and is now closed.'
-                : 'This chat was successfully completed.'}
-            </Text>
+          <View
+            style={[
+              styles.chatClosedContainer,
+              chatDetailsData?.data?.status === "declined"
+                ? {
+                    backgroundColor: "#FFD7D7",
+                    borderWidth: 1,
+                    borderColor: COLORS.red,
+                  }
+                : {
+                    backgroundColor: "#E8FFF3",
+                    borderWidth: 1,
+                    borderColor: COLORS.primary,
+                  },
+            ]}
+          >
+            {chatDetailsData?.data?.status === "declined" ? (
+              <ChatStatusMessage
+                text="Your chat was declined."
+                subText="Reason: “Invalid details"
+                icon={icons.close2}
+              />
+            ) : (
+              <ChatStatusMessage
+                text="Your trade was successful"
+                subText="Your account has been credited"
+                icon={icons.check3}
+              />
+            )}
           </View>
         ) : (
-          <MessageInput sendMessage={handleSendMessage} sendingMessage={sendingMessage} />
+          <MessageInput
+            sendMessage={handleSendMessage}
+            sendingMessage={sendingMessage}
+          />
         )}
         {imagePreview && (
           <Modal transparent={true} visible={!!imagePreview}>
@@ -286,13 +310,13 @@ const queryClient = useQueryClient()
       <ChatPfpNav
         name={
           chatDetailsData?.data?.receiverDetails.firstname +
-          ' ' +
+          " " +
           chatDetailsData?.data?.receiverDetails.lastname
         }
         status={
           checkOnlineStatus(currReceiverId?.current, onlineAgents)
-            ? 'Online'
-            : 'Offline'
+            ? "Online"
+            : "Offline"
         }
         image={
           chatDetailsData?.data?.receiverDetails.profilePicture ||
@@ -308,15 +332,15 @@ const queryClient = useQueryClient()
 export default ChatWithAgent;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: "#fff" },
   chatContainer: { padding: 10 },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 20,
     paddingHorizontal: 10,
     borderTopWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   input: {
     flex: 1,
@@ -337,38 +361,38 @@ const styles = StyleSheet.create({
     borderColor: COLORS.grayscale400,
   },
   sendMessage: {
-    position: 'absolute',
+    position: "absolute",
     right: 20,
     paddingVertical: 10,
     paddingRight: 20,
   },
   imagePickerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   optionButton: {
     backgroundColor: COLORS.white,
     padding: 15,
     marginVertical: 10,
     borderRadius: 10,
-    width: '80%',
-    alignItems: 'center',
+    width: "80%",
+    alignItems: "center",
   },
   optionText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.black,
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
+    backgroundColor: "#000",
+    justifyContent: "center",
   },
-  previewImage: { width: '100%', height: '100%', resizeMode: 'contain' },
+  previewImage: { width: "100%", height: "100%", resizeMode: "contain" },
   closeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     left: 20,
     backgroundColor: COLORS.white,
@@ -377,15 +401,9 @@ const styles = StyleSheet.create({
   },
   chatClosedContainer: {
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.account,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 10,
     margin: 20,
-  },
-  chatClosedText: {
-    fontSize: 16,
-    color: 'white',
-    textAlign: 'center',
   },
 });

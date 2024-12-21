@@ -25,7 +25,7 @@ const Header = () => {
             dark ? { color: Colors.dark.text } : { color: Colors.light.text },
           ]}
         >
-          {userData?.username}
+          {`Hi, ${userData?.firstname}`}
         </Text>
         <Text
           style={[
@@ -36,8 +36,11 @@ const Header = () => {
           Welcome to Tercescrow
         </Text>
       </View>
-      
-      <Pressable onPress={notificationUrlHandler} style={styles.notificationContainer}>
+
+      <Pressable
+        onPress={notificationUrlHandler}
+        style={styles.notificationContainer}
+      >
         <Image
           source={icons.notification}
           style={[
@@ -48,10 +51,8 @@ const Header = () => {
           ]}
           contentFit="contain"
         />
-        
-        {userData?.unReadNotification > 0 && (
-          <View style={styles.redDot} />
-        )}
+
+        {userData?.unReadNotification > 0 && <View style={styles.redDot} />}
       </Pressable>
     </View>
   );
@@ -66,7 +67,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 16,
     paddingBottom: 16,
-    paddingHorizontal: 16,
   },
   mainText: {
     fontSize: 16,
