@@ -1,9 +1,9 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React from 'react';
-import { useTheme } from '@/contexts/themeContext';
-import { COLORS, icons, SIZES } from '@/constants';
-import { Image } from 'expo-image';
-import SelectModal from '@/components/SelectModal';
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { useTheme } from "@/contexts/themeContext";
+import { COLORS, icons, SIZES } from "@/constants";
+import { Image } from "expo-image";
+import SelectModal from "@/components/SelectModal";
 
 interface SelectProps {
   error?: string | undefined;
@@ -25,7 +25,7 @@ const CustomSelect = ({
   setFieldValue,
   currValue,
   placeholder,
-  onSelectOverride
+  onSelectOverride,
 }: SelectProps) => {
   const { dark } = useTheme();
   const [modalVisible, setIsVisible] = React.useState(false);
@@ -40,9 +40,9 @@ const CustomSelect = ({
             borderWidth: 1,
             borderColor: COLORS.greyscale300,
             paddingHorizontal: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
             marginTop: 7,
             marginBottom: 16,
             borderRadius: SIZES.padding,
@@ -52,7 +52,7 @@ const CustomSelect = ({
             style={{
               color: currValue
                 ? dark
-                  ? '#E2D9EC'
+                  ? "#E2D9EC"
                   : COLORS.grayscale700
                 : dark
                 ? COLORS.greyscale300
@@ -60,7 +60,8 @@ const CustomSelect = ({
               fontSize: 16,
             }}
           >
-            {currValue
+            {currValue &&
+            options.find((o) => o.id.toString() === currValue)?.title
               ? options.find((o) => o.id.toString() === currValue)?.title
               : placeholder}
           </Text>
@@ -93,7 +94,6 @@ const CustomSelect = ({
         isVisible={modalVisible}
         setIsVisible={setIsVisible}
         onSelect={(value) => {
-
           setFieldValue(id, value);
         }}
         title={modalLabel}

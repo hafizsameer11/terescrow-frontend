@@ -1,13 +1,16 @@
-import { View, Dimensions } from 'react-native';
-import { StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import images from '@/constants/images';
-import Swiper from 'react-native-swiper';
-import { COLORS } from '@/constants';
+import { View, Dimensions } from "react-native";
+import { StyleSheet } from "react-native";
+import { Image } from "expo-image";
+import images from "@/constants/images";
+import Swiper from "react-native-swiper";
+import { COLORS } from "@/constants";
+import { useState } from "react";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const SwipCard = () => {
+  const [isTouched, setIsTouched] = useState(true);
+
   return (
     <Swiper
       style={styles.wrapper}
@@ -16,6 +19,9 @@ const SwipCard = () => {
       paginationStyle={styles.pagination}
       dotStyle={styles.dot}
       activeDotStyle={styles.activeDot}
+      autoplay={isTouched}
+      autoplayTimeout={3}
+      
     >
       <View style={styles.slide}>
         <Image
@@ -41,18 +47,18 @@ const styles = StyleSheet.create({
   },
   slide: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 5,
   },
   text: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 30,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   pagination: {
     bottom: screenWidth * -0.0525,
@@ -61,7 +67,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#70D4A3',
+    backgroundColor: "#70D4A3",
     marginHorizontal: 5,
   },
   activeDot: {

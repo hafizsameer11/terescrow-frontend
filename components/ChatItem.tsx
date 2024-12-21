@@ -1,9 +1,9 @@
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { Image } from 'expo-image';
-import { COLORS } from '@/constants';
-import { useTheme } from '@/contexts/themeContext';
-import { useNavigation } from 'expo-router';
-import { NavigationProp } from '@react-navigation/native';
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { Image } from "expo-image";
+import { COLORS } from "@/constants";
+import { useTheme } from "@/contexts/themeContext";
+import { useNavigation } from "expo-router";
+import { NavigationProp } from "@react-navigation/native";
 const ChatItem: React.FC<{
   icon: string;
   id?: string;
@@ -17,44 +17,46 @@ const ChatItem: React.FC<{
   const { navigate, goBack } = useNavigation<NavigationProp<any>>();
   return (
     <TouchableOpacity
-    onPress={() => { navigate('chatwithagent', { chatId: props.id?.toString() });}}
+      onPress={() => {
+        navigate("chatwithagent", { chatId: props.id?.toString() });
+      }}
     >
-    <View
-      style={[
-        styles.container,
-        dark
-          ? { backgroundColor: COLORS.transparentAccount }
-          : { backgroundColor: COLORS.grayscale100 },
-      ]}
-    >
-      <View style={styles.iconContainer}>
-        <Image source={props.icon} style={styles.icon} />
-      </View>
-      <View style={styles.textContainer}>
-        <View style={styles.contentOne}>
-          <Text
-            style={[
-              styles.heading,
-              dark ? { color: COLORS.white } : { color: COLORS.black },
-            ]}
-          >
-            {props.heading}
-          </Text>
-          <View style={styles.details}>
+      <View
+        style={[
+          styles.container,
+          dark
+            ? { backgroundColor: COLORS.transparentAccount }
+            : { backgroundColor: COLORS.grayscale100 },
+        ]}
+      >
+        <View style={styles.iconContainer}>
+          <Image source={props.icon} style={styles.icon} />
+        </View>
+        <View style={styles.textContainer}>
+          <View style={styles.contentOne}>
             <Text
               style={[
-                styles.detailPriceProduct,
+                styles.heading,
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
-              {props.price}
+              {props.heading}
             </Text>
-            <Text
-              style={[dark ? { color: COLORS.white } : { color: COLORS.black }]}
-            >
-           
-            </Text>
-            {/* <Text
+            <View style={styles.details}>
+              <Text
+                style={[
+                  styles.detailPriceProduct,
+                  dark ? { color: COLORS.white } : { color: COLORS.black },
+                ]}
+              >
+                {props.price}
+              </Text>
+              <Text
+                style={[
+                  dark ? { color: COLORS.white } : { color: COLORS.black },
+                ]}
+              ></Text>
+              {/* <Text
               style={[
                 styles.detailPriceProduct,
                 dark ? { color: COLORS.white } : { color: COLORS.black },
@@ -62,46 +64,38 @@ const ChatItem: React.FC<{
             >
               {props.productId}
             </Text> */}
+            </View>
           </View>
-        </View>
-        <View style={styles.contentTwo}>
-          <View>
-            <Text
-              style={[
-                styles.text,
-                dark ? { color: COLORS.white } : { color: COLORS.black },
-              ]}
+          <View style={styles.contentTwo}>
+            <View style={{ flex: 0.8 }}>
+              <Text
+                style={[
+                  styles.text,
+                  dark ? { color: COLORS.white } : { color: COLORS.black },
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {props.text}
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
             >
-              {props.text}
-            </Text>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text
-              style={[
-                styles.date,
-              { color: COLORS.black } 
-              ]}
-            >
-              {props.date}
-            </Text>
-            <Text
-              style={[
-                styles.circle,
-                { color: COLORS.white },
-              ]}
-            >
-              {props.productId}
-            </Text>
+              <Text style={[styles.date, { color: COLORS.black }]}>
+                {props.date}
+              </Text>
+              <Text style={[styles.circle, { color: COLORS.white }]}>
+                {props.productId}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
-    </View>
     </TouchableOpacity>
   );
 };
@@ -114,25 +108,25 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 12,
     // marginHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
   },
   circle: {
     width: 15,
     height: 15,
     marginLeft: 5,
-    textAlign:'center',
+    textAlign: "center",
     borderRadius: 999,
-    justifyContent: 'center',
+    justifyContent: "center",
     fontSize: 10,
     backgroundColor: COLORS.green,
   },
   iconContainer: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 3,
     borderRadius: 50,
     borderColor: COLORS.green,
@@ -143,11 +137,11 @@ const styles = StyleSheet.create({
     height: 20,
   },
   textContainer: {
-    flexDirection: 'column',
-    width: '85%',
+    flexDirection: "column",
+    width: "85%",
   },
   heading: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 14,
     marginBottom: 2,
   },
@@ -156,22 +150,22 @@ const styles = StyleSheet.create({
     color: COLORS.greyscale600,
   },
   contentOne: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 5,
   },
   contentTwo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   details: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   date: {
     fontSize: 9,
     color: COLORS.greyscale600,
   },
-  detailPriceProduct: { fontSize: 10, fontFamily: 'Bold' },
+  detailPriceProduct: { fontSize: 10, fontFamily: "Bold" },
 });

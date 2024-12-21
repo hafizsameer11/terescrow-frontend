@@ -23,6 +23,7 @@ import { ApiError } from "@/utils/customApiCalls";
 import { useAuth } from "@/contexts/authContext";
 import * as SecureStore from "expo-secure-store";
 import * as LocalAuthentication from "expo-local-authentication";
+import { NavigationProp } from "@react-navigation/native";
 // import * as SecureStore from 'expo-secure-store';
 // Secure Store Keys
 const TOKEN_KEY = "USER_TOKEN";
@@ -31,7 +32,7 @@ const BIOMETRIC_AUTH_KEY = "BIOMETRIC_AUTH";
 
 const Signin = () => {
   const { dark } = useTheme();
-  const { reset, navigate } = useNavigation();
+  const { reset, navigate } = useNavigation<NavigationProp<any>>();
   const { setToken, setUserData } = useAuth();
 
   // Handle Biometric Authentication
@@ -183,6 +184,7 @@ const Signin = () => {
                 onChangeText={handleChange("password")}
                 onBlur={handleBlur("password")}
                 label="Password"
+                isPassword
                 id="password"
                 secureTextEntry
                 errorText={
@@ -219,7 +221,7 @@ const Signin = () => {
                 title="Sign in"
                 onPress={handleSubmit as () => void}
                 isLoading={loginPending}
-                style={{ marginTop: 10 }}
+                style={{ marginTop: 10, position: 'absolute', bottom: 0, width: '100%' }}
               />
             </View>
           )}

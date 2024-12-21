@@ -1,9 +1,9 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { SetStateAction } from 'react';
-import { Message } from '@/app/chatwithagent';
-import { Image } from 'expo-image';
-import { COLORS } from '@/constants';
-import { API_BASE_URL } from '@/utils/apiConfig';
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { SetStateAction } from "react";
+import { Message } from "@/app/chatwithagent";
+import { Image } from "expo-image";
+import { COLORS } from "@/constants";
+import { API_BASE_URL } from "@/utils/apiConfig";
 
 type PropTypes = {
   item: Message;
@@ -19,8 +19,15 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
       ]}
     >
       {item.image && (
-        <TouchableOpacity onPress={() => setImagePreview(`${API_BASE_URL}/uploads/${item.image}` as string)}>
-          <Image source={{ uri: `${API_BASE_URL}/uploads/${item.image}` }} style={styles.dynamicImage} />
+        <TouchableOpacity
+          onPress={() =>
+            setImagePreview(`${API_BASE_URL}/uploads/${item.image}` as string)
+          }
+        >
+          <Image
+            source={{ uri: `${API_BASE_URL}/uploads/${item.image}` }}
+            style={styles.dynamicImage}
+          />
         </TouchableOpacity>
       )}
       {!item.image && (
@@ -38,11 +45,14 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
       <Text
         style={[
           styles.timestamp,
-          { alignSelf: item.isUser ? 'flex-end' : 'flex-start' },
+          { alignSelf: item.isUser ? "flex-end" : "flex-start" },
         ]}
       >
-        {item?.sentAt && new Date(item.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-
+        {item?.sentAt &&
+          new Date(item.sentAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
       </Text>
     </View>
   );
@@ -52,16 +62,21 @@ export default MessageItem;
 
 const styles = StyleSheet.create({
   messageContainer: {
-    maxWidth: '70%',
+    maxWidth: "70%",
     borderRadius: 10,
     marginVertical: 5,
     paddingVertical: 10,
   },
-  userMessage: { alignSelf: 'flex-end' },
-  otherMessage: { alignSelf: 'flex-start' },
-  userMessageTextColor: { backgroundColor: '#DCF8C6' },
-  otherMessageTextColor: { backgroundColor: '#E5E5E5' },
-  messageText: { fontSize: 16, padding: 15, borderRadius: 8 },
+  userMessage: { alignSelf: "flex-end" },
+  otherMessage: { alignSelf: "flex-start" },
+  userMessageTextColor: { backgroundColor: "#E1FFEF" },
+  otherMessageTextColor: { backgroundColor: "#EFEFEF" },
+  messageText: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
   timestamp: { fontSize: 12, marginTop: 5, color: COLORS.grayscale400 },
-  dynamicImage: { width: '100%', height: undefined, aspectRatio: 1 },
+  dynamicImage: { width: "100%", height: undefined, aspectRatio: 1 },
 });

@@ -7,13 +7,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Image,
-} from 'react-native';
-import React, { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/contexts/themeContext';
-import { COLORS } from '@/constants';
-import * as ImagePicker from 'expo-image-picker';
+} from "react-native";
+import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/contexts/themeContext";
+import { COLORS } from "@/constants";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 
 interface MessageInputProps {
   sendMessage: (message?: string, image?: string) => void;
@@ -25,20 +25,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
   sendingMessage,
 }) => {
   const { dark } = useTheme();
-  const [input, setInput] = useState<string>('');
+  const [input, setInput] = useState<string>("");
   const [isImagePickerOpen, setIsImagePickerOpen] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleSendMessage = () => {
     if (input.trim()) {
       sendMessage(input);
-      setInput('');
+      setInput("");
     }
   };
 
   const confirmImageSend = () => {
     if (selectedImage) {
-      sendMessage('', selectedImage); // Send the selected image
+      sendMessage("", selectedImage); // Send the selected image
       setSelectedImage(null); // Clear preview
     }
   };
@@ -105,7 +105,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           ) : (
             <Text
               style={[
-                { fontWeight: 'bold' },
+                { fontWeight: "bold" },
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
@@ -142,10 +142,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       {selectedImage && (
         <Modal transparent={true} visible={!!selectedImage}>
           <View style={styles.previewContainer}>
-            <Image
-              source={{ uri: selectedImage }}
-              style={styles.previewImage}
-            />
+            <Image source={selectedImage} style={styles.previewImage} contentFit="contain" />
             <View style={styles.previewActions}>
               <TouchableOpacity
                 style={styles.previewButton}
@@ -171,12 +168,12 @@ export default MessageInput;
 
 const styles = StyleSheet.create({
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 20,
     paddingHorizontal: 10,
     borderTopWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   input: {
     flex: 1,
@@ -197,39 +194,39 @@ const styles = StyleSheet.create({
     borderColor: COLORS.grayscale400,
   },
   sendMessage: {
-    position: 'absolute',
+    position: "absolute",
     right: 20,
     paddingVertical: 10,
     paddingRight: 20,
   },
   imagePickerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   optionButton: {
     backgroundColor: COLORS.white,
     padding: 15,
     marginVertical: 10,
     borderRadius: 10,
-    width: '80%',
-    alignItems: 'center',
+    width: "80%",
+    alignItems: "center",
   },
   optionText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.black,
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  previewImage: { width: '90%', height: '60%', resizeMode: 'contain' },
+  previewImage: { width: "90%", height: "60%", resizeMode: "contain" },
   previewActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 20,
   },
   previewButton: {
@@ -238,6 +235,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderRadius: 10,
     width: 120,
-    alignItems: 'center',
+    alignItems: "center",
   },
 });
