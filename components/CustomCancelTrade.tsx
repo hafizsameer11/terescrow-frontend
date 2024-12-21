@@ -6,7 +6,7 @@ const CustomCancelTrade = () => {
   const router = useRouter();
   const handlePress = () => {
     console.log("Proceed to connecting agent!");
-    router.back();
+    router.dismissAll();
   };
   return (
     <View style={styles.container}>
