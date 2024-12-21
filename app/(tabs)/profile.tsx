@@ -15,8 +15,9 @@ const Profile = () => {
   const { userData } = useAuth();
   const { logout } = useAuth();
   const { dark } = useTheme();
-  console.log(userData)
-  console.log(`{${API_BASE_URL}/uploads/${userData?.profilePicture}`)
+  
+  const imageShown = `${API_BASE_URL}/uploads/${userData?.profilePicture}`
+
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="auto" />
@@ -51,12 +52,11 @@ const Profile = () => {
             >
               Profile
             </Text>
-
           </View>
           <View style={{ paddingHorizontal: 10 }}>
             <Image
-              source={{ uri: `${API_BASE_URL}/uploads/${userData?.profilePicture}` }}
-              style={{ width: 120, height: 120, borderRadius: 60 }}
+              source={userData?.profilePicture ? { uri: imageShown } : images.userProfile}
+              style={{ width: 110, height: 110, borderRadius: 60 }}
             />
             <Text
               style={{
@@ -66,10 +66,10 @@ const Profile = () => {
                 fontSize: 18,
               }}
             >
-              {userData?.username}
+              {userData?.firstname}{userData?.lastname}
             </Text>
             <Text style={{ color: COLORS.white }}>
-              {userData?.email}
+              {userData?.username}
             </Text>
           </View>
         </View>
@@ -80,34 +80,34 @@ const Profile = () => {
         <ScrollView>
           <ProfileListItem
             text="Edit Profile"
-            icon={icons.userDefault}
+            icon={icons.userEdit}
             onPress={() => {
               router.push("/editprofile");
             }}
           />
           <ProfileListItem
             text="KYC Level"
-            icon={icons.bag}
+            icon={icons.personalCard}
             onPress={() => {
               router.push("/updatekyclevel");
             }}
           />
           <ProfileListItem
             text="Security"
-            icon={icons.security}
+            icon={icons.lockUser}
             onPress={() => {
               router.push("/profilesecurity");
             }}
           />
           <ProfileListItem
             text="Privacy Policy"
-            icon={icons.wallet2Outline}
-            onPress={() => { }}
+            icon={icons.privacyPolicy}
+            onPress={() => {}}
           />
           <ProfileListItem
             text="Terms of Services"
-            icon={icons.more}
-            onPress={() => { }}
+            icon={icons.termsAndServices}
+            onPress={() => {}}
           />
           {/* <ProfileListItem
             text="Customer Support"
@@ -116,15 +116,17 @@ const Profile = () => {
           /> */}
           <ProfileListItem
             text="Log out"
-            icon={icons.logout}
+            icon={icons.logoutUser}
+            areLast
             onPress={() => {
               logout();
             }}
           />
           <ProfileListItem
             text="Delete Account"
-            icon={icons.trash}
-            onPress={() => { }}
+            areLast
+            icon={icons.deleteAccount}
+            onPress={() => {}}
           />
         </ScrollView>
       </View>
