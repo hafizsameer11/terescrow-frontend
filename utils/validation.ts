@@ -74,17 +74,12 @@ export const validationforgetPasswordSchema = Yup.object().shape({
 // setNewPassword schema
 export const validationSetNewPassword = Yup.object().shape({
   password: Yup.string()
-    .required('Password is required')
     .min(8, 'Password must be at least 8 characters')
-    .matches(/[a-zA-Z]/, 'Password must contain at least one letter')
-    .matches(/[0-9]/, 'Password must contain at least one number')
-    .matches(/[\W_]/, 'Password must contain at least one special character'),
-
+    .required('Password is required'),
   confirmPassword: Yup.string()
-    .required('Confirm Password is required')
-    .oneOf([Yup.ref('password')], 'Passwords must match'),
+    .oneOf([Yup.ref('password'), null], 'Passwords must match')
+    .required('Confirm Password is required'),
 });
-
 // editProfile schema
 export const validationEditProfile = Yup.object().shape({
   firstName: Yup.string()

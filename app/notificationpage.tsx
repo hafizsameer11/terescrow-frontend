@@ -29,7 +29,6 @@ const NotificationPage: React.FC = () => {
   // Fetch Notifications
   const {
     data: notificationData,
-    refetch: refetchNotifications,
   } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => getNotifications(token),
@@ -49,9 +48,15 @@ const NotificationPage: React.FC = () => {
       console.error("Error marking notifications as read:", error);
     },
   });
+  useEffect(() => {
+    if (notificationData?.data) {
+
+      console.log("notification data", notificationData);
+    }
+  });
 
   // Trigger push notifications when count increases
- 
+
 
   return (
     <SafeAreaView

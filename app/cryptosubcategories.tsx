@@ -95,7 +95,10 @@ const CryptoScreen = () => {
       navigate('connectingagent', {
         departmentId,
         categoryId: categoryData.id.toString(),
+        categorytitle:categoryData.title,
         subCategoryId: selectedBlockchainId,
+        amount,
+        icon:categoryData.image
       });
     }
   };
@@ -138,12 +141,12 @@ const CryptoScreen = () => {
           onChangeText={(value) => setAmount(value)}
         />
 
-        <View style={{ marginTop: 24 }}></View>
+        {/* <View style={{ marginTop: 24 }}></View>
         <CounterInput
           counter={quantity ? +quantity.toFixed(2) : 0.0}
           type="quantity"
           text="Quantity"
-        />
+        /> */}
 
         <View style={{ marginTop: 18 }}></View>
         {blockchains && (

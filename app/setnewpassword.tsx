@@ -15,26 +15,28 @@ import { Formik } from 'formik';
 import { validationSetNewPassword } from '@/utils/validation';
 import Input from '../components/CustomInput';
 import Button from '@/components/Button';
-import NavigateBack from '@/components/NavigateBack';
-import { useNavigation, useRouter } from 'expo-router'; // Importing useRouter
+import { useNavigation, useRouter } from 'expo-router';
+// import { setNewPassword } from '@/utils/apiCalls'; // Importing your backend function
 import SuccessModal from './successmodal';
+import { showTopToast } from '@/utils/helpers'; // For toast messages
+import { setNewPassword } from '@/utils/mutations/authMutations';
+import { NavigationProp, useRoute } from '@react-navigation/native';
 
 const SetNewPassword = () => {
-  const [modalVisible, setModalVisible] = useState(false); // Added state for modal visibility
+  const [modalVisible, setModalVisible] = useState(false);
   const { dark } = useTheme();
-  const router = useRouter();
-  const { userId } = router.params;
-
-  const { goBack } = useNavigation();
+  const router = useRoute();
+  const { userId }: { userId: string } = router.params as any;
+ const { navigate, goBack } = useNavigation<NavigationProp<any>>();
+  // const { goBack } = useNavigation();
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
     normalText: dark ? COLORS.white : COLORS.black,
   };
-  
-  console.log('User ID:', userId);
+
   const handleModalPress = () => {
     setModalVisible(false);
-    router.push('/(tabs)/chat');
+    router.push('/(tabs)/dashboard'); // Navigate to the dashboard after success
   };
 
   return (
@@ -68,9 +70,34 @@ const SetNewPassword = () => {
           <Formik
             initialValues={{ password: '', confirmPassword: '' }}
             validationSchema={validationSetNewPassword}
-            onSubmit={(values) => {
-              console.log(values);
-              setModalVisible(true); // Show modal after successful submission
+            onSubmit={async (values, { resetForm }) => {
+              try {
+                const response = await setNewPassword({
+                  userId,
+                  password: values.password,
+                });
+                console.log('Password changed successfully:', response);
+
+                // Show success modal and reset form
+                resetForm();
+                showTopToast({
+                  type: 'success',
+                  text1: 'Success',
+                  text2: 'Password changed successfully',
+                });
+                // Navigate to the dashboard after success
+                // router.push('/(tabs)/dashboard');
+                navigate('signin');
+                  
+                // setModalVisible(true);
+              } catch (error) {
+                console.error('Error changing password:', error);
+                showTopToast({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: error?.message || 'Failed to change password',
+                });
+              }
             }}
           >
             {({
@@ -81,9 +108,10 @@ const SetNewPassword = () => {
               touched,
               values,
             }) => (
-              <View style={[{ flex: 1 }, styles.secondryCont]}>
+              <View style={[{ flex: 1 }, styles.secondaryCont]}>
                 <View style={{ width: '100%' }}>
                   <Input
+                  id='password'
                     value={values.password}
                     onChangeText={handleChange('password')}
                     onBlur={handleBlur('password')}
@@ -93,11 +121,9 @@ const SetNewPassword = () => {
                     errorText={
                       touched.password && errors.password ? errors.password : ''
                     }
-                    showCheckbox={false}
-                    prefilledValue={values.password}
-                    id="password"
                   />
                   <Input
+                  id='confirmPassword'
                     value={values.confirmPassword}
                     onChangeText={handleChange('confirmPassword')}
                     onBlur={handleBlur('confirmPassword')}
@@ -109,9 +135,6 @@ const SetNewPassword = () => {
                         ? errors.confirmPassword
                         : ''
                     }
-                    showCheckbox={false}
-                    prefilledValue={values.confirmPassword}
-                    id="password"
                   />
                 </View>
                 <View style={{ width: '100%' }}>
@@ -124,7 +147,7 @@ const SetNewPassword = () => {
                         !errors.confirmPassword
                       )
                     }
-                    title="Complete" // Ensure this is a string
+                    title="Complete"
                     style={{
                       opacity:
                         values.password &&
@@ -145,7 +168,7 @@ const SetNewPassword = () => {
           modalVisible={modalVisible}
           setModalVisible={setModalVisible}
           onPress={handleModalPress}
-          buttonTitle="Go to dashboard" // Ensure this is a string
+          buttonTitle="Go to dashboard"
         />
       </ScrollView>
     </SafeAreaView>
@@ -157,7 +180,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  secondryCont: {
+  secondaryCont: {
     flexDirection: 'column',
     marginTop: 15,
     flex: 1,

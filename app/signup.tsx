@@ -350,6 +350,8 @@ const SignUp = () => {
                     onValueChange={(value) =>
                       setFieldValue("termsAccepted", value)
                     }
+                    error={errors.termsAccepted}
+                    
                     // onValueChange={handleChange("") as unknown as ((value: boolean) => void)}
                     color={values.termsAccepted ? COLORS.primary : undefined}
                   />

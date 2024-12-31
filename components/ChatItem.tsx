@@ -1,9 +1,10 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
-import { COLORS } from "@/constants";
+import { COLORS, icons } from "@/constants";
 import { useTheme } from "@/contexts/themeContext";
 import { useNavigation } from "expo-router";
 import { NavigationProp } from "@react-navigation/native";
+import { getImageUrl } from "@/utils/helpers";
 const ChatItem: React.FC<{
   icon: string;
   id?: string;
@@ -12,6 +13,7 @@ const ChatItem: React.FC<{
   date: string;
   price: string;
   productId: string;
+  status?: string;
 }> = (props) => {
   const { dark } = useTheme();
   const { navigate, goBack } = useNavigation<NavigationProp<any>>();
@@ -30,8 +32,14 @@ const ChatItem: React.FC<{
         ]}
       >
         <View style={styles.iconContainer}>
-          <Image source={props.icon} style={styles.icon} />
-        </View>
+          <Image
+            source={
+              props.icon !== icons.chat
+                ? { uri: getImageUrl(props.icon) } // Remote image
+                : props.icon // Local asset
+            }
+            style={styles.icon}
+          />        </View>
         <View style={styles.textContainer}>
           <View style={styles.contentOne}>
             <Text
@@ -56,14 +64,7 @@ const ChatItem: React.FC<{
                   dark ? { color: COLORS.white } : { color: COLORS.black },
                 ]}
               ></Text>
-              {/* <Text
-              style={[
-                styles.detailPriceProduct,
-                dark ? { color: COLORS.white } : { color: COLORS.black },
-              ]}
-            >
-              {props.productId}
-            </Text> */}
+
             </View>
           </View>
           <View style={styles.contentTwo}>
@@ -89,9 +90,23 @@ const ChatItem: React.FC<{
               <Text style={[styles.date, { color: COLORS.black }]}>
                 {props.date}
               </Text>
-              <Text style={[styles.circle, { color: COLORS.white }]}>
-                {props.productId}
+              <Text
+                style={[
+                  styles.circle,
+                  {
+                    backgroundColor:
+                      props.status === "successful"
+                        ? "green"
+                        : props.status === "declined"
+                          ? "red"
+                          : "yellow", // Default to yellow for "pending"
+                    color: COLORS.white,
+                  },
+                ]}
+              >
+                {/* {props.productId} */}
               </Text>
+
             </View>
           </View>
         </View>
@@ -113,14 +128,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F7F7",
   },
   circle: {
-    width: 15,
-    height: 15,
+    width: 10,
+    height: 10,
     marginLeft: 5,
     textAlign: "center",
     borderRadius: 999,
     justifyContent: "center",
     fontSize: 10,
-    backgroundColor: COLORS.green,
+
   },
   iconContainer: {
     width: 40,

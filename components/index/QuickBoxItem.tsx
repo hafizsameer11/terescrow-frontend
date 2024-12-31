@@ -2,6 +2,7 @@ import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { COLORS } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
+import { getImageUrl } from '@/utils/helpers';
 
 const QuickBoxItem: React.FC<{
   icon: string;
@@ -10,7 +11,9 @@ const QuickBoxItem: React.FC<{
   onClick: (item: any) => void;
 }> = (props) => {
   const { dark } = useTheme();
+  console.log("departmenticon", props.icon);
   return (
+
     <Pressable
       style={[
         styles.container,
@@ -28,7 +31,7 @@ const QuickBoxItem: React.FC<{
             : { backgroundColor: COLORS.transparentAccount },
         ]}
       >
-        <Image source={props.icon} style={styles.icon} />
+        <Image source={{uri: getImageUrl(props.icon)}} style={styles.icon} />
       </View>
       <View style={styles.textContainer}>
         <Text

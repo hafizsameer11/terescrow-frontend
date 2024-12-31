@@ -60,7 +60,7 @@ const OTPVerification = () => {
           routes: [
             {
               name: 'setnewpassword',
-              params: { userId: data.data.userId }, // Pass userId as params
+              params: { userId: data.data?.userId }, // Pass userId as params
             },
           ],
         });

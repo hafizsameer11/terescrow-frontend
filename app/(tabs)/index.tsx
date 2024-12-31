@@ -15,6 +15,8 @@ import {
 import { getAllChats } from "@/utils/queries/chatQueries";
 import { NavigationProp } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
+import { useField } from "formik";
+import { useEffect } from "react";
 
 export default function HomeScreen() {
   const { dark } = useTheme();
@@ -30,7 +32,6 @@ export default function HomeScreen() {
     queryFn: () => getDepartments(token),
     enabled: !!token,
   });
-
   const {
     data: chatData,
     isLoading: chatLoading,
@@ -42,6 +43,10 @@ export default function HomeScreen() {
     refetchInterval: 1000, // Refetch every second
   });
 
+  // Limit to 5 chats
+  // useEffect
+  const limitedChatData = chatData?.data?.slice(0, 5) || [];
+
   const handleClickDepartment = (item: IDepartmentResponse["data"][number]) => {
     const route = item.title.includes("Gift Card")
       ? "giftcardcategories"
@@ -49,7 +54,9 @@ export default function HomeScreen() {
 
     navigate(route, { departmentId: item.id.toString() });
   };
-
+  useEffect(() => {
+    console.log("departmentsData?.data", departmentsData?.data);
+  })
   const renderHeader = () => (
     <>
       <Header />
@@ -71,8 +78,8 @@ export default function HomeScreen() {
             scrollEnabled={false}
             renderItem={({ item }) => (
               <QuickBoxItem
-                icon={icons[item.icon as keyof typeof icons] || icons.gift}
-                title={item.title}
+                icon={item?.icon || icons.gift}
+                title={item?.title}
                 description={item.description}
                 onClick={() => handleClickDepartment(item)}
               />
@@ -108,21 +115,23 @@ export default function HomeScreen() {
       ]}
     >
       <FlatList
-        data={chatData?.data || []}
+        data={limitedChatData || []}
         keyExtractor={(item) => item.id.toString()}
         style={{ paddingHorizontal: 16 }}
         renderItem={({ item }) => (
           <ChatItem
             id={item.id.toString()}
-            icon={icons.chat}
-            heading={`${item.agent.firstname} ${item.agent.lastname}`}
+            icon={item?.department?.icon || icons.chat}
+            heading={item?.department?.title}
             text={item.recentMessage}
             date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             })}
             productId={item.messagesCount.toString()}
-            price="$0.00"
+            price={`$${item.transaction?.amount?.toString() || "0"} - ₦${item.transaction?.amountNaira?.toString() || "0"}`}
+
+            status={item.chatStatus}
           />
         )}
         ListHeaderComponent={renderHeader}

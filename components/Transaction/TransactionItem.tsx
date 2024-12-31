@@ -4,6 +4,7 @@ import { COLORS } from "@/constants";
 import { Route, useNavigation, useRouter } from "expo-router";
 import { useTheme } from "@/contexts/themeContext";
 import { NavigationProp } from "@react-navigation/native";
+import { getImageUrl } from "@/utils/helpers";
 const TransactionItem: React.FC<{
   icon: string;
   heading: string;
@@ -11,7 +12,7 @@ const TransactionItem: React.FC<{
   price: string;
   productId: string;
   route: string;
-  id?:number
+  id?: number
 }> = (props) => {
   const { dark } = useTheme();
   const router = useRouter();
@@ -22,8 +23,8 @@ const TransactionItem: React.FC<{
   };
   return (
     <Pressable onPress={transPressHandler} style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Image source={props.icon} style={styles.icon} />
+      <View style={[styles.iconContainer, { backgroundColor: COLORS.transparentAccount, borderRadius: 999, marginRight: 10 }]}>
+        <Image source={{ uri: getImageUrl(props.icon) }} style={styles.icon} />
       </View>
       <View style={styles.textContainer}>
         <View style={styles.contemt}>

@@ -48,7 +48,7 @@ useEffect(() => {
           : { backgroundColor: COLORS.white },
       ]}
     >
-      <NavigateBack text="Buy Crypto" />
+      <NavigateBack text="Crypto" />
       <FlatList
         data={categories?.data?.categories}
         style={{ flex: 1, marginTop: 16 }}

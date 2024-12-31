@@ -26,11 +26,56 @@ export const getChatDetails = async (
 interface IChatResponse extends ApiResponse {
   data: {
     id: number;
-    customer: IUser;
+    agent: {
+      id: number;
+      firstname: string;
+      lastname: string;
+      username: string;
+      profilePicture: string;
+    };
     recentMessage: string;
-    recentMessageTimestamp: Date;
-    chatStatus: ChatStatus;
+    recentMessageTimestamp: string; // Using string because the API provides an ISO date string
+    chatStatus: "pending" | "declined" | "successful";
     messagesCount: number;
+    department: {
+      id: number;
+      title: string;
+      description: string;
+      icon: string | null;
+      createdAt: string;
+      updatedAt: string;
+      status: "active" | "inactive";
+      Type: string;
+      niche: string;
+    };
+    transaction: {
+      id: number;
+      chatId: number;
+      subCategoryId: number | null;
+      countryId: number | null;
+      cardType: string | null;
+      departmentId: number;
+      categoryId: number;
+      cardNumber: string | null;
+      amount: number;
+      exchangeRate: number;
+      amountNaira: number;
+      cryptoAmount: number | null;
+      fromAddress: string | null;
+      toAddress: string | null;
+      status: "pending" | "completed" | "failed"; // Update with relevant status options
+      createdAt: string;
+      updatedAt: string;
+    } | null; // `transaction` can be null
+    category: {
+      id: number;
+      title: string;
+      subTitle: string;
+      image: string;
+      status: "active" | "inactive";
+      createdAt: string;
+      updatedAt: string;
+    };
   }[];
 }
 
@@ -39,7 +84,7 @@ interface IChatDetailsResponse extends ApiResponse {
     id: number;
     chatType: IChatType;
     receiverDetails: IUser;
-    status?:'pending' | 'successful' | 'declined';
+    status?: 'pending' | 'successful' | 'declined';
     messages: IMessageRes[];
   };
 }

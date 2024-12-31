@@ -1,7 +1,9 @@
 import Toast from 'react-native-toast-message';
+import { API_BASE_URL } from './apiConfig';
 
 export const showTopToast = (props: showTopToastProps) => {
   Toast.show({
+    
     type: props.type,
     text1: props.text1,
     text2: props.text2,
@@ -9,9 +11,18 @@ export const showTopToast = (props: showTopToastProps) => {
     visibilityTime: 3000,
     autoHide: true,
     topOffset: 50,
-    props: {
-      backgroundColor: props.type === 'error' ? 'red' : 'green',
-    }
+
+    // backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    text1Style: {
+      color: 'black', // White text for better contrast
+      fontSize: 16,
+      fontWeight: 'bold',
+    
+    },
+    text2Style: {
+      color: 'black', // Optional for additional details
+      fontSize: 14,
+    },
   });
 };
 
@@ -36,3 +47,6 @@ interface showTopToastProps {
   text1: string;
   text2: string;
 }
+export const getImageUrl = (imageName: string): string => {
+  return `${API_BASE_URL}/uploads/${imageName}`;
+};

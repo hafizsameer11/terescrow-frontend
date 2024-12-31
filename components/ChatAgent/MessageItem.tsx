@@ -18,11 +18,17 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
         item.isUser ? styles.userMessage : styles.otherMessage,
       ]}
     >
-      {item.image && (
+     {item.image && (
         <TouchableOpacity
           onPress={() =>
             setImagePreview(`${API_BASE_URL}/uploads/${item.image}` as string)
           }
+          style={[
+            styles.imageContainer,
+            item.isUser
+              ? styles.userImageBackground
+              : styles.otherImageBackground,
+          ]}
         >
           <Image
             source={{ uri: `${API_BASE_URL}/uploads/${item.image}` }}
@@ -79,4 +85,18 @@ const styles = StyleSheet.create({
   },
   timestamp: { fontSize: 12, marginTop: 5, color: COLORS.grayscale400 },
   dynamicImage: { width: "100%", height: undefined, aspectRatio: 1 },
+  imageContainer: {
+    padding: 5, // Add padding around the image
+    borderRadius: 12, // Make the corners round
+  },
+  userImageBackground: {
+    backgroundColor: "#E1FFEF",
+    borderColor: "#A7E8C1",
+    borderWidth: 1,
+  },
+  otherImageBackground: {
+    backgroundColor: "#EFEFEF",
+    borderColor: "#D1D1D1",
+    borderWidth: 1,
+  },
 });

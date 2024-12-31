@@ -1,4 +1,4 @@
-import { COLORS, icons } from '@/constants';
+import { COLORS, icons, images } from '@/constants';
 import { validationEditProfile } from '@/utils/validation';
 import { Image } from 'expo-image';
 import { Formik } from 'formik';
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Touchable,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Input from '../components/CustomInput';
@@ -20,6 +21,9 @@ import { useMutation } from '@tanstack/react-query';
 import { editUser } from '@/utils/mutations/authMutations';
 import { ApiError } from '@/utils/customApiCalls';
 import { showTopToast } from '@/utils/helpers';
+import { useEffect, useState } from 'react';
+import * as ImagePicker from "expo-image-picker";
+
 const EditProfile = () => {
   const dummyData = {
     firstName: 'John',
@@ -30,14 +34,42 @@ const EditProfile = () => {
     gender: 'Male',
     userName: 'johndoe',
   };
-  const {userData}=useAuth();
+  const { userData } = useAuth();
   const { dark } = useTheme();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setProfileImage(userData?.profilePicture)
+  }, [userData])
+  const handleImagePicker = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Permission to access media is required!"
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets?.length > 0) {
+      const imageUri = result.assets[0].uri;
+      setProfileImage(imageUri);
+      console.log("Selected Profile Image:", imageUri); // Log directly
+    }
+  };
+
   const { goBack } = useNavigation();
   const themeStyles = {
-    background:COLORS.white,
+    background: COLORS.white,
     normalText: COLORS.black,
   };
-  const {token}=useAuth();
+  const { token } = useAuth();
   const { mutate: edit, isPending } = useMutation({
     mutationKey: ['editProfile'],
     mutationFn: (values: any) => editUser(values, token), // Pass values when calling mutate
@@ -56,6 +88,22 @@ const EditProfile = () => {
       });
     },
   });
+  const handleSubmit = (values: any) => {
+    const formData = new FormData();
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, value as string);
+    });
+
+    // Append profile picture if available
+    if (profileImage) {
+      formData.append("profilePicture", {
+        uri: profileImage,
+        type: "image/jpeg",
+        name: "profile.jpg",
+      } as unknown as Blob);
+    }
+    edit(formData);
+  }
   return (
     <SafeAreaView style={{ backgroundColor: themeStyles.background }}>
       <ScrollView>
@@ -82,23 +130,24 @@ const EditProfile = () => {
             Edit Profile
           </Text>
         </View>
-        <View style={{ padding: 20,height: '100%' }}>
+        <View style={{ padding: 20, height: '100%' }}>
           <Formik
             initialValues={{
               firstName: userData?.firstname || '',
               lastName: userData?.lastname || '',
               email: userData?.email || '',
               country: userData?.country || '',
-              phoneNumber:userData?.phoneNumber || '',
+              phoneNumber: userData?.phoneNumber || '',
               gender: userData?.gender || '',
               userName: userData?.username || '',
+              profileImage: profileImage || '',
             }}
             enableReinitialize={true}  // Ensures prefilled data works correctly
 
             validationSchema={validationEditProfile}
             onSubmit={(values) => {
-              console.log(values);
-              edit(values);
+
+              handleSubmit(values)
             }}
           >
             {({
@@ -109,7 +158,44 @@ const EditProfile = () => {
               touched,
               errors,
             }) => (
+
               <View>
+                <TouchableOpacity
+                  onPress={handleImagePicker}
+                  style={{
+                    alignItems: "center",
+                    marginVertical: 20,
+                  }}
+                >
+                  <View>
+                    <Image
+                      source={
+                        profileImage
+                          ? { uri: profileImage }
+                          : images.userProfile
+                      }
+                      style={{
+                        width: 120,
+                        height: 120,
+                        borderRadius: 60,
+                        marginBottom: 10,
+                      }}
+                    />
+                    {profileImage && (
+                      <View style={styles.editIcon}>
+                        <Image
+                          style={{ width: 23, height: 23 }}
+                          source={icons.edit}
+                        />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+                    {profileImage
+                      ? "Change Profile Picture"
+                      : "Add Profile Picture"}
+                  </Text>
+                </TouchableOpacity>
                 <Input
                   label="First Name"
                   keyboardType="default"
@@ -203,26 +289,26 @@ const EditProfile = () => {
                     disabled={
                       false
                     }
-                    // style={{
-                    //   opacity: !(
-                    //     values.firstName &&
-                    //     values.lastName &&
-                    //     values.email &&
-                    //     values.country &&
-                    //     values.mobileNumber &&
-                    //     values.gender &&
-                    //     values.userName &&
-                    //     !errors.firstName &&
-                    //     !errors.lastName &&
-                    //     !errors.email &&
-                    //     !errors.country &&
-                    //     !errors.mobileNumber &&
-                    //     !errors.gender &&
-                    //     !errors.userName
-                    //   )
-                    //     ? 0.5
-                    //     : 1,
-                    // }}
+                  // style={{
+                  //   opacity: !(
+                  //     values.firstName &&
+                  //     values.lastName &&
+                  //     values.email &&
+                  //     values.country &&
+                  //     values.mobileNumber &&
+                  //     values.gender &&
+                  //     values.userName &&
+                  //     !errors.firstName &&
+                  //     !errors.lastName &&
+                  //     !errors.email &&
+                  //     !errors.country &&
+                  //     !errors.mobileNumber &&
+                  //     !errors.gender &&
+                  //     !errors.userName
+                  //   )
+                  //     ? 0.5
+                  //     : 1,
+                  // }}
                   />
                 </View>
               </View>
@@ -240,7 +326,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 20,
-    
+
+  },
+  editIcon: {
+    width: 35,
+    height: 35,
+    position: "absolute",
+    bottom: 10,
+    right: 0,
+    backgroundColor: COLORS.warning,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

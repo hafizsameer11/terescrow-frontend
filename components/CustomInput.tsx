@@ -20,7 +20,7 @@ interface InputProps extends TextInputProps {
   errorText?: string;
   isEditable?: boolean;
   prefilledValue?: string;
-  isPassword?: boolean; 
+  isPassword?: boolean;
 }
 
 const Input: React.FC<InputProps> = (props) => {
@@ -108,10 +108,10 @@ const Input: React.FC<InputProps> = (props) => {
                 color: props.errorText
                   ? COLORS.red
                   : isFocused || props.value
-                  ? COLORS.primary
-                  : dark
-                  ? COLORS.grayscale200
-                  : COLORS.greyscale600,
+                    ? COLORS.primary
+                    : dark
+                      ? COLORS.grayscale200
+                      : COLORS.greyscale600,
               },
             ]}
             onPress={() => inputRef.current?.focus()}

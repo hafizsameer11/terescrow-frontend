@@ -63,7 +63,7 @@ const Chat = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mainHeadingContainer}>
-        <Text style={styles.mainHeading}>Chat</Text>
+        <Text style={styles.mainHeading}>Chat History</Text>
       </View>
       <View
         style={[
@@ -81,16 +81,16 @@ const Chat = () => {
           renderItem={({ item }) => (
             <ChatItem
             id={item.id.toString()}
-              icon={icons.chat}
-              heading={`${item.agent.username}`}
+              icon={item.department.icon || icons.chat}
+              heading={item.department.title}
               text={item.recentMessage}
               date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
-              
-              productId={item.messagesCount.toString()}
-              price='$0.00'
+              status={item.chatStatus}
+              productId={item.chatStatus}
+              price={`$${item.transaction?.amount?.toString() || "0"} - ₦${item.transaction?.amountNaira?.toString() || "0"}`}
             />
           )}
           style={styles.dataList}

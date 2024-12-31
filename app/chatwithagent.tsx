@@ -76,10 +76,14 @@ const ChatWithAgent = () => {
   } = useQuery({
     queryKey: ["messages", chatId],
     queryFn: () => getChatDetails(chatId, token),
+
+    enabled: !!chatId,
   });
   const { mutate, isPending: sendingMessage } = useMutation({
     mutationKey: ["send-message"],
     mutationFn: (data: FormData) => sendMessageController(data, token),
+
+
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["agentsData"],
@@ -92,6 +96,7 @@ const ChatWithAgent = () => {
           text: data.data.message,
           isUser: true,
           sentAt: data.data.createdAt,
+          image: data.data?.image,
         },
       ]);
     },
@@ -163,9 +168,9 @@ const ChatWithAgent = () => {
 
   //handling chat details
   useEffect(() => {
-    if (chatDetailsData) {
-      currReceiverId.current = chatDetailsData.data.receiverDetails.id;
-      const oldMessages = chatDetailsData.data.messages.map((message) => ({
+  
+      currReceiverId.current = chatDetailsData?.data.receiverDetails.id;
+      const oldMessages = chatDetailsData?.data.messages.map((message) => ({
         id: message.id.toString(),
         text: message.message,
         isUser: message.senderId !== chatDetailsData.data.receiverDetails.id,
@@ -174,7 +179,6 @@ const ChatWithAgent = () => {
       }));
       setMessages(oldMessages);
       setTimeout(scrollToBottom, 100);
-    }
   }, [chatDetailsData]);
 
   const handleSendMessage = (message?: string, image?: string) => {
@@ -233,7 +237,8 @@ const ChatWithAgent = () => {
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={(item) => `${item.id}-${Date.now()}`}
+          keyExtractor={(item) => item.id}
+
           renderItem={({ item }) => (
             <MessageItem item={item} setImagePreview={setImagePreview} />
           )}
@@ -247,15 +252,15 @@ const ChatWithAgent = () => {
               styles.chatClosedContainer,
               chatDetailsData?.data?.status === "declined"
                 ? {
-                    backgroundColor: "#FFD7D7",
-                    borderWidth: 1,
-                    borderColor: COLORS.red,
-                  }
+                  backgroundColor: "#FFD7D7",
+                  borderWidth: 1,
+                  borderColor: COLORS.red,
+                }
                 : {
-                    backgroundColor: "#E8FFF3",
-                    borderWidth: 1,
-                    borderColor: COLORS.primary,
-                  },
+                  backgroundColor: "#E8FFF3",
+                  borderWidth: 1,
+                  borderColor: COLORS.primary,
+                },
             ]}
           >
             {chatDetailsData?.data?.status === "declined" ? (

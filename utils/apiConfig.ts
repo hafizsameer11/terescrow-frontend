@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
     EditProfile: API_DOMAIN + '/auth/edit-profile',
     KyCRequest: API_DOMAIN + '/auth/kyc-request',
     ChangePassword: API_DOMAIN + '/auth/change-password',
+    Notifications: API_DOMAIN + '/auth/get-all-notifications',
+    SetNewPassword: API_DOMAIN + '/auth/set-new-password',
   },
 
   ACCOUNT_MANAGEMENT: {

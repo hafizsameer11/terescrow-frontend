@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { COLORS, icons } from "@/constants";
+import { COLORS, icons, images } from "@/constants";
 import Input from "../components/CustomInput";
 import Button from "../components/Button";
 import { Formik } from "formik";
@@ -34,7 +34,7 @@ const Signin = () => {
   const { dark } = useTheme();
   const { reset, navigate } = useNavigation<NavigationProp<any>>();
   const { setToken, setUserData } = useAuth();
-
+  const [passwordVisible, setPasswordVisible] = useState(false); // State for toggling password visibility
   // Handle Biometric Authentication
   const handleBiometricAuth = async () => {
     try {
@@ -106,11 +106,18 @@ const Signin = () => {
           email: data.data.email,
         });
       },
+      onError: (error: ApiError) => {
+        showTopToast({
+          type: "error",
+          text1: "Error",
+          text2: error.message,
+        });
+      },
     });
 
-  useEffect(() => {
-    handleBiometricAuth();
-  }, []);
+  // useEffect(() => {
+  //   handleBiometricAuth();
+  // }, []);
 
   return (
     <SafeAreaView
@@ -120,24 +127,12 @@ const Signin = () => {
       ]}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <TouchableOpacity>
-            <Image
-              source={icons.arrowBack}
-              style={[
-                styles.backIcon,
-                { tintColor: dark ? COLORS.white : COLORS.black },
-              ]}
-            />
-          </TouchableOpacity>
-          <Text
-            style={[
-              styles.title,
-              { color: dark ? COLORS.white : COLORS.black },
-            ]}
-          >
-            Sign in
-          </Text>
+       
+        <View style={styles.logoContainer}>
+          <Image
+            source={images.logo} // Add your logo image in the `images` object
+            style={styles.logo}
+          />
         </View>
 
         <Text
@@ -261,6 +256,15 @@ const styles = StyleSheet.create({
   resetPasswordText: {
     color: COLORS.primary,
     fontWeight: "700",
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginVertical: 40,
+  },
+  logo: {
+    width: 120,
+    height: 120, // Adjust size as needed
+    resizeMode: "contain",
   },
 });
 

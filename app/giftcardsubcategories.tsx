@@ -103,7 +103,10 @@ const CardScreen = () => {
       navigate('connectingagent', {
         departmentId,
         categoryId: categoryData.id.toString(),
+        categorytitle:categoryData.title,
         subCategoryId: selectedCardId,
+        amount,
+        icon: categoryData.image
       });
     }
   };
@@ -151,10 +154,11 @@ const CardScreen = () => {
           ]}
           keyboardType="numeric"
           placeholder="Enter amount in USD"
-          value={`Amount in USD: ${amount !== 0.0 ? amount.toFixed(2) : 0.0}`}
-          readOnly
-          placeholderTextColor={'#888'}
+          onChangeText={(text) => setAmount(text)} 
+          value={amount} // Directly use the string value
+          placeholderTextColor="#888"
         />
+
         <View style={{ flex: 1, marginTop: 24 }}>
           {availableCards && (
             <CustomSelect
