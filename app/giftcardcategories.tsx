@@ -95,7 +95,7 @@ const GiftCardCategories = () => {
     const categoriesData = categories?.data?.categories;
     console.log(categoriesData);
     if (categoriesData) {
-      if (searchTerm != '') {
+      if (searchTerm !== '') {
         setDisplayCategories((prev) => {
           const displayCards = prev?.filter((card) =>
             card.category.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -107,7 +107,6 @@ const GiftCardCategories = () => {
       setDisplayCategories(categoriesData);
     }
   }, [categories, searchTerm]);
-  
 
   const renderCardsList = () => {
     return (
@@ -143,7 +142,8 @@ const GiftCardCategories = () => {
       ]}
     >
       <NavigateBack text="Giftcards" />
-      {/* <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} /> */}
+      {/* Search Input Field */}
+      <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
       {displayCategories && renderCardsList()}
     </SafeAreaView>
   );

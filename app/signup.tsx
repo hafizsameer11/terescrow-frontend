@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/themeContext"; // Assuming you have a theme context
@@ -26,14 +27,14 @@ import { registerUser } from "@/utils/mutations/authMutations";
 import { ApiError } from "@/utils/customApiCalls";
 import { showTopToast } from "@/utils/helpers";
 import { useAuth } from "@/contexts/authContext";
-import { getAllCountries } from "@/utils/queries/quickActionQueries";
+import { getAllCountries, getPrivacyPageLinks } from "@/utils/queries/quickActionQueries";
 import * as ImagePicker from "expo-image-picker";
 const SignUp = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const { setToken } = useAuth();
   const [profileImage, setProfileImage] = useState<string | null>(null);
-
+  const token = '';
   const {
     data: CountriesData,
     isLoading,
@@ -42,8 +43,25 @@ const SignUp = () => {
   } = useQuery({
     queryKey: ["get-countries"],
     queryFn: () => getAllCountries(),
+    enabled: true
   });
+  const { data: privacyData } = useQuery({
+    queryKey: ['privacy'],
+    queryFn: () => getPrivacyPageLinks(),
+    enabled: true
+  })
+  const handlePress = async (url: string) => {
+    // Check if the URL can be opened
+    console.log(url)
+    const supported = await Linking.canOpenURL(url);
 
+    if (supported) {
+      // Open the URL in the default browser
+      await Linking.openURL(url);
+    } else {
+      Alert.alert(`Don't know how to open this URL: ${url}`);
+    }
+  };
   const { mutate: signUp, isPending } = useMutation({
     mutationKey: ["signup"],
     mutationFn: registerUser,
@@ -102,6 +120,10 @@ const SignUp = () => {
   const handleSubmit = async (
     values: Yup.InferType<typeof validationSignUpSchema>
   ) => {
+    if (!profileImage) {
+      Alert.alert("Error", "Profile picture is required.");
+      return;
+    }
     const formData = new FormData();
 
     // Append text fields
@@ -174,7 +196,7 @@ const SignUp = () => {
             termsAccepted: false,
             country: "",
           }}
-          // validationSchema={validationSignUpSchema}
+          validationSchema={validationSignUpSchema}
           onSubmit={(values) => {
             console.log(values);
             handleSubmit(values);
@@ -267,9 +289,20 @@ const SignUp = () => {
                   id="email"
                 />
 
-                {CountriesData?.data && (
+                {CountriesData?.data ? (
                   <CustomSelect
                     options={CountriesData?.data}
+                    currValue={values.country}
+                    error={errors.country}
+                    touched={touched.country}
+                    placeholder="Select Country"
+                    id="country"
+                    setFieldValue={setFieldValue}
+                    modalLabel="Country"
+                  />
+                ):(
+                  <CustomSelect
+                    options={COUNTRIES}
                     currValue={values.country}
                     error={errors.country}
                     touched={touched.country}
@@ -326,7 +359,7 @@ const SignUp = () => {
                 {/* Gender text container */}
                 <CustomSelect
                   options={GENDERS}
-                  currValue={values.gender} 
+                  currValue={values.gender}
                   error={errors.gender}
                   touched={touched.gender}
                   placeholder="Select Gender"
@@ -351,7 +384,7 @@ const SignUp = () => {
                       setFieldValue("termsAccepted", value)
                     }
                     error={errors.termsAccepted}
-                    
+
                     // onValueChange={handleChange("") as unknown as ((value: boolean) => void)}
                     color={values.termsAccepted ? COLORS.primary : undefined}
                   />
@@ -371,6 +404,7 @@ const SignUp = () => {
                         fontSize: 12,
                         textDecorationLine: "underline",
                       }}
+                      onPress={() => { handlePress(privacyData?.data?.termsPageLink) }}
                     >
                       Terms of Service
                     </Text>
@@ -381,6 +415,7 @@ const SignUp = () => {
                         fontSize: 12,
                         textDecorationLine: "underline",
                       }}
+                      onPress={() => { handlePress(privacyData?.data?.privacyPageLink) }}
                     >
                       Privacy Policy
                     </Text>

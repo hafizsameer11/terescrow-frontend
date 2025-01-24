@@ -99,7 +99,8 @@ const ChatItem: React.FC<{
                         ? "green"
                         : props.status === "declined"
                           ? "red"
-                          : "yellow", // Default to yellow for "pending"
+                          : props.status == "unsucessful"
+                            ? "black" : "yellow", // Default to yellow for "pending"
                     color: COLORS.white,
                   },
                 ]}

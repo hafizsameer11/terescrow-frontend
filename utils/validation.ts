@@ -4,18 +4,16 @@ import * as Yup from 'yup';
 export const validationSignUpSchema = Yup.object().shape({
   firstName: Yup.string()
     .required('First name is required')
-    .min(5, 'First name must be at least 5 characters')
+    .min(1, 'First name must be at least 1 characters')
     .max(25, 'First name can’t be longer than 25 characters'),
 
   lastName: Yup.string()
     .required('Last name is required')
-    .min(5, 'Last name must be at least 5 characters')
     .max(25, 'Last name can’t be longer than 25 characters'),
 
   email: Yup.string()
     .required('Email is required')
-    .matches(
-      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+    .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
       'Please enter a valid email address'
     ),
 
@@ -31,21 +29,21 @@ export const validationSignUpSchema = Yup.object().shape({
     .matches(/^\d+$/, 'Phone number must be numeric')
     .required('Phone number is required'),
 
-  country: Yup.string()
-    .required('Country is required')
-    .oneOf(
-      ['nigeria', 'ghana', 'cameroon', 'south Africa', 'kenya'],
-      'Invalid country'
-    ),
+  country: Yup.number()
+    .required('Country is required'),
+  // .oneOf(
+  //   ['nigeria', 'ghana', 'cameroon', 'south Africa', 'kenya'],
+  //   'Invalid country'
+  // ),
 
-  gender: Yup.string()
-    .required('Gender is required')
-    .oneOf(['male', 'female', 'other'], 'Invalid gender'),
+  gender: Yup.number()
+    .required('Gender is required'),
+  // .oneOf(['male', 'female', 'other'], 'Invalid gender'),
 
   termsAccepted: Yup.boolean()
     .oneOf([true], 'You must accept the terms and conditions')
     .required('You must accept the terms and conditions'),
-    profilePicture: Yup.string().required('Profile picture is required'),
+  // profilePicture: Yup.string().required('Profile picture is required'),
 });
 
 export const validationSignInSchema = Yup.object().shape({
@@ -123,12 +121,11 @@ export const validationEditProfile = Yup.object().shape({
 export const validationBVNValidation = Yup.object().shape({
   surName: Yup.string()
     .required('Surname is required')
-    .min(5, 'Surname must be at least 5 characters')
     .max(25, 'Surname can’t be longer than 25 characters'),
 
   firstName: Yup.string()
     .required('First name is required')
-    .min(5, 'First name must be at least 5 characters')
+
     .max(25, 'First name can’t be longer than 25 characters'),
 
   bvn: Yup.string()
@@ -137,9 +134,8 @@ export const validationBVNValidation = Yup.object().shape({
     .min(11, 'BVN must be 11 digits')
     .max(11, 'BVN must be 11 digits'),
 
-  dateOfBirth: Yup.date()
+  dob: Yup.date()
     .required('Date of birth is required')
-    .max(new Date(), 'Date of birth must be in the past'),
 });
 
 export const validationChangePassword = Yup.object().shape({

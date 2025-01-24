@@ -24,8 +24,7 @@ import { useAuth } from "@/contexts/authContext";
 import * as SecureStore from "expo-secure-store";
 import * as LocalAuthentication from "expo-local-authentication";
 import { NavigationProp } from "@react-navigation/native";
-// import * as SecureStore from 'expo-secure-store';
-// Secure Store Keys
+
 const TOKEN_KEY = "USER_TOKEN";
 const USER_DATA_KEY = "USER_DATA";
 const BIOMETRIC_AUTH_KEY = "BIOMETRIC_AUTH";
@@ -34,12 +33,15 @@ const Signin = () => {
   const { dark } = useTheme();
   const { reset, navigate } = useNavigation<NavigationProp<any>>();
   const { setToken, setUserData } = useAuth();
-  const [passwordVisible, setPasswordVisible] = useState(false); // State for toggling password visibility
-  // Handle Biometric Authentication
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
   const handleBiometricAuth = async () => {
     try {
       const isBiometricEnabled = await SecureStore.getItemAsync(BIOMETRIC_AUTH_KEY);
-      if (isBiometricEnabled !== "true") return;
+      if (isBiometricEnabled !== "true") {
+        Alert.alert("Error", "Biometric login is not enabled.");
+        return;
+      }
 
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: "Authenticate with Biometrics",
@@ -68,7 +70,6 @@ const Signin = () => {
     }
   };
 
-  // React Query Mutations
   const { mutate: handleLogin, isPending: loginPending } = useMutation({
     mutationFn: loginUser,
     mutationKey: ["login"],
@@ -76,12 +77,9 @@ const Signin = () => {
       const { token, data: userData } = data;
       setToken(token);
       setUserData(userData);
-      console.log(token, userData);
-      // Save Token & User Data Securely
       await SecureStore.setItemAsync(TOKEN_KEY, token);
       await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData));
       await SecureStore.setItemAsync(BIOMETRIC_AUTH_KEY, "true");
-
       reset({
         index: 0,
         routes: [{ name: "(tabs)" }],
@@ -115,10 +113,6 @@ const Signin = () => {
       },
     });
 
-  // useEffect(() => {
-  //   handleBiometricAuth();
-  // }, []);
-
   return (
     <SafeAreaView
       style={[
@@ -127,10 +121,9 @@ const Signin = () => {
       ]}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-       
         <View style={styles.logoContainer}>
           <Image
-            source={images.logo} // Add your logo image in the `images` object
+            source={images.logo}
             style={styles.logo}
           />
         </View>
@@ -212,12 +205,17 @@ const Signin = () => {
                 </Text>
               </Text>
 
-              <Button
-                title="Sign in"
-                onPress={handleSubmit as () => void}
-                isLoading={loginPending}
-                style={{ marginTop: 10, position: 'absolute', bottom: 0, width: '100%' }}
-              />
+              <View style={styles.buttonContainer}>
+                <Button
+                  title="Sign in"
+                  onPress={handleSubmit as () => void}
+                  isLoading={loginPending}
+                  style={{ width: "80%" }}
+                />
+                <TouchableOpacity onPress={handleBiometricAuth} style={styles.iconButton}>
+                  <Image source={icons.fingerPrint} style={styles.fingerprintIcon} />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </Formik>
@@ -234,17 +232,14 @@ const styles = StyleSheet.create({
     padding: 20,
     flex: 1,
   },
-  header: {
-    marginBottom: 10,
+  logoContainer: {
+    alignItems: "center",
+    marginVertical: 40,
   },
-  backIcon: {
-    width: 20,
-    height: 20,
-  },
-  title: {
-    fontSize: 25,
-    fontWeight: "bold",
-    marginTop: 15,
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: "contain",
   },
   subtitle: {
     fontSize: 16,
@@ -257,14 +252,19 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: "700",
   },
-  logoContainer: {
+  buttonContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    marginVertical: 40,
+    marginTop: 20,
   },
-  logo: {
-    width: 120,
-    height: 120, // Adjust size as needed
-    resizeMode: "contain",
+  iconButton: {
+    marginLeft: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fingerprintIcon: {
+    width: 40,
+    height: 40,
   },
 });
 

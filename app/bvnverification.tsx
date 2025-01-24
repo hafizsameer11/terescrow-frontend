@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { COLORS, icons } from '@/constants';
 import {
   ScrollView,
@@ -5,6 +6,7 @@ import {
   View,
   Text,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -18,13 +20,17 @@ import Button from '@/components/Button';
 import { KyCRequest } from '@/utils/mutations/authMutations';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/authContext';
-// import { useMutation } from 'react-query';
+import { router } from 'expo-router';
+import { showTopToast } from '@/utils/helpers';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const BvnVerification = () => {
   const { dark } = useTheme();
   const { goBack } = useNavigation();
-  // const token = 'your-auth-token'; // Replace with actual token
-const {token,userData}=useAuth();
+  const { token, userData } = useAuth();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
     normalText: dark ? COLORS.white : COLORS.black,
@@ -35,13 +41,30 @@ const {token,userData}=useAuth();
     mutationKey: ['submitBVN'],
     mutationFn: (values) => KyCRequest(values, token),
     onSuccess: (data) => {
+      router.push('/profile');
       console.log('Submission Successful:', data);
-      // Add success message or navigation here
     },
     onError: (error) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message,
+      });
+      router.push('/profile');
       console.error('Submission Failed:', error);
     },
   });
+
+  const handleDateChange = (event, selected) => {
+    setShowDatePicker(false);
+    if (selected) {
+      const date = new Date(selected);
+      const formattedDate = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      setSelectedDate(formattedDate);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
@@ -78,7 +101,7 @@ const {token,userData}=useAuth();
                   surName: '',
                   firstName: '',
                   bvn: '',
-                  dateOfBirth: '',
+                  dob: selectedDate,
                 }}
                 validationSchema={validationBVNValidation}
                 onSubmit={(values) => submitBVN(values)}
@@ -88,6 +111,7 @@ const {token,userData}=useAuth();
                   handleBlur,
                   handleSubmit,
                   values,
+                  setFieldValue,
                   errors,
                   touched,
                 }) => (
@@ -125,24 +149,32 @@ const {token,userData}=useAuth();
                       value={values.bvn}
                       errorText={touched.bvn && errors.bvn ? errors.bvn : ''}
                     />
-                    <Input
-                      id="dateOfBirth"
-                      label="Date of Birth"
-                      onChangeText={handleChange('dateOfBirth')}
-                      keyboardType="default"
-                      onBlur={handleBlur('dateOfBirth')}
-                      value={values.dateOfBirth}
-                      errorText={
-                        touched.dateOfBirth && errors.dateOfBirth
-                          ? errors.dateOfBirth
-                          : ''
-                      }
-                    />
-                    <Button
-                      title={ 'Continue'}
-                      onPress={() => handleSubmit()}
-                      // disabled={isLoading}
-                    />
+                    <TouchableOpacity
+                      onPress={() => setShowDatePicker(true)}
+                      style={styles.dateInput}
+                    >
+                      <Text
+                        style={{
+                          color: selectedDate
+                            ? themeStyles.normalText
+                            : COLORS.gray,
+                        }}
+                      >
+                        {selectedDate || 'Select Date of Birth'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={selectedDate ? new Date(selectedDate) : new Date()}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={(event, date) => {
+                          handleDateChange(event, date);
+                          setFieldValue('dob', date);
+                        }}
+                      />
+                    )}
+                    <Button title={'Continue'} onPress={() => handleSubmit()} />
                   </View>
                 )}
               </Formik>
@@ -156,7 +188,7 @@ const {token,userData}=useAuth();
             { color: themeStyles.normalText },
           ]}
         >
-          An OTP will be sent to the number registered to your BVN
+          Please ensure that you submit the correct BVN details. Your information will be matched with the national database for verification. Providing incorrect details will result in failed verification
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -173,6 +205,13 @@ const styles = StyleSheet.create({
   formContainer: {
     padding: 20,
     flex: 1,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+    borderRadius: 8,
+    padding: 15,
+    marginVertical: 10,
   },
 });
 

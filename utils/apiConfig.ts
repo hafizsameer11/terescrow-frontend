@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     ChangePassword: API_DOMAIN + '/auth/change-password',
     Notifications: API_DOMAIN + '/auth/get-all-notifications',
     SetNewPassword: API_DOMAIN + '/auth/set-new-password',
+    GetKycDetails: API_DOMAIN + '/auth/get-kyc-details',
   },
 
   ACCOUNT_MANAGEMENT: {
@@ -37,6 +38,11 @@ export const API_ENDPOINTS = {
     GetActionCatagories: API_DOMAIN + '/public/categories', //with dept id parameter
     GetActionSubacategories: API_DOMAIN + '/public/subcategories', //inside query parameter, need dept id and cat id
     GetActionDepartments: API_DOMAIN + '/public/departments',
+    GetKycLimits: API_DOMAIN + '/admin/operations/get-kyc-limits',
+    GetBanner: API_DOMAIN + '/admin/operations/get-all-banners',
+    PrivacyPageLinks: API_DOMAIN + '/admin/operations/privacy-page-links',
+    GetUnreadMessageCount: API_DOMAIN + '/public/get-unread-count',
+
   },
 
   CHATS: {
@@ -50,5 +56,6 @@ export const API_ENDPOINTS = {
     GetRecentTransactionsItems: API_DOMAIN + '/transactions/get-recent-items',
     GetTransactionHistory: API_DOMAIN + '/customer/utilities/get-transaction-group',
     GetTransactionByDepartment: API_DOMAIN + '/customer/utilities/get-transaction-by-department',
+
   },
 };

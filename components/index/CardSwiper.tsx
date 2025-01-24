@@ -4,11 +4,32 @@ import { Image } from "expo-image";
 import images from "@/constants/images";
 import Swiper from "react-native-swiper";
 import { COLORS } from "@/constants";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/authContext";
+import { useQuery } from "@tanstack/react-query";
+import { getAllBanners } from "@/utils/queries/quickActionQueries";
+import { getImageUrl } from "@/utils/helpers";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const SwipCard = () => {
+  const { token } = useAuth();
+  const {
+    data: banners,
+    isLoading: bannersLoading,
+    isError: bannersIsError,
+  } = useQuery({
+    queryKey: ["banners"],
+    queryFn: () => getAllBanners(token),
+    enabled: !!token,
+  });
+
+  useEffect(() => {
+    if (banners) {
+      console.log("Banners:", banners);
+    }
+  }, [banners]);
+
   const [isTouched, setIsTouched] = useState(true);
 
   return (
@@ -21,22 +42,26 @@ const SwipCard = () => {
       activeDotStyle={styles.activeDot}
       autoplay={isTouched}
       autoplayTimeout={3}
-      
     >
-      <View style={styles.slide}>
-        <Image
-          source={images.buySellCard}
-          style={styles.image}
-          contentFit="contain"
-        />
-      </View>
-      <View style={styles.slide}>
-        <Image
-          source={images.cryptoCard}
-          contentFit="contain"
-          style={styles.image}
-        />
-      </View>
+      {!bannersLoading && Array.isArray(banners?.data) && banners.data.length > 0 ? (
+        banners.data.map((banner, index) => (
+          <View style={styles.slide} key={index}>
+            <Image
+              source={{ uri: getImageUrl(banner.image) }}
+              style={styles.image}
+              contentFit="contain"
+            />
+          </View>
+        ))
+      ) : (
+        <View style={styles.slide}>
+          <Image
+            source={images.cryptoCard} // Fallback image
+            style={styles.image}
+            contentFit="contain"
+          />
+        </View>
+      )}
     </Swiper>
   );
 };
@@ -50,11 +75,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 5,
-  },
-  text: {
-    color: "#fff",
-    fontSize: 30,
-    fontWeight: "bold",
   },
   image: {
     width: "100%",

@@ -6,11 +6,13 @@ interface ChatStatusMessageProps {
   text: string;
   subText?: string;
   icon?: string; // Optional icon name
+  status?: string;
 }
 
 const ChatStatusMessage: React.FC<ChatStatusMessageProps> = ({
   text,
   subText,
+  status,
   icon = "check-circle", // Default icon
 }) => {
   return (
@@ -22,9 +24,9 @@ const ChatStatusMessage: React.FC<ChatStatusMessageProps> = ({
             style={{ width: 10, height: 10, tintColor: COLORS.white }}
           />
         </View>
-        <Text style={styles.text}>{text}</Text>
+        <Text style={[styles.text,{color:status=="unsucessful"?COLORS.white:COLORS.black}]}>{text}</Text>
       </View>
-      {subText && <Text style={styles.subText}>{subText}</Text>}
+      {subText && <Text style={[styles.subText,{color:status=="unsucessful"?COLORS.white:'#333'}]}>{subText}</Text>}
     </View>
   );
 };

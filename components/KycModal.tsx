@@ -133,15 +133,6 @@ const DraggableModal: React.FC<DraggableModalProps> = ({
                   >
                     Upgrade to Tier 2
                   </Text>
-                  <Text
-                    style={[
-                      styles.description,
-                      { color: themeStyles.normalText },
-                    ]}
-                  >
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit,
-                    dolor sit amet dolor.
-                  </Text>
                 </View>
               </View>
 

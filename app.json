@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "terescrow-frontend",
+    "name": "Tercescrow",
     "slug": "terescrow-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/app-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.hafizsameer12.terescrowfrontend"
@@ -28,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash.png",
+          "image": "./assets/images/splash.gif",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -50,7 +50,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "70fa8777-f1aa-4ec2-b693-1050626b5e78"
+        "projectId": "b5af3cb9-e82f-4f5d-9c76-3a2af05f04bf"
       }
     }
   }

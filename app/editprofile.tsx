@@ -17,12 +17,13 @@ import { useNavigation } from 'expo-router';
 import Button from '@/components/Button';
 import { useTheme } from '@/contexts/themeContext';
 import { useAuth } from '@/contexts/authContext';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { editUser } from '@/utils/mutations/authMutations';
 import { ApiError } from '@/utils/customApiCalls';
-import { showTopToast } from '@/utils/helpers';
+import { getImageUrl, showTopToast } from '@/utils/helpers';
 import { useEffect, useState } from 'react';
 import * as ImagePicker from "expo-image-picker";
+import { getPrivacyPageLinks } from '@/utils/queries/quickActionQueries';
 
 const EditProfile = () => {
   const dummyData = {
@@ -40,6 +41,7 @@ const EditProfile = () => {
 
   useEffect(() => {
     setProfileImage(userData?.profilePicture)
+    console.log("prpfo;e [octire", userData?.profilePicture)
   }, [userData])
   const handleImagePicker = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -70,6 +72,8 @@ const EditProfile = () => {
     normalText: COLORS.black,
   };
   const { token } = useAuth();
+
+
   const { mutate: edit, isPending } = useMutation({
     mutationKey: ['editProfile'],
     mutationFn: (values: any) => editUser(values, token), // Pass values when calling mutate
@@ -140,7 +144,7 @@ const EditProfile = () => {
               phoneNumber: userData?.phoneNumber || '',
               gender: userData?.gender || '',
               userName: userData?.username || '',
-              profileImage: profileImage || '',
+              profileImage: userData?.profilePicture,
             }}
             enableReinitialize={true}  // Ensures prefilled data works correctly
 
@@ -170,10 +174,7 @@ const EditProfile = () => {
                   <View>
                     <Image
                       source={
-                        profileImage
-                          ? { uri: profileImage }
-                          : images.userProfile
-                      }
+                        { uri: getImageUrl(profileImage) }}
                       style={{
                         width: 120,
                         height: 120,

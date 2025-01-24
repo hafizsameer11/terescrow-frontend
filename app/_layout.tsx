@@ -11,7 +11,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import Toast from 'react-native-toast-message';
 import { AuthProvider } from '@/contexts/authContext';
 import { SocketProvider } from '@/contexts/socketContext';
-import  toastConfig  from '@/utils/toastConfig';
+import toastConfig from '@/utils/toastConfig';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -163,7 +163,7 @@ export default function RootLayout() {
               />
             </Stack>
           </SocketProvider>
-          <Toast  />
+          <Toast />
           <StatusBar style="auto" />
         </QueryClientProvider>
       </AuthProvider>

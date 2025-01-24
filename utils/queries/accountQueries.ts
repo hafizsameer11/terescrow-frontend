@@ -1,5 +1,6 @@
 import { apiCall } from '../customApiCalls';
 import { API_ENDPOINTS } from '../apiConfig';
+import { KycStateTwo } from '@/contexts/authContext';
 
 export const getUserProfile = async (
   token?: string
@@ -26,6 +27,14 @@ export const getUnreadNotifications = async (
 export const markAllRead = async (token: string) => {
   return await apiCall(
     API_ENDPOINTS.ACCOUNT_MANAGEMENT.MarkAllNotificationsAsRead,
+    'GET',
+    undefined,
+    token
+  );
+};
+export const getKycDetails = async (token: string): (Promise<KycStateTwoResponse>) => {
+  return await apiCall(
+    API_ENDPOINTS.AUTH.GetKycDetails,
     'GET',
     undefined,
     token
@@ -64,4 +73,10 @@ interface INotificationResponse {
   status: string;
   message: string;
   data: INotification[];
+}
+
+export interface KycStateTwoResponse {
+  status: string;
+  message: string;
+  data: KycStateTwo;
 }

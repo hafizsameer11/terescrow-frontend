@@ -68,7 +68,7 @@ const GiftCardSold = () => {
           : { backgroundColor: COLORS.white },
       ]}
     >
-      <NavigateBack text={`Gift Card Sold - ID: ${id}`} />
+      <NavigateBack text={`Transaction History`} />
       <SearchInputField searchTerm="" setSearchTerm={() => {}} />
       <View style={{ flex: 1 }}>
         <FlatList

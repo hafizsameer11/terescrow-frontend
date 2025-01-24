@@ -27,14 +27,14 @@ const TestChart = () => {
   }
 
   if (isError) {
-    return <Text>Error: {error?.message}</Text>;
+    return <Text style={{textAlign: 'center'}}>No recent transactions</Text>;
   }
 
   const data = transactionData?.data || [];
 
   const series = data.map((item) => item.amount);
   const labels = data.map((item) => item.department.title);
-  const colors = ["#0EF302", "#048096", "#191473", "#CA3900", "#FF5733", "#C70039"];
+  const colors = ["#147341", "#048096", "#191473", "#CA3900", "#FF5733", "#C70039"];
 
   return (
     <View style={{ flex: 1 }}>

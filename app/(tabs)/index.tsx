@@ -9,6 +9,7 @@ import { useTheme } from "@/contexts/themeContext";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import {
+  getAllBanners,
   getDepartments,
   IDepartmentResponse,
 } from "@/utils/queries/quickActionQueries";
@@ -42,6 +43,7 @@ export default function HomeScreen() {
     enabled: !!token,
     refetchInterval: 1000, // Refetch every second
   });
+
 
   // Limit to 5 chats
   // useEffect

@@ -428,7 +428,7 @@ const bnb = require('../assets/icons/bnb.png') as string;
 const tonCoin = require('../assets/icons/ton-coin.png') as string;
 const tron = require('../assets/icons/tron.png') as string;
 const tickMarked = require('../assets/icons/tick-marked.png') as string;
-const homeIcon = require('../assets/icons/home.svg') as string;
+const homeIcon = require('../assets/icons/home.png') as string;
 const messageIcon = require('../assets/icons/message.svg') as string;
 const profileIcon = require('../assets/icons/profile-circle.svg') as string;
 const receiptIcon = require('../assets/icons/receipt-item.svg') as string;
@@ -440,10 +440,12 @@ const lockUser = require('../assets/icons/lock.svg') as string;
 const logoutUser = require('../assets/icons/logout.svg') as string;
 const customerSupport = require('../assets/icons/customer-support.svg') as string;
 const deleteAccount = require('../assets/icons/delete-account.svg') as string;
+const fingerPrint = require('../assets/icons/fingerPrint.png') as string;
 
 // const eyeFill = require('../assets/icons/eyefill.png') as string;
 
 const icons = {
+  fingerPrint,
   deleteAccount,
   privacyPolicy,
   logoutUser,

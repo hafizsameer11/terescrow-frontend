@@ -35,7 +35,7 @@ interface IChatResponse extends ApiResponse {
     };
     recentMessage: string;
     recentMessageTimestamp: string; // Using string because the API provides an ISO date string
-    chatStatus: "pending" | "declined" | "successful";
+    chatStatus: "pending" | "declined" | "successful" | "unsucessful";
     messagesCount: number;
     department: {
       id: number;
@@ -84,7 +84,7 @@ interface IChatDetailsResponse extends ApiResponse {
     id: number;
     chatType: IChatType;
     receiverDetails: IUser;
-    status?: 'pending' | 'successful' | 'declined';
+    status?: 'pending' | 'successful' | 'declined'| 'unsucessful';
     messages: IMessageRes[];
   };
 }

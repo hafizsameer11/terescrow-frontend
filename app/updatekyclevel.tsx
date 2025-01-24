@@ -14,6 +14,9 @@ import Button from '@/components/Button';
 import DraggableModal from '../components/KycModal';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/authContext';
+import { useQuery } from '@tanstack/react-query';
+import { getKycDetails } from '@/utils/queries/accountQueries';
+import { getKycLimits, KycLimit } from '@/utils/queries/quickActionQueries';
 
 const UpdateKycLevel = () => {
   const verifiedLimits = [
@@ -54,26 +57,50 @@ const UpdateKycLevel = () => {
   ];
   const { dark } = useTheme();
   const { goBack } = useNavigation();
-  const  [currentLimits, setCurrentLimits] = useState(verifiedLimits);
-const  {userData}=useAuth();
+  const [currentLimits, setCurrentLimits] = useState(verifiedLimits);
+  const { userData } = useAuth();
+  const { token } = useAuth();
   const [isModalVisible, setModalVisible] = useState(false);
-
+  const [currentKycLimit, setCurrentKycLimits] = useState<KycLimit | null>(null);
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
     normalText: dark ? COLORS.white : COLORS.black,
     verifiedBackground: dark ? COLORS.grayscale200 : COLORS.transparentAccount,
   };
   const openModal = () => setModalVisible(true);
-
+  const { data: KycData, isLoading: KycLoading } = useQuery({
+    // queryKey:'getKycDetails',
+    queryKey: ['getKycDetails'],
+    queryFn: () => getKycDetails(token),
+  })
+  useEffect(() => {
+    if (KycData) {
+      console.log(KycData)
+    }
+  })
+  const { data: kycLimits } = useQuery({
+    queryKey: ['getKycLimits'],
+    queryFn: () => getKycLimits(token)
+  })
   const closeModal = () => setModalVisible(false);
-useEffect(() => {
-  if(userData?.isVerified){
-    setCurrentLimits(verifiedLimits);
-  }else{
-    setCurrentLimits(unverifiedLimits); 
-  }
-}, [userData?.isVerified])
- 
+  useEffect(() => {
+    if (userData?.isVerified) {
+      setCurrentLimits(verifiedLimits);
+    } else {
+      setCurrentLimits(unverifiedLimits);
+    }
+  }, [userData?.isVerified])
+  console.log(userData)
+  useEffect(() => {
+    if (kycLimits) {
+      if (KycData?.data?.state === 'verified') {
+        setCurrentKycLimits(kycLimits?.data?.find((limit: KycLimit) => limit.tier === 'tier2'))
+      } else {
+        setCurrentKycLimits(kycLimits?.data?.find((limit: KycLimit) => limit.tier === 'tier1'))
+      }
+    }
+
+  })
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
@@ -110,7 +137,8 @@ useEffect(() => {
                 { color: themeStyles.normalText },
               ]}
             >
-              Tier 2 - Current level
+              {KycData?.data?.state === 'verified' ? 'Tier 2 - Verified' : 'Tier 1'}
+
             </Text>
 
             <View>
@@ -124,8 +152,8 @@ useEffect(() => {
                     { backgroundColor: themeStyles.verifiedBackground },
                   ]}
                 >
-                  {}
-                  <Text style={styles.verifiedText}>{userData?.isVerified ? 'Verified' : 'Not Verified'}</Text>
+                  { }
+                  <Text style={styles.verifiedText}>{KycData?.data?.state || 'Not Verified'}</Text>
                 </View>
               </View>
 
@@ -143,55 +171,101 @@ useEffect(() => {
                 Current limit
               </Text>
 
-              {currentLimits.map((item, index) => (
-                <View key={index} style={styles.limitContainer}>
-                  <View style={styles.limitHeader}>
-                    <Image
-                      source={item.icon}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        marginRight: 10,
-                        tintColor: themeStyles.normalText,
-                      }}
-                    />
-                    <Text style={[{ color: themeStyles.normalText }]}>
-                      {item.title}
-                    </Text>
-                  </View>
 
-                  {item.limits.map((limit, idx) => (
-                    <View key={idx} style={styles.limitRow}>
-                      <Text style={{ color: themeStyles.normalText }}>
-                        {limit.label}
-                      </Text>
-                      <Text style={{ color: themeStyles.normalText }}>
-                        {limit.value}
-                      </Text>
-                    </View>
-                  ))}
+              <View style={styles.limitContainer}>
+                <View style={styles.limitHeader}>
+                  <Image
+                    source={icons.activity}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      marginRight: 10,
+                      tintColor: themeStyles.normalText,
+                    }}
+                  />
+                  <Text style={[{ color: themeStyles.normalText }]}>
+                    Crypto Limits
+                  </Text>
                 </View>
-              ))}
+
+
+                <View style={styles.limitRow}>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    Crypto Sell
+                  </Text>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    {currentKycLimit?.cryptoSellLimit}
+                  </Text>
+                </View>
+                <View style={styles.limitRow}>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    Crypto Buy
+                  </Text>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    {currentKycLimit?.cryptoBuyLimit}
+                  </Text>
+                </View>
+
+              </View>
+              <View style={styles.limitContainer}>
+                <View style={styles.limitHeader}>
+                  <Image
+                    source={icons.activity}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      marginRight: 10,
+                      tintColor: themeStyles.normalText,
+                    }}
+                  />
+                  <Text style={[{ color: themeStyles.normalText }]}>
+                    Gift Card Limits
+                  </Text>
+                </View>
+
+
+                <View style={styles.limitRow}>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    Gift Card Sell
+                  </Text>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    {currentKycLimit?.giftCardSellLimit}
+                  </Text>
+                </View>
+                <View style={styles.limitRow}>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    Gift Card Buy
+                  </Text>
+                  <Text style={{ color: themeStyles.normalText }}>
+                    {currentKycLimit?.giftCardBuyLimit}
+                  </Text>
+                </View>
+
+              </View>
+
             </View>
           </View>
         </ScrollView>
 
         <DraggableModal isVisible={isModalVisible} onClose={closeModal} />
-        {!userData?.isVerified && (
-          
-        <View style={styles.buttonContainer}>
-          {
-            userData?.KycStateTwo ? (
-              <Text > Your Request is submitted and will be processed soon </Text>
-            ) : (
-              <Button title="Upgrade to Tier 2" onPress={openModal} />
-            )
 
-          }
-          {/* <Button title="Upgrade to Tier 2" onPress={openModal} /> */}
-        </View>
-        )  
-      }
+        {
+          KycData?.data?.state !== 'verified' && (
+            <View style={styles.buttonContainer}>
+              {KycData?.data?.state === 'pending' ? (
+                <Text>Your request is submitted and will be processed soon</Text>
+              ) : KycData?.data?.state === 'failed' ? (
+                <Text>Your request has been failed because of reason {KycData?.data?.reason}</Text>
+              ) : (
+                <Button title="Upgrade to Tier 2" onPress={openModal} />
+              )}
+            </View>
+          )
+        }
+
+
+
+
       </View>
     </SafeAreaView>
   );

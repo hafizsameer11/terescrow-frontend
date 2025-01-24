@@ -37,6 +37,8 @@ const Chat = () => {
         return chatData.data.filter((chat) => chat.chatStatus === 'pending');
       case 'declined':
         return chatData.data.filter((chat) => chat.chatStatus === 'declined');
+      case 'unsucessful':
+        return chatData.data.filter((chat) => chat.chatStatus === 'unsucessful');
       default:
         return chatData.data;
     }

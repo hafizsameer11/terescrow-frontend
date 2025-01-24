@@ -1,16 +1,93 @@
 import { Tabs } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Platform } from "react-native";
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { COLORS, icons } from "@/constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import * as Notifications from "expo-notifications";
+
+import { useQuery } from "@tanstack/react-query";
+import { getunreadMessageCount } from "@/utils/queries/quickActionQueries";
+import { useAuth } from "@/contexts/authContext";
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 export default function TabLayout() {
   const tabBarActiveTintColor = COLORS.primary;
   const tabBarInactiveTintColor = COLORS.greyscale600;
   const tabBarBackgroundColor = COLORS.white;
+  const [previeusCount, setPreviousCount] = useState(0);
+  const { token } = useAuth();
+  const { data: count } = useQuery({
+    queryKey: ["notificationCount"],
+    queryFn: () => getunreadMessageCount(token),
+    refetchInterval: 1000,
+    enabled: !!token,
+    refetchIntervalInBackground: true, // Keep polling in the background
+  });
+
+  useEffect(() => {
+    const checkAndRequestPermissions = async () => {
+      try {
+        const hasAskedBefore = await AsyncStorage.getItem("hasAskedNotificationPermission");
+
+        if (!hasAskedBefore) {
+          const { status } = await Notifications.requestPermissionsAsync({
+            ios: {
+              allowAlert: true,
+              allowSound: true,
+              allowBadge: true,
+            },
+          });
+
+          if (status === "granted") {
+            console.log("Notification permissions granted");
+          } else {
+            console.warn("Notification permissions not granted");
+          }
+
+          // Save that the permission was asked
+          await AsyncStorage.setItem("hasAskedNotificationPermission", "true");
+        }
+      } catch (error) {
+        console.error("Error checking or requesting notification permissions:", error);
+      }
+    };
+
+    checkAndRequestPermissions();
+  }, []);
+
+  // Trigger push notification on count changes
+  useEffect(() => {
+    if (count?.data > previeusCount) {
+      pushNotification(count?.data - previeusCount);
+    }
+    setPreviousCount(count?.data || 0);
+  }, [count]);
+
+  // Push notification function
+  const pushNotification = async (newMessages) => {
+    const content = {
+      title: "New Messages!",
+      body: `You have ${newMessages} new messages.`,
+      sound: "default", // Play default notification sound
+      data: { count: newMessages },
+    };
+
+    await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: null, // Show immediately
+    });
+  };
+
 
   return (
     <Tabs
@@ -102,7 +179,7 @@ const styles = StyleSheet.create({
   },
   activeBar: {
     width: 28,
-    height: 2, 
-    marginTop: 5, 
+    height: 2,
+    marginTop: 5,
   },
 });

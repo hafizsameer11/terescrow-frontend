@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { Image } from "expo-image";
@@ -10,14 +10,31 @@ import { useTheme } from "@/contexts/themeContext";
 import { router } from "expo-router";
 import { useAuth } from "@/contexts/authContext";
 import { API_BASE_URL } from "@/utils/apiConfig";
+import { useQuery } from "@tanstack/react-query";
+import { getPrivacyPageLinks } from "@/utils/queries/quickActionQueries";
 
 const Profile = () => {
-  const { userData } = useAuth();
+  const { userData, token } = useAuth();
   const { logout } = useAuth();
   const { dark } = useTheme();
-  
+  const { data: privacyData } = useQuery({
+    queryKey: ['privacy'],
+    queryFn: () => getPrivacyPageLinks(),
+enabled: !!token
+  })
   const imageShown = `${API_BASE_URL}/uploads/${userData?.profilePicture}`
+  const handlePress = async (url: string) => {
+    // Check if the URL can be opened
+    console.log(url)
+    const supported = await Linking.canOpenURL(url);
 
+    if (supported) {
+      // Open the URL in the default browser
+      await Linking.openURL(url);
+    } else {
+      Alert.alert(`Don't know how to open this URL: ${url}`);
+    }
+  };
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="auto" />
@@ -102,12 +119,12 @@ const Profile = () => {
           <ProfileListItem
             text="Privacy Policy"
             icon={icons.privacyPolicy}
-            onPress={() => {}}
+            onPress={() => {handlePress(privacyData?.data?.privacyPageLink) }}
           />
           <ProfileListItem
             text="Terms of Services"
             icon={icons.termsAndServices}
-            onPress={() => {}}
+            onPress={() => {handlePress(privacyData?.data?.termsPageLink) }}
           />
           {/* <ProfileListItem
             text="Customer Support"
@@ -126,7 +143,7 @@ const Profile = () => {
             text="Delete Account"
             areLast
             icon={icons.deleteAccount}
-            onPress={() => {}}
+            onPress={() => { }}
           />
         </ScrollView>
       </View>

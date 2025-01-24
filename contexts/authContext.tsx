@@ -2,6 +2,16 @@ import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 // Define the AuthContextType interface
+export interface KycStateTwo {
+  id: number
+  userId: number
+  bvn: string
+  surName: string
+  firtName: string
+  dob?: string
+  status?: string
+  state:string
+}
 interface AuthContextType {
   token: string;
   userData: {
@@ -16,7 +26,7 @@ interface AuthContextType {
     role?: string;
     country?: string;
     isVerified?: boolean;
-    KycStateTwo?:any,
+    KycStateTwo?: KycStateTwo,
     unReadNotification?: number
   } | null;
   setToken: (token: string) => Promise<void>;

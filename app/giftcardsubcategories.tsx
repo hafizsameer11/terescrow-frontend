@@ -103,7 +103,7 @@ const CardScreen = () => {
       navigate('connectingagent', {
         departmentId,
         categoryId: categoryData.id.toString(),
-        categorytitle:categoryData.title,
+        categorytitle: categoryData.title,
         subCategoryId: selectedCardId,
         amount,
         icon: categoryData.image
@@ -147,6 +147,18 @@ const CardScreen = () => {
           type="counter"
         />
         {/* Regular Input */}
+        <View style={{ flex: 1, marginTop: 24 }}>
+          {availableCards && (
+            <CustomSelect
+              placeholder="Select Country"
+              setFieldValue={setFieldValue}
+              currValue={selectedCardId}
+              id="category"
+              options={availableCards}
+              modalLabel="Country"
+            />
+          )}
+        </View>
         <TextInput
           style={[
             styles.input,
@@ -154,23 +166,12 @@ const CardScreen = () => {
           ]}
           keyboardType="numeric"
           placeholder="Enter amount in USD"
-          onChangeText={(text) => setAmount(text)} 
+          onChangeText={(text) => setAmount(text)}
           value={amount} // Directly use the string value
           placeholderTextColor="#888"
         />
 
-        <View style={{ flex: 1, marginTop: 24 }}>
-          {availableCards && (
-            <CustomSelect
-              placeholder="Select Category"
-              setFieldValue={setFieldValue}
-              currValue={selectedCardId}
-              id="category"
-              options={availableCards}
-              modalLabel="Category"
-            />
-          )}
-        </View>
+
       </View>
     );
   };

@@ -26,7 +26,7 @@ const ConnnectingAgent = () => {
     icon,
     subCategoryId,
     categorytitle
-  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number,categorytitle?: string } =
+  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string } =
     route.params as any;
   if (!departmentId || !categoryId || !subCategoryId) {
     return goBack();
@@ -125,7 +125,7 @@ const ConnnectingAgent = () => {
     >
       <View style={styles.container}>
         <Image
-          source={images.connectingAgentBg}
+          source={'https://cdnl.iconscout.com/lottie/premium/thumb/loading-circle-3959218-3318041.gif'}
           style={styles.backgroundImage}
           contentFit="cover"
         />
@@ -157,14 +157,14 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     width: '100%',
-    height: '100%',
+    height: '70%',
   },
   loadingTextContainer: {
     position: 'absolute',
   },
   textContent1: {
     fontSize: 16,
-    color: COLORS.white,
+    color: COLORS.black,
     marginBottom: 15,
     fontWeight: 'bold',
   },

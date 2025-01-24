@@ -34,13 +34,7 @@ const TransactionList = () => {
 
   // Render error state
   if (transactionIsError) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>
-          Error fetching transactions: {transactionError?.message || "Unknown error"}
-        </Text>
-      </View>
-    );
+    return null;
   }
 
   return (

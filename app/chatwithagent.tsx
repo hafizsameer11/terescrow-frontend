@@ -67,6 +67,7 @@ const ChatWithAgent = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const { socket, onlineAgents } = useSocket();
   const { token, userData } = useAuth();
+  // const {onlineAgents}=useSocket()
   const currReceiverId = useRef<number | null>(null);
   const {
     data: chatDetailsData,
@@ -76,6 +77,7 @@ const ChatWithAgent = () => {
   } = useQuery({
     queryKey: ["messages", chatId],
     queryFn: () => getChatDetails(chatId, token),
+    refetchInterval: 1000,
 
     enabled: !!chatId,
   });
@@ -109,9 +111,6 @@ const ChatWithAgent = () => {
   const scrollToBottom = () => {
     flatListRef.current?.scrollToEnd({ animated: true });
   };
-
-  // console.log(chatDetailsData?.data?.receiverDetails);
-
   useEffect(() => {
     console.log(token);
     if (socket) {
@@ -165,22 +164,19 @@ const ChatWithAgent = () => {
       }
     };
   }, [socket]);
-
-  //handling chat details
   useEffect(() => {
-  
-      currReceiverId.current = chatDetailsData?.data.receiverDetails.id;
-      const oldMessages = chatDetailsData?.data.messages.map((message) => ({
-        id: message.id.toString(),
-        text: message.message,
-        isUser: message.senderId !== chatDetailsData.data.receiverDetails.id,
-        image: message.image,
-        sentAt: message.createdAt,
-      }));
-      setMessages(oldMessages);
-      setTimeout(scrollToBottom, 100);
-  }, [chatDetailsData]);
 
+    currReceiverId.current = chatDetailsData?.data.receiverDetails.id;
+    const oldMessages = chatDetailsData?.data.messages.map((message) => ({
+      id: message.id.toString(),
+      text: message.message,
+      isUser: message.senderId !== chatDetailsData.data.receiverDetails.id,
+      image: message.image,
+      sentAt: message.createdAt,
+    }));
+    setMessages(oldMessages);
+    setTimeout(scrollToBottom, 100);
+  }, [chatDetailsData]);
   const handleSendMessage = (message?: string, image?: string) => {
     // Prevent sending empty messages
     if (!image && !message?.trim()) return;
@@ -205,8 +201,6 @@ const ChatWithAgent = () => {
 
     mutate(formData); // Call mutation
   };
-
-  //this event listener scrolls to bottom to view full content
   useEffect(() => {
     Keyboard.addListener("keyboardDidShow", () => {
       // console.log('ok');
@@ -218,12 +212,10 @@ const ChatWithAgent = () => {
     };
   }, []);
 
-  // console.log(messages)
-
   const renderAgentChat = () => {
     const isChatClosed =
       chatDetailsData?.data?.status === "declined" ||
-      chatDetailsData?.data?.status === "successful";
+      chatDetailsData?.data?.status === "unsucessful" || chatDetailsData?.data?.status === "successful";
     return (
       <KeyboardAvoidingView
         style={[
@@ -255,6 +247,12 @@ const ChatWithAgent = () => {
                   backgroundColor: "#FFD7D7",
                   borderWidth: 1,
                   borderColor: COLORS.red,
+                }: chatDetailsData?.data.status=="unsucessful"?{
+                  color: COLORS.white,  // Set text color to white
+                  backgroundColor:"black",
+                  borderWidth: 1,
+                  borderColor: COLORS.white,
+              
                 }
                 : {
                   backgroundColor: "#E8FFF3",
@@ -266,8 +264,15 @@ const ChatWithAgent = () => {
             {chatDetailsData?.data?.status === "declined" ? (
               <ChatStatusMessage
                 text="Your chat was declined."
-                subText="Reason: “Invalid details"
+                subText="Reason: Invalid,unactivated or code has already been redeemed"
                 icon={icons.close2}
+              />
+            ) : chatDetailsData?.data?.status == "unsucessful" ? (
+              <ChatStatusMessage
+                text="Your trade was unsuccessful"
+                subText="Abandoned Trade."
+                icon={icons.close2}
+                status="unsucessful"
               />
             ) : (
               <ChatStatusMessage
@@ -302,7 +307,6 @@ const ChatWithAgent = () => {
       </KeyboardAvoidingView>
     );
   };
-
   return (
     <SafeAreaView
       style={[

@@ -3,7 +3,7 @@ import { API_BASE_URL } from './apiConfig';
 
 export const showTopToast = (props: showTopToastProps) => {
   Toast.show({
-    
+
     type: props.type,
     text1: props.text1,
     text2: props.text2,
@@ -17,7 +17,7 @@ export const showTopToast = (props: showTopToastProps) => {
       color: 'black', // White text for better contrast
       fontSize: 16,
       fontWeight: 'bold',
-    
+
     },
     text2Style: {
       color: 'black', // Optional for additional details
@@ -35,7 +35,7 @@ export const checkOnlineStatus = (
 
   if (!agentId) return isOnline;
   onlineUsers.forEach((user) => {
-    if (user.userId === agentId) {
+    if (user.userId == agentId) {
       isOnline = true;
     }
   });

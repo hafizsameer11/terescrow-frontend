@@ -41,12 +41,42 @@ export const getSubCategories = async (
 export const getAllCountries = async (): Promise<ICountriesRes> => {
   return await apiCall(API_ENDPOINTS.PUBLIC.GetCountries, 'GET');
 };
+export const getKycLimits = async (token: string): Promise<KycLimitsResponse> => {
+  return await apiCall(API_ENDPOINTS.QUICK_ACTIONS.GetKycLimits, 'GET', undefined, token);
+}
+export const getAllBanners = async (token: string): Promise<BannersResponse> => {
+  return await apiCall(API_ENDPOINTS.QUICK_ACTIONS.GetBanner, 'GET', undefined, token);
+}
+export const getPrivacyPageLinks = async (): Promise<ApiResponse> => {
+  return await apiCall(API_ENDPOINTS.QUICK_ACTIONS.PrivacyPageLinks, 'GET', undefined, undefined);
+}
+export const getunreadMessageCount = async (token: string): Promise<ApiResponse> => {
+  return await apiCall(API_ENDPOINTS.QUICK_ACTIONS.GetUnreadMessageCount, 'GET', undefined, token)
+}
 
 // department quick actions
 export interface IDepartmentResponse extends ApiResponse {
   data: { id: number; icon: string; title: string; description: string }[];
 }
+export interface KycLimitsResponse extends ApiResponse {
+  data: {
+    id: number | string;
+    tier: string;
+    cryptoBuyLimit: string;
+    cryptoSellLimit: string;
+    giftCardBuyLimit: string;
+    giftCardSellLimit: string;
+  }
 
+}
+export interface KycLimit {
+  id: number | string;
+  tier: string;
+  cryptoBuyLimit: string;
+  cryptoSellLimit: string;
+  giftCardBuyLimit: string;
+  giftCardSellLimit: string;
+}
 export interface ICategoryResponse extends ApiResponse {
   data: {
     departmentId: number;
@@ -83,4 +113,11 @@ export interface ISubCategoryResponse extends ApiResponse {
 
 interface ICountriesRes extends ApiResponse {
   data: { id: number; title: string }[];
+}
+export interface BannersResponse extends ApiResponse {
+  data: {
+    id: number;
+    image: string;
+    createdAt: Date;
+  }[]
 }
