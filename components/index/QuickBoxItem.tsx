@@ -1,8 +1,11 @@
-import { StyleSheet, View, Text, Pressable } from 'react-native';
+import { StyleSheet, View, Text, Pressable, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { COLORS } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { getImageUrl } from '@/utils/helpers';
+
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768; // iPads generally have width 768+
 
 const QuickBoxItem: React.FC<{
   icon: string;
@@ -11,9 +14,7 @@ const QuickBoxItem: React.FC<{
   onClick: (item: any) => void;
 }> = (props) => {
   const { dark } = useTheme();
-  console.log("departmenticon", props.icon);
   return (
-
     <Pressable
       style={[
         styles.container,
@@ -31,7 +32,7 @@ const QuickBoxItem: React.FC<{
             : { backgroundColor: COLORS.transparentAccount },
         ]}
       >
-        <Image source={{uri: getImageUrl(props.icon)}} style={styles.icon} />
+        <Image source={{ uri: getImageUrl(props.icon) }} style={styles.icon} />
       </View>
       <View style={styles.textContainer}>
         <Text
@@ -59,36 +60,37 @@ export default QuickBoxItem;
 
 const styles = StyleSheet.create({
   container: {
-    width: '47%',
-    padding: 12,
-    flexDirection: 'column',
+    width: isTablet ? '49%' : '47%', 
+    padding: isTablet ? 18 : 12,
+        flexDirection: 'column',
     backgroundColor: '#F7F7F7',
-    marginBottom: 20,
+    marginBottom: isTablet ? 25 : 20, 
     borderRadius: 12,
     overflow: 'hidden',
+    paddingBottom:isTablet?30:12
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    marginBottom: 12,
+    width: isTablet ? 80 : 40,
+    height: isTablet ? 80 : 40,
+    borderRadius: isTablet?16:8,
+    marginBottom: isTablet ? 16 : 12, 
     alignItems: 'center',
     justifyContent: 'center',
   },
   icon: {
-    width: 20,
-    height: 20,
+    width: isTablet ? 45 : 20, 
+    height: isTablet ? 45 : 20, 
   },
   textContainer: {
     marginTop: 5,
   },
   title: {
     fontWeight: 'bold',
-    fontSize: 12,
-    marginBottom: 2,
+    fontSize: isTablet ? 24 : 12, 
+    marginBottom: isTablet ? 7 : 2, 
   },
   text: {
-    fontSize: 10,
+    fontSize: isTablet ? 18 : 10, 
     color: COLORS.greyscale600,
   },
 });

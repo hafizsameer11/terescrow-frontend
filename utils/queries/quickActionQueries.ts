@@ -53,6 +53,30 @@ export const getPrivacyPageLinks = async (): Promise<ApiResponse> => {
 export const getunreadMessageCount = async (token: string): Promise<ApiResponse> => {
   return await apiCall(API_ENDPOINTS.QUICK_ACTIONS.GetUnreadMessageCount, 'GET', undefined, token)
 }
+export const getWaysOfHearing = async (): Promise<WaysOfHearingResponse> => {
+  return await apiCall(`${API_ENDPOINTS.QUICK_ACTIONS.GetAllWaysOfHearing}`, 'GET', undefined)
+}
+
+interface WayOfHearing {
+  id: number
+  means: string
+  createdAt: string
+}
+
+interface GroupedWayOfHearing {
+  name: string
+  count: number
+}
+
+export interface WaysOfHearingResponse {
+  status: 'success' | 'error'
+  message: string
+  data: {
+    list: WayOfHearing[]
+    grouped: GroupedWayOfHearing[]
+  }
+}
+
 
 // department quick actions
 export interface IDepartmentResponse extends ApiResponse {

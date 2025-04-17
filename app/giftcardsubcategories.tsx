@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View,Dimensions
 } from 'react-native';
 import NavigateBack from '@/components/NavigateBack';
 import { Image } from 'expo-image';
@@ -26,7 +26,8 @@ import {
 } from '@/utils/queries/quickActionQueries';
 import { useAuth } from '@/contexts/authContext';
 import CustomSelect from '@/components/CustomSelect';
-
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 interface CardData {
   id: string;
   card: string;
@@ -117,7 +118,7 @@ const CardScreen = () => {
         <Image
           source={categoryData.image || images.cryptoCard}
           style={styles.cardImage}
-          contentFit="contain"
+          contentFit={isTablet?"cover":"contain"}
         />
       </View>
     );
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   cardContainer: {
-    height: 220,
+    height: isTablet?490: 220,
     marginTop: 25,
     marginHorizontal: 16,
   },
@@ -237,6 +238,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     borderColor: COLORS.greyscale300,
+    fontSize:isTablet?20:16
   },
 });
 

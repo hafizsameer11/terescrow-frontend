@@ -1,10 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View,Dimensions } from "react-native";
 import React, { SetStateAction } from "react";
 import { Message } from "@/app/chatwithagent";
 import { Image } from "expo-image";
 import { COLORS } from "@/constants";
 import { API_BASE_URL } from "@/utils/apiConfig";
-
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 type PropTypes = {
   item: Message;
   setImagePreview: React.Dispatch<SetStateAction<string | null>>;
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
   userMessageTextColor: { backgroundColor: "#E1FFEF" },
   otherMessageTextColor: { backgroundColor: "#EFEFEF" },
   messageText: {
-    fontSize: 16,
+    fontSize: isTablet?18: 16,
     paddingVertical: 12,
     paddingHorizontal: 6,
     borderRadius: 8,

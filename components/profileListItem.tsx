@@ -3,7 +3,10 @@ import { useTheme } from "@/contexts/themeContext";
 import { AntDesign } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
-import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, View, Text, StyleSheet, Dimensions } from "react-native";
+
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 
 interface ProfileListItemProps {
   text: string;
@@ -46,8 +49,8 @@ const ProfileListItem: React.FC<ProfileListItemProps> = ({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          gap: 10,
-          paddingLeft: 10,
+          gap: isTablet ? 15 : 10, // Increased gap for tablet
+          paddingLeft: isTablet ? 20 : 10, // Increased left padding for tablet
         }}
       >
         <View
@@ -55,17 +58,28 @@ const ProfileListItem: React.FC<ProfileListItemProps> = ({
         >
           <Image
             source={icon}
-            style={{ width: 23, height: 23, tintColor: areLast && COLORS.red }}
+            style={{
+              width: isTablet ? 35 : 23, // Increased icon size for tablet
+              height: isTablet ? 35 : 23, // Increased icon size for tablet
+              tintColor: areLast && COLORS.red,
+            }}
           />
         </View>
-        <Text style={[styles.text, { color: themeStyles.text }]}>{text}</Text>
+        <Text
+          style={[
+            styles.text,
+            { color: themeStyles.text, fontSize: isTablet ? 18 : 14 }, // Larger text size for tablet
+          ]}
+        >
+          {text}
+        </Text>
       </View>
       <View>
         <Image
           source={icons.arrowRight}
           style={{
-            width: 23,
-            height: 23,
+            width: isTablet ? 30 : 23, // Larger arrow icon for tablet
+            height: isTablet ? 30 : 23, // Larger arrow icon for tablet
             tintColor: dark ? COLORS.white : COLORS.black,
           }}
         />
@@ -78,15 +92,15 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 11,
+    paddingVertical: isTablet ? 18 : 11, // Increased padding for tablet
     justifyContent: "space-between",
     borderBottomWidth: 1,
     borderColor: "#eee",
-    paddingRight: 8,
-    marginVertical: 5,
+    paddingRight: isTablet ? 20 : 8, // Increased padding for tablet
+    marginVertical: isTablet ? 15 : 5, // Increased margin for tablet
   },
   icon: {
-    padding: 6,
+    padding: isTablet ? 12 : 6, // Larger padding for tablet
     borderRadius: 50,
     alignItems: "center",
     justifyContent: "center",

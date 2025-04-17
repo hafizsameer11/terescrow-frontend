@@ -7,11 +7,15 @@ import {
   TextInputProps,
   Animated,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { COLORS, icons, SIZES } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { Image } from 'expo-image';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768; // iPads and larger devices
 
 interface InputProps extends TextInputProps {
   id: string;
@@ -92,8 +96,9 @@ const Input: React.FC<InputProps> = (props) => {
             styles.input,
             {
               color: dark ? COLORS.white : COLORS.black,
-              paddingLeft: props.icon ? 40 : 15,
+              paddingLeft: props.icon ? 50 : 20, // Increased padding for tablets
               top: 6,
+              fontSize: isTablet ? 18 : SIZES.body3, // Larger font size for tablets
             },
           ]}
         />
@@ -104,14 +109,14 @@ const Input: React.FC<InputProps> = (props) => {
               styles.label,
               {
                 top: labelPosition,
-                fontSize: isFocused || props.value ? 12 : 16,
+                fontSize: isTablet ? 16 : 12, // Larger label font size for tablets
                 color: props.errorText
                   ? COLORS.red
                   : isFocused || props.value
-                    ? COLORS.primary
-                    : dark
-                      ? COLORS.grayscale200
-                      : COLORS.greyscale600,
+                  ? COLORS.primary
+                  : dark
+                  ? COLORS.grayscale200
+                  : COLORS.greyscale600,
               },
             ]}
             onPress={() => inputRef.current?.focus()}
@@ -127,7 +132,7 @@ const Input: React.FC<InputProps> = (props) => {
           >
             <MaterialIcons
               name={isPasswordVisible ? 'visibility-off' : 'visibility'}
-              size={20}
+              size={isTablet ? 24 : 20} // Larger icon for tablets
               color={isFocused ? COLORS.primary : '#BCBCBC'}
             />
           </TouchableOpacity>
@@ -158,19 +163,18 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: SIZES.body3,
     paddingVertical: 16,
     textAlignVertical: 'center',
   },
   icon: {
-    width: 20,
-    height: 20,
+    width: isTablet ? 25 : 20, // Increased icon size for tablets
+    height: isTablet ? 25 : 20, // Increased icon size for tablets
     marginLeft: 10,
   },
   label: {
     position: 'absolute',
     left: 15,
-    fontSize: 16,
+    fontSize: isTablet ? 16 : 12, // Larger label font size for tablets
     transitionProperty: 'all',
     transitionDuration: '0.3s',
     transitionTimingFunction: 'ease-in-out',

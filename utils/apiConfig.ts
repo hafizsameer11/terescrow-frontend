@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
     GetBanner: API_DOMAIN + '/admin/operations/get-all-banners',
     PrivacyPageLinks: API_DOMAIN + '/admin/operations/privacy-page-links',
     GetUnreadMessageCount: API_DOMAIN + '/public/get-unread-count',
+    GetAllWaysOfHearing: API_DOMAIN + '/admin/operations/get-all-ways-of-hearing',
 
   },
 

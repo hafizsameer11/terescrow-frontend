@@ -1,8 +1,9 @@
-import { StyleSheet, View, Text, Pressable } from "react-native";
+import { StyleSheet, View, Text, Pressable,Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
-
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 const CardItem: React.FC<{
   card: string;
   text: string;
@@ -37,9 +38,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   cardImage: {
-    width: "90%",
-    height: 100,
-    borderRadius: 16,
+    width: isTablet?"90%": "90%",
+    height:  isTablet?270: 100,
+    borderRadius: isTablet?24: 16,
   },
   textContainer: {
     width: "90%",
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     fontWeight: "bold",
-    fontSize: 12,
+    fontSize:isTablet?24: 12,
     textAlign: "center",
   },
 });

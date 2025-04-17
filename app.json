@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Tercescrow",
-    "slug": "terescrow-frontend",
+    "slug": "terescrow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
@@ -9,7 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to allow you to update your profile picture and upload screenshots when contacting support to resolve issues.",
+        "NSPhotoLibraryAddUsageDescription": "This app requires access to save images to your photo library when you download images shared by support.",
+        "NSFaceIDUsageDescription": "This app uses Face ID for biometric authentication to securely log you in.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      },
+      "bundleIdentifier": "com.tercescrow"
     },
     "android": {
       "adaptiveIcon": {
@@ -50,7 +59,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "b5af3cb9-e82f-4f5d-9c76-3a2af05f04bf"
+        "projectId": "47d68432-8713-4b4f-a48a-2407ea178fc5"
       }
     }
   }

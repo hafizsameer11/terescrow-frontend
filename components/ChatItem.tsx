@@ -1,10 +1,14 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity,Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { COLORS, icons } from "@/constants";
 import { useTheme } from "@/contexts/themeContext";
 import { useNavigation } from "expo-router";
 import { NavigationProp } from "@react-navigation/native";
 import { getImageUrl } from "@/utils/helpers";
+
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768; // iPads generally have width 768+
+
 const ChatItem: React.FC<{
   icon: string;
   id?: string;
@@ -16,7 +20,8 @@ const ChatItem: React.FC<{
   status?: string;
 }> = (props) => {
   const { dark } = useTheme();
-  const { navigate, goBack } = useNavigation<NavigationProp<any>>();
+  const { navigate } = useNavigation<NavigationProp<any>>();
+
   return (
     <TouchableOpacity
       onPress={() => {
@@ -39,7 +44,8 @@ const ChatItem: React.FC<{
                 : props.icon // Local asset
             }
             style={styles.icon}
-          />        </View>
+          />
+        </View>
         <View style={styles.textContainer}>
           <View style={styles.contentOne}>
             <Text
@@ -64,11 +70,10 @@ const ChatItem: React.FC<{
                   dark ? { color: COLORS.white } : { color: COLORS.black },
                 ]}
               ></Text>
-
             </View>
           </View>
           <View style={styles.contentTwo}>
-            <View style={{ flex: 0.8 }}>
+            <View style={{ flex:isTablet?1:0.8 }}>
               <Text
                 style={[
                   styles.text,
@@ -99,7 +104,7 @@ const ChatItem: React.FC<{
                         ? "green"
                         : props.status === "declined"
                           ? "red"
-                          : props.status == "unsucessful"
+                          : props.status == "unsuccessful"
                             ? "black" : "yellow", // Default to yellow for "pending"
                     color: COLORS.white,
                   },
@@ -107,7 +112,6 @@ const ChatItem: React.FC<{
               >
                 {/* {props.productId} */}
               </Text>
-
             </View>
           </View>
         </View>
@@ -120,37 +124,35 @@ export default ChatItem;
 
 const styles = StyleSheet.create({
   container: {
-    padding: 12,
-    marginBottom: 10,
+    padding: isTablet ? 18 : 12, // Increased padding for tablets
+    marginBottom: isTablet ? 15 : 10, // Increased margin for tablets
     borderRadius: 12,
-    // marginHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F7F7F7",
   },
   circle: {
-    width: 10,
-    height: 10,
+    width: isTablet ? 15 : 10, // Increased circle size for tablets
+    height: isTablet ? 15 : 10, // Increased circle size for tablets
     marginLeft: 5,
     textAlign: "center",
     borderRadius: 999,
     justifyContent: "center",
-    fontSize: 10,
-
+    fontSize: isTablet ? 12 : 10, // Increased font size for tablets
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: isTablet ? 60 : 40, // Increased width for tablet
+    height: isTablet ? 60 : 40, // Increased height for tablet
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
     borderRadius: 50,
     borderColor: COLORS.green,
-    marginRight: 10,
+    marginRight: isTablet ? 15 : 10, // Increased margin for tablet
   },
   icon: {
-    width: 20,
-    height: 20,
+    width: isTablet ? 40 : 20, // Increased icon size for tablet
+    height: isTablet ? 40 : 20, // Increased icon size for tablet
   },
   textContainer: {
     flexDirection: "column",
@@ -158,17 +160,17 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontWeight: "bold",
-    fontSize: 14,
-    marginBottom: 2,
+    fontSize: isTablet ? 22 : 14, // Increased font size for tablet
+    marginBottom: isTablet ? 5 : 2, // Increased margin for tablet
   },
   text: {
-    fontSize: 10,
+    fontSize: isTablet ? 17 : 10, // Increased font size for tablet
     color: COLORS.greyscale600,
   },
   contentOne: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 5,
+    marginBottom: isTablet ? 10 : 5, // Increased margin for tablet
   },
   contentTwo: {
     flexDirection: "row",
@@ -180,8 +182,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   date: {
-    fontSize: 9,
+    fontSize: isTablet ? 15 : 9, // Increased font size for tablet
     color: COLORS.greyscale600,
+    marginRight:isTablet? 10:0  },
+  detailPriceProduct: {
+    fontSize: isTablet ? 17 : 10, // Increased font size for tablet
+    fontFamily: "Bold",
   },
-  detailPriceProduct: { fontSize: 10, fontFamily: "Bold" },
 });

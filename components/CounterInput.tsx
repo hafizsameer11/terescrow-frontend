@@ -1,9 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View,Dimensions } from 'react-native';
 import React from 'react';
 import { useTheme } from '@/contexts/themeContext';
 import { Colors } from '@/constants/Colors';
 import { COLORS } from '@/constants';
 
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 interface CounterInputProps {
   counter: number;
   setCounter?: (count: number) => void;
@@ -80,7 +82,7 @@ export default CounterInput;
 
 const styles = StyleSheet.create({
   mainText: {
-    fontSize: 16,
+    fontSize: isTablet?20: 16,
     color: COLORS.grayscale700,
     fontWeight: 'semibold',
   },

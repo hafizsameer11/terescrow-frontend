@@ -11,6 +11,7 @@ import { getAllBanners } from "@/utils/queries/quickActionQueries";
 import { getImageUrl } from "@/utils/helpers";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const isTablet = screenWidth >= 768; // iPads and larger devices
 
 const SwipCard = () => {
   const { token } = useAuth();
@@ -49,7 +50,7 @@ const SwipCard = () => {
             <Image
               source={{ uri: getImageUrl(banner.image) }}
               style={styles.image}
-              contentFit="contain"
+              contentFit={isTablet?"cover":"contain"}
             />
           </View>
         ))
@@ -68,7 +69,7 @@ const SwipCard = () => {
 
 const styles = StyleSheet.create({
   wrapper: {
-    height: 200,
+    height: isTablet?400:  200,
   },
   slide: {
     flex: 1,

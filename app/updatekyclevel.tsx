@@ -6,6 +6,7 @@ import {
   View,
   StyleSheet,
   Text,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/themeContext';
@@ -17,6 +18,8 @@ import { useAuth } from '@/contexts/authContext';
 import { useQuery } from '@tanstack/react-query';
 import { getKycDetails } from '@/utils/queries/accountQueries';
 import { getKycLimits, KycLimit } from '@/utils/queries/quickActionQueries';
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768; // iPads and larger devices
 
 const UpdateKycLevel = () => {
   const verifiedLimits = [
@@ -122,7 +125,7 @@ const UpdateKycLevel = () => {
             </TouchableOpacity>
             <Text
               style={[
-                { fontSize: 20, fontWeight: 'bold' },
+                { fontSize: isTablet?24: 20, fontWeight: 'bold' },
                 { color: themeStyles.normalText },
               ]}
             >
@@ -133,7 +136,7 @@ const UpdateKycLevel = () => {
           <View style={{ paddingHorizontal: 20 }}>
             <Text
               style={[
-                { fontSize: 16, marginVertical: 10 },
+                { fontSize: isTablet?24: 16, marginVertical: 10 },
                 { color: themeStyles.normalText },
               ]}
             >
@@ -143,7 +146,7 @@ const UpdateKycLevel = () => {
 
             <View>
               <View style={styles.rowContainer}>
-                <Text style={{ color: themeStyles.normalText }}>
+                <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
                   BVN Verification
                 </Text>
                 <View
@@ -160,7 +163,7 @@ const UpdateKycLevel = () => {
               <Text
                 style={[
                   {
-                    fontSize: 16,
+                    fontSize: isTablet?20:16,
                     marginBottom: 15,
                     marginTop: 20,
                     fontWeight: 'bold',
@@ -172,7 +175,7 @@ const UpdateKycLevel = () => {
               </Text>
 
 
-              <View style={styles.limitContainer}>
+              {/* <View style={styles.limitContainer}>
                 <View style={styles.limitHeader}>
                   <Image
                     source={icons.activity}
@@ -183,30 +186,30 @@ const UpdateKycLevel = () => {
                       tintColor: themeStyles.normalText,
                     }}
                   />
-                  <Text style={[{ color: themeStyles.normalText }]}>
+                  <Text style={[{ color: themeStyles.normalText,fontSize:isTablet?20:16 }]}>
                     Crypto Limits
                   </Text>
                 </View>
 
 
                 <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText }}>
+                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
                     Crypto Sell
                   </Text>
-                  <Text style={{ color: themeStyles.normalText }}>
+                  <Text style={{ color: themeStyles.normalText ,fontSize:isTablet?18:14}}>
                     {currentKycLimit?.cryptoSellLimit}
                   </Text>
                 </View>
                 <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText }}>
+                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
                     Crypto Buy
                   </Text>
-                  <Text style={{ color: themeStyles.normalText }}>
+                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
                     {currentKycLimit?.cryptoBuyLimit}
                   </Text>
                 </View>
 
-              </View>
+              </View> */}
               <View style={styles.limitContainer}>
                 <View style={styles.limitHeader}>
                   <Image
@@ -218,14 +221,14 @@ const UpdateKycLevel = () => {
                       tintColor: themeStyles.normalText,
                     }}
                   />
-                  <Text style={[{ color: themeStyles.normalText }]}>
+                  <Text style={[{ color: themeStyles.normalText,fontSize:isTablet?20:16 }]}>
                     Gift Card Limits
                   </Text>
                 </View>
 
 
                 <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText }}>
+                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
                     Gift Card Sell
                   </Text>
                   <Text style={{ color: themeStyles.normalText }}>
@@ -233,10 +236,10 @@ const UpdateKycLevel = () => {
                   </Text>
                 </View>
                 <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText }}>
+                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
                     Gift Card Buy
                   </Text>
-                  <Text style={{ color: themeStyles.normalText }}>
+                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
                     {currentKycLimit?.giftCardBuyLimit}
                   </Text>
                 </View>

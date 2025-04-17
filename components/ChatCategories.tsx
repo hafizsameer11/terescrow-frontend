@@ -1,7 +1,10 @@
 import React from 'react';
 import { COLORS } from '@/constants';
-import { Pressable, StyleSheet, Text, ScrollView, View } from 'react-native';
+import { Pressable, StyleSheet, Text, ScrollView, View, Dimensions } from 'react-native';
 import { useTheme } from '@/contexts/themeContext';
+
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768; // iPads and larger devices
 
 const categories = [
   { id: 'all', name: 'All', bg: COLORS.green },
@@ -41,8 +44,8 @@ const ChatCategories = (props: PropTypes) => {
                   props.selectedCategory === category.id
                     ? category.bg
                     : dark
-                      ? 'transparent'
-                      : COLORS.white,
+                    ? 'transparent'
+                    : COLORS.white,
               },
             ]}
           >
@@ -53,15 +56,15 @@ const ChatCategories = (props: PropTypes) => {
                   color:
                     props.selectedCategory === category.id
                       ? category.id === 'unsucessful'
-                        ? COLORS.white  // Set to white if 'unsucessful' is selected
+                        ? COLORS.white // Set to white if 'unsucessful' is selected
                         : 'black'
                       : COLORS.grayscale400,
+                  fontSize: isTablet ? 22 : 14, // Increased font size for tablets
                 },
               ]}
             >
               {category.name}
             </Text>
-
           </Pressable>
         ))}
       </ScrollView>
@@ -74,8 +77,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     borderColor: COLORS.grayscale400,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingVertical: isTablet ? 10 : 5, // Increased padding for tablets
+    paddingHorizontal: isTablet ? 20 : 10, // Increased padding for tablets
   },
   scrollContainer: {
     flexGrow: 1,
@@ -83,10 +86,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryTypeContainer: {
-    paddingHorizontal: 15,
-    paddingVertical: 7,
+    paddingHorizontal: isTablet ? 25 : 15, // Increased padding for tablets
+    paddingVertical: isTablet ? 12 : 7, // Increased padding for tablets
     borderRadius: 12,
-    marginRight: 8, // Keeps spacing uniform without stretching layout
+    marginRight: isTablet ? 16 : 8, // Increased margin for tablets
   },
   categoryText: {
     fontWeight: '500',

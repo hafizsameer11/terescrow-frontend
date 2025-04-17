@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/themeContext';
-
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 interface CustomModalProps {
   isVisible: boolean;
   setIsVisible: (value: boolean) => void;
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   optionText: {
-    fontSize: 16,
+    fontSize: isTablet?20: 16,
   },
   optionRight: {
     flexDirection: 'row',

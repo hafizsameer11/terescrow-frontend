@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, Text } from "react-native";
+import { StyleSheet, View, FlatList, Text, Dimensions, Platform } from "react-native";
 import Header from "@/components/index/Header";
 import CardSwiper from "@/components/index/CardSwiper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,6 +19,8 @@ import { useNavigation } from "expo-router";
 import { useField } from "formik";
 import { useEffect } from "react";
 
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768; // iPads generally have width 768+
 export default function HomeScreen() {
   const { dark } = useTheme();
   const { token } = useAuth();
@@ -44,9 +46,7 @@ export default function HomeScreen() {
     refetchInterval: 1000, // Refetch every second
   });
 
-
   // Limit to 5 chats
-  // useEffect
   const limitedChatData = chatData?.data?.slice(0, 5) || [];
 
   const handleClickDepartment = (item: IDepartmentResponse["data"][number]) => {
@@ -56,9 +56,7 @@ export default function HomeScreen() {
 
     navigate(route, { departmentId: item.id.toString() });
   };
-  useEffect(() => {
-    console.log("departmentsData?.data", departmentsData?.data);
-  })
+
   const renderHeader = () => (
     <>
       <Header />
@@ -132,7 +130,6 @@ export default function HomeScreen() {
             })}
             productId={item.messagesCount.toString()}
             price={`$${item.transaction?.amount?.toString() || "0"} - ₦${item.transaction?.amountNaira?.toString() || "0"}`}
-
             status={item.chatStatus}
           />
         )}
@@ -149,8 +146,8 @@ const styles = StyleSheet.create({
   },
   quickHeading: {
     fontWeight: "bold",
-    fontSize: 16,
-    marginBottom: 16,
+    fontSize: isTablet ? 20 : 16, // Increased font size for tablet
+    marginBottom: isTablet ? 20 : 16, // Increased margin for tablet
   },
   recentContainer: {
     flex: 1,
@@ -161,7 +158,7 @@ const styles = StyleSheet.create({
   recentHeading: {
     textAlign: "right",
     fontWeight: "bold",
-    fontSize: 12,
+    fontSize: isTablet ? 18 : 12, // Increased font size for tablet
     width: "auto",
   },
   borderLine: {

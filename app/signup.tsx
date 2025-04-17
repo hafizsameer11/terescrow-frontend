@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Formik } from "formik";
 import {
   ScrollView,
@@ -19,7 +19,7 @@ import Button from "../components/Button";
 import Checkbox from "expo-checkbox";
 import { router, useNavigation, useRouter } from "expo-router";
 import * as Yup from "yup";
-import { COUNTRIES, GENDERS } from "@/utils/dummyTrans";
+import { COUNTRIES, GENDERS, WayOfHearing } from "@/utils/dummyTrans";
 import CustomSelect from "@/components/CustomSelect";
 import { NavigationProp } from "@react-navigation/native";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -27,7 +27,7 @@ import { registerUser } from "@/utils/mutations/authMutations";
 import { ApiError } from "@/utils/customApiCalls";
 import { showTopToast } from "@/utils/helpers";
 import { useAuth } from "@/contexts/authContext";
-import { getAllCountries, getPrivacyPageLinks } from "@/utils/queries/quickActionQueries";
+import { getAllCountries, getPrivacyPageLinks, getWaysOfHearing, WaysOfHearingResponse } from "@/utils/queries/quickActionQueries";
 import * as ImagePicker from "expo-image-picker";
 const SignUp = () => {
   const { dark } = useTheme();
@@ -45,6 +45,13 @@ const SignUp = () => {
     queryFn: () => getAllCountries(),
     enabled: true
   });
+
+  const { data: wayofHearings, isLoading: wayOfHearingLoading } = useQuery<WaysOfHearingResponse>({
+    queryKey: ['waysOfHearing'],
+    queryFn: getWaysOfHearing,
+    enabled:true
+  });
+
   const { data: privacyData } = useQuery({
     queryKey: ['privacy'],
     queryFn: () => getPrivacyPageLinks(),
@@ -129,6 +136,7 @@ const SignUp = () => {
     // Append text fields
     Object.entries(values).forEach(([key, value]) => {
       formData.append(key, value as string);
+      console.log("form data",value,key)
     });
 
     // Append profile picture if available
@@ -139,8 +147,16 @@ const SignUp = () => {
         name: "profile.jpg",
       } as unknown as Blob);
     }
+
     signUp(formData);
   };
+  
+  useEffect(() => {
+    
+    if(wayofHearings){
+     console.log("ways of hearing",wayofHearings.data.list)
+    }
+  })
 
   return (
     <SafeAreaView
@@ -195,6 +211,7 @@ const SignUp = () => {
             gender: "male",
             termsAccepted: false,
             country: "",
+            means: ""
           }}
           validationSchema={validationSignUpSchema}
           onSubmit={(values) => {
@@ -300,7 +317,7 @@ const SignUp = () => {
                     setFieldValue={setFieldValue}
                     modalLabel="Country"
                   />
-                ):(
+                ) : (
                   <CustomSelect
                     options={COUNTRIES}
                     currValue={values.country}
@@ -310,6 +327,29 @@ const SignUp = () => {
                     id="country"
                     setFieldValue={setFieldValue}
                     modalLabel="Country"
+                  />
+                )}
+                {wayofHearings?.data ? (
+                  <CustomSelect
+                    options={wayofHearings?.data?.list}
+                    currValue={values.means}
+                    error={errors.means}
+                    touched={touched.means}
+                    placeholder="How did you hear about us?"
+                    id="means"
+                    setFieldValue={setFieldValue}
+                    modalLabel=""
+                  />
+                ) : (
+                  <CustomSelect
+                    options={WayOfHearing}
+                    currValue={values.means}
+                    error={errors.means}
+                    touched={touched.means}
+                    placeholder="How did you hear about us?"
+                    id="means"
+                    setFieldValue={setFieldValue}
+                    modalLabel=""
                   />
                 )}
 

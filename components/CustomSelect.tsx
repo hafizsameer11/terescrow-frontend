@@ -1,10 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View,Dimensions } from "react-native";
 import React from "react";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS, icons, SIZES } from "@/constants";
 import { Image } from "expo-image";
 import SelectModal from "@/components/SelectModal";
-
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 interface SelectProps {
   error?: string | undefined;
   touched?: boolean | undefined;
@@ -57,7 +58,7 @@ const CustomSelect = ({
                 : dark
                 ? COLORS.greyscale300
                 : COLORS.greyscale600,
-              fontSize: 16,
+              fontSize: isTablet?20:16
             }}
           >
             {currValue &&

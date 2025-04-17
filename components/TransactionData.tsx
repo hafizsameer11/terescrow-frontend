@@ -1,7 +1,9 @@
-import { StyleSheet, View, Text, Pressable } from "react-native";
+import { StyleSheet, View, Text, Pressable,Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { COLORS } from "@/constants";
 import { useTheme } from "@/contexts/themeContext";
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768; // iPads and larger devices
 const TransactionData: React.FC<{
   icon: string;
   heading: string;
@@ -89,7 +91,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   text: {
-    fontSize: 10,
+    fontSize: isTablet?15: 10,
     color: COLORS.greyscale600,
   },
   contemt: {
@@ -101,16 +103,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   date: {
-    fontSize: 12,
+    fontSize: isTablet?16: 12,
     fontWeight: "bold",
     color: COLORS.grayscale400,
   },
   detailPrice: {
-    fontSize: 12,
+    fontSize:isTablet?16:12,
     fontWeight: "bold",
   },
   detailProduct: {
-    fontSize: 12,
+    fontSize: isTablet?17: 12,
     fontWeight: "bold",
     color: COLORS.grayscale400,
   },
