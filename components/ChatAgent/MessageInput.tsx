@@ -63,14 +63,14 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       console.log("Image URI:", selectedImage);
       let uri = result.assets[0].uri;
-console.log("current image url",selectedImageRef.current)
+      console.log("current image url", selectedImageRef.current)
       if (Platform.OS === "ios" && uri.startsWith("ph://")) {
         const asset = await MediaLibrary.getAssetInfoAsync(result.assets[0].assetId);
         uri = asset.localUri ?? uri;
       }
-  
+
       console.log("Final usable URI:", uri);
-  
+
       setIsImagePickerOpen(false); // Close picker modal
     }
   };
@@ -91,9 +91,9 @@ console.log("current image url",selectedImageRef.current)
       console.log("selectedImage updated:", selectedImage);
     }
   }, [selectedImage]);
-  
+
   useEffect(() => {
-    
+
     console.log("selectedImageRef updated:", selectedImageRef.current);
     console.log("is previeable:", isPreviewVisible);
   }, [isPreviewVisible]);
@@ -106,7 +106,7 @@ console.log("current image url",selectedImageRef.current)
       console.log("🧹 Modal unmounted");
     };
   }, []);
-  
+
   return (
     <>
       <View style={styles.inputContainer}>
@@ -153,7 +153,7 @@ console.log("current image url",selectedImageRef.current)
           )}
         </TouchableOpacity>
       </View>
-     
+
       {/* Image Picker Modal */}
       {isImagePickerOpen && (
         <Modal transparent={true} visible={isImagePickerOpen}>
@@ -179,23 +179,23 @@ console.log("current image url",selectedImageRef.current)
 
       {/* Image Preview Modal */}
       {/* {selectedImage && ( */}
-  
- 
 
-        
+
+
+
       <ImagePreviewOverlay
-  visible={isPreviewVisible}
-  imageUri={selectedImage}
-  onSend={() => {
-    confirmImageSend();
-    setIsPreviewVisible(false);
-    setSelectedImage(null);
-  }}
-  onCancel={() => {
-    setIsPreviewVisible(false);
-    setSelectedImage(null);
-  }}
-/>
+        visible={isPreviewVisible}
+        imageUri={selectedImage}
+        onSend={() => {
+          confirmImageSend();
+          setIsPreviewVisible(false);
+          setSelectedImage(null);
+        }}
+        onCancel={() => {
+          setIsPreviewVisible(false);
+          setSelectedImage(null);
+        }}
+      />
 
     </>
   );

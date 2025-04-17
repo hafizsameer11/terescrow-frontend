@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,Dimensions
+  View, Dimensions
 } from 'react-native';
 import NavigateBack from '@/components/NavigateBack';
 import { Image } from 'expo-image';
@@ -52,9 +52,11 @@ const CardScreen = () => {
   const {
     departmentId,
     categoryData,
+    departmentTitle
   }: {
     departmentId: string;
     categoryData: ICategoryResponse['data']['categories'][number]['category'];
+    departmentTitle: string;
   } = route.params as any;
   if (!departmentId || !categoryData) {
     return goBack();
@@ -64,6 +66,7 @@ const CardScreen = () => {
   const [availableCards, setAvailableCards] =
     React.useState<{ id: number; title: string }[]>();
   const [selectedCardId, setSelectedCardId] = React.useState<string>('');
+  const [selectedCardTitle, setSelectedCardTitle] = React.useState<string>('');
   const [amount, setAmount] = React.useState(0.0);
   const { token } = useAuth();
   const {
@@ -97,6 +100,7 @@ const CardScreen = () => {
   const setFieldValue = (title: string, id: any) => {
     console.log(title, id);
     setSelectedCardId(id);
+    setSelectedCardTitle(title);
   };
 
   const handleNavigateToAgentConnection = () => {
@@ -106,8 +110,10 @@ const CardScreen = () => {
         categoryId: categoryData.id.toString(),
         categorytitle: categoryData.title,
         subCategoryId: selectedCardId,
+        departmentTitle: departmentTitle,
         amount,
-        icon: categoryData.image
+        icon: categoryData.image,
+        subcategorytitle: selectedCardTitle,
       });
     }
   };
@@ -118,7 +124,7 @@ const CardScreen = () => {
         <Image
           source={categoryData.image || images.cryptoCard}
           style={styles.cardImage}
-          contentFit={isTablet?"cover":"contain"}
+          contentFit={isTablet ? "cover" : "contain"}
         />
       </View>
     );
@@ -218,7 +224,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   cardContainer: {
-    height: isTablet?490: 220,
+    height: isTablet ? 490 : 220,
     marginTop: 25,
     marginHorizontal: 16,
   },
@@ -238,7 +244,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     borderColor: COLORS.greyscale300,
-    fontSize:isTablet?20:16
+    fontSize: isTablet ? 20 : 16
   },
 });
 

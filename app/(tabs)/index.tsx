@@ -54,7 +54,7 @@ export default function HomeScreen() {
       ? "giftcardcategories"
       : "cryptocategories";
 
-    navigate(route, { departmentId: item.id.toString() });
+    navigate(route, { departmentId: item.id.toString(),departmentTitle: item.title });
   };
 
   const renderHeader = () => (

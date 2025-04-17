@@ -25,8 +25,9 @@ const ConnnectingAgent = () => {
     amount,
     icon,
     subCategoryId,
-    categorytitle
-  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string } =
+    categorytitle,
+    subcategorytitle
+  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string, subcategorytitle?: string } =
     route.params as any;
   if (!departmentId || !categoryId || !subCategoryId) {
     return goBack();
@@ -52,7 +53,7 @@ const ConnnectingAgent = () => {
     },
   });
 
-  console.log('departmentId', departmentId, 'categoryId', categoryId, 'subCategoryId', subCategoryId, 'amount', amount, 'icon', icon);
+  console.log('departmentId', departmentId, 'categoryId', categoryId, 'subCategoryId', subCategoryId, 'amount', amount, 'icon', icon, 'categorytitle', categorytitle, 'subcategorytitle', subcategorytitle);
   useEffect(() => {
     if (!socket) {
       connectToSocket();
