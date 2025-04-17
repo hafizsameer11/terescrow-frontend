@@ -127,10 +127,10 @@ const SignUp = () => {
   const handleSubmit = async (
     values: Yup.InferType<typeof validationSignUpSchema>
   ) => {
-    if (!profileImage) {
-      Alert.alert("Error", "Profile picture is required.");
-      return;
-    }
+    // if (!profileImage) {
+    //   Alert.alert("Error", "Profile picture is required.");
+    //   return;
+    // }
     const formData = new FormData();
 
     // Append text fields

@@ -20,7 +20,7 @@ const isTablet = width >= 768; // iPads and larger devices
 interface CustomModalProps {
   isVisible: boolean;
   setIsVisible: (value: boolean) => void;
-  onSelect: (value: string) => void;
+  onSelect: (value: string,title:string) => void;
   title: string;
   prefilledValue?: string;
   options: { id: number; title: string }[];
@@ -99,7 +99,7 @@ const SelectModal: React.FC<CustomModalProps> = ({
   const renderOption = ({ title, id }: { title: string; id: number }) => {
     const handleSelectId = () => {
       setIsVisible(false);
-      onSelect(id.toString());
+      onSelect(id.toString(), title);
     };
     return (
       <TouchableOpacity style={styles.option} onPress={handleSelectId}>

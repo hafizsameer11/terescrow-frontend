@@ -26,8 +26,9 @@ const ConnnectingAgent = () => {
     icon,
     subCategoryId,
     categorytitle,
-    subcategorytitle
-  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string, subcategorytitle?: string } =
+    subcategorytitle,
+    departmentTitle,
+  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string, subcategorytitle?: string,departmentTitle?:string } =
     route.params as any;
   if (!departmentId || !categoryId || !subCategoryId) {
     return goBack();
@@ -76,7 +77,8 @@ const ConnnectingAgent = () => {
 
             // After sending the icon, send the text message
             const textFormData = new FormData();
-            const message = `I want to trade ${amount}$ of ${categorytitle}`;
+            const message = `I want to ${departmentTitle} ${amount}$ of ${subcategorytitle} ${categorytitle}`;
+            console.log('message', message);
             textFormData.append('chatId', chatId.toString());
             textFormData.append('message', message);
 

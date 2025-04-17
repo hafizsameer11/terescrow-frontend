@@ -16,6 +16,7 @@ interface SelectProps {
   currValue: string;
   placeholder: string;
   onSelectOverride?: (value: any) => void; // New prop for custom logic
+  isGiftCard?: boolean;
 }
 const CustomSelect = ({
   error,
@@ -27,6 +28,7 @@ const CustomSelect = ({
   currValue,
   placeholder,
   onSelectOverride,
+  isGiftCard = false, // Default to false if not provided
 }: SelectProps) => {
   const { dark } = useTheme();
   const [modalVisible, setIsVisible] = React.useState(false);
@@ -94,8 +96,14 @@ const CustomSelect = ({
       <SelectModal
         isVisible={modalVisible}
         setIsVisible={setIsVisible}
-        onSelect={(value) => {
-          setFieldValue(id, value);
+        onSelect={(value,title) => {
+          console.log("Selected value:", value," title:", title);
+          if(isGiftCard){
+            setFieldValue(title, value);
+          }else{
+
+            setFieldValue(id, value);
+          }
         }}
         title={modalLabel}
         options={options}

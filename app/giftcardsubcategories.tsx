@@ -98,7 +98,7 @@ const CardScreen = () => {
   }, [subcategoriesData]);
 
   const setFieldValue = (title: string, id: any) => {
-    console.log(title, id);
+    console.log(title, id,departmentTitle);
     setSelectedCardId(id);
     setSelectedCardTitle(title);
   };
@@ -163,6 +163,7 @@ const CardScreen = () => {
               id="category"
               options={availableCards}
               modalLabel="Country"
+              isGiftCard={true}
             />
           )}
         </View>
