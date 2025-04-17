@@ -116,11 +116,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
             );
           }
 
-          showTopToast({
-            type: 'error',
-            text1: 'Alert!',
-            text2: `A ${role} has been disconnected`,
-          });
+          // showTopToast({
+          //   type: 'error',
+          //   text1: 'Alert!',
+          //   text2: `A ${role} has been disconnected`,
+          // });
         }
       );
 

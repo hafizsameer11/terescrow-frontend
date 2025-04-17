@@ -70,6 +70,8 @@ export default function TabLayout() {
     if (count?.data > previeusCount) {
       pushNotification(count?.data - previeusCount);
     }
+    Notifications.setBadgeCountAsync(count?.data || 0).catch(console.warn);
+
     setPreviousCount(count?.data || 0);
   }, [count]);
 

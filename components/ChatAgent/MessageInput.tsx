@@ -2,18 +2,22 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import * as MediaLibrary from 'expo-media-library';
+import ImagePreviewModal from "./ImagePreviewModal";
+import ImagePreviewOverlay from "./ImagePreviewOverlay";
 
 interface MessageInputProps {
   sendMessage: (message?: string, image?: string) => void;
@@ -28,6 +32,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [input, setInput] = useState<string>("");
   const [isImagePickerOpen, setIsImagePickerOpen] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const selectedImageRef = useRef<string | null>(null);
 
   const handleSendMessage = () => {
     if (input.trim()) {
@@ -52,6 +58,19 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setSelectedImage(result.assets[0].uri); // Show preview
+      setIsPreviewVisible(true); // trigger modal
+      selectedImageRef.current = result.assets[0].uri;
+
+      console.log("Image URI:", selectedImage);
+      let uri = result.assets[0].uri;
+console.log("current image url",selectedImageRef.current)
+      if (Platform.OS === "ios" && uri.startsWith("ph://")) {
+        const asset = await MediaLibrary.getAssetInfoAsync(result.assets[0].assetId);
+        uri = asset.localUri ?? uri;
+      }
+  
+      console.log("Final usable URI:", uri);
+  
       setIsImagePickerOpen(false); // Close picker modal
     }
   };
@@ -67,7 +86,27 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setIsImagePickerOpen(false); // Close picker modal
     }
   };
-
+  useEffect(() => {
+    if (selectedImage) {
+      console.log("selectedImage updated:", selectedImage);
+    }
+  }, [selectedImage]);
+  
+  useEffect(() => {
+    
+    console.log("selectedImageRef updated:", selectedImageRef.current);
+    console.log("is previeable:", isPreviewVisible);
+  }, [isPreviewVisible]);
+  useEffect(() => {
+    console.log("🧠 MessageInput MOUNTED");
+  }, []);
+  useEffect(() => {
+    console.log("📦 Modal mounted");
+    return () => {
+      console.log("🧹 Modal unmounted");
+    };
+  }, []);
+  
   return (
     <>
       <View style={styles.inputContainer}>
@@ -114,7 +153,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           )}
         </TouchableOpacity>
       </View>
-
+     
       {/* Image Picker Modal */}
       {isImagePickerOpen && (
         <Modal transparent={true} visible={isImagePickerOpen}>
@@ -139,27 +178,25 @@ const MessageInput: React.FC<MessageInputProps> = ({
       )}
 
       {/* Image Preview Modal */}
-      {selectedImage && (
-        <Modal transparent={true} visible={!!selectedImage}>
-          <View style={styles.previewContainer}>
-            <Image source={selectedImage} style={styles.previewImage} contentFit="contain" />
-            <View style={styles.previewActions}>
-              <TouchableOpacity
-                style={styles.previewButton}
-                onPress={confirmImageSend}
-              >
-                <Text style={styles.optionText}>Send</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.previewButton}
-                onPress={() => setSelectedImage(null)}
-              >
-                <Text style={styles.optionText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* {selectedImage && ( */}
+  
+ 
+
+        
+      <ImagePreviewOverlay
+  visible={isPreviewVisible}
+  imageUri={selectedImage}
+  onSend={() => {
+    confirmImageSend();
+    setIsPreviewVisible(false);
+    setSelectedImage(null);
+  }}
+  onCancel={() => {
+    setIsPreviewVisible(false);
+    setSelectedImage(null);
+  }}
+/>
+
     </>
   );
 };

@@ -119,6 +119,14 @@ const Profile = () => {
               router.push("/profilesecurity");
             }}
           />
+           <ProfileListItem
+            text="Notification Settings"
+            icon={icons.notification}
+            // icon={icons.lockUser}
+            onPress={() => {
+              router.push("/NotificationSettings");
+            }}
+          />
           <ProfileListItem
             text="Privacy Policy"
             icon={icons.privacyPolicy}

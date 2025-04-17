@@ -77,7 +77,7 @@ const ChatWithAgent = () => {
   } = useQuery({
     queryKey: ["messages", chatId],
     queryFn: () => getChatDetails(chatId, token),
-    refetchInterval: 1000,
+    // refetchInterval: 1000,
 
     enabled: !!chatId,
   });
@@ -90,7 +90,7 @@ const ChatWithAgent = () => {
       queryClient.invalidateQueries({
         queryKey: ["agentsData"],
       });
-      console.log(data);
+      // console.log(data);
       setMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -103,7 +103,7 @@ const ChatWithAgent = () => {
       ]);
     },
     onError: (error: ApiError) => {
-      console.log(error);
+      // console.log(error);
       showTopToast({ type: "error", text1: "Error", text2: error.message });
     },
   });
@@ -112,12 +112,12 @@ const ChatWithAgent = () => {
     flatListRef.current?.scrollToEnd({ animated: true });
   };
   useEffect(() => {
-    console.log(token);
+    // console.log(token);
     if (socket) {
       socket.on(
         "message",
         ({ from, message }: { from: number; message: newMessage }) => {
-          console.log(from, message);
+          // console.log(from, message);
           console.log("My id: ", userData?.id);
           console.log("agentId: ", currReceiverId?.current);
           if (from == userData?.id || from != currReceiverId?.current) return;

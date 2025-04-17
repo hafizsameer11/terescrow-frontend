@@ -125,6 +125,10 @@ export default function RootLayout() {
                 name="connectingagent"
                 options={{ headerShown: false }}
               />
+              <Stack.Screen
+                name="NotificationSettings"
+                options={{ headerShown: false }}
+              />
               {/* <Stack.Screen name="ebaycard" options={{ headerShown: false }}  /> */}
               {/* <Stack.Screen name="visacard" options={{ headerShown: false }}  /> */}
               {/* <Stack.Screen name="footlocker" options={{ headerShown: false }}  /> */}
