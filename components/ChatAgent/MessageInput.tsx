@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Platform,
@@ -9,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Device from 'expo-device';
+
 import React, { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/themeContext";
@@ -76,16 +79,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const captureImage = async () => {
+    if (!Device.isDevice) {
+      Alert.alert("Not Supported", "Camera is not available on simulator.");
+      return;
+    }
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  
+    if (status !== "granted") {
+      Alert.alert("Permission denied", "Camera access is required to take photos.");
+      return;
+    }
+  
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       quality: 1,
     });
-
+  
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setSelectedImage(result.assets[0].uri); // Show preview
-      setIsImagePickerOpen(false); // Close picker modal
+      const imageUri = result.assets[0].uri;
+      setSelectedImage(imageUri);
+      selectedImageRef.current = imageUri;
+      setIsPreviewVisible(true); // Open image preview
+      setIsImagePickerOpen(false); // Close the picker modal
     }
   };
+  
   useEffect(() => {
     if (selectedImage) {
       console.log("selectedImage updated:", selectedImage);

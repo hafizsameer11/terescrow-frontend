@@ -29,6 +29,7 @@ import { showTopToast } from "@/utils/helpers";
 import { useAuth } from "@/contexts/authContext";
 import { getAllCountries, getPrivacyPageLinks, getWaysOfHearing, WaysOfHearingResponse } from "@/utils/queries/quickActionQueries";
 import * as ImagePicker from "expo-image-picker";
+import { goBack } from "expo-router/build/global-state/routing";
 const SignUp = () => {
   const { dark } = useTheme();
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
@@ -157,7 +158,10 @@ const SignUp = () => {
      console.log("ways of hearing",wayofHearings.data.list)
     }
   })
-
+  const goToSignIn = () => {
+    router.replace('/signin');
+  };
+  
   return (
     <SafeAreaView
       style={{
@@ -168,7 +172,9 @@ const SignUp = () => {
     >
       <ScrollView contentContainerStyle={{ padding: SIZES.padding2 }}>
         <View style={{ marginBottom: SIZES.padding3 }}>
-          <Image source={icons.arrowLeft} style={{ width: 22, height: 22 }} />
+        <TouchableOpacity onPress={goToSignIn}>
+  <Image source={icons.arrowLeft} style={{ width: 22, height: 22 }} />
+</TouchableOpacity>
           <Text
             style={{
               fontSize: SIZES.h2,

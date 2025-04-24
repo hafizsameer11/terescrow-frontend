@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import axios from 'axios';
 
-const API_URL = 'https://earlybaze.hmstech.xyz/api/set-fcm-token';
+const API_URL = 'https://46.202.154.203/api/customer/utilities/save-fcm-token';
 
 // Configure how notifications are handled when received
 // Notifications.setNotificationHandler({

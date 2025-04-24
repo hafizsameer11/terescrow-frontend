@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
+import NotificationManager from '@/app/NotificationManager';
 // Define the AuthContextType interface
 export interface KycStateTwo {
   id: number
@@ -95,6 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <AuthContext.Provider value={{ ...state, setToken, setUserData, logout }}>
       {children}
+      {state.token && state.userData && <NotificationManager />}
     </AuthContext.Provider>
   );
 };

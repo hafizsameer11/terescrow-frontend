@@ -20,7 +20,8 @@ const NOTIFICATION_KEY = "NOTIFICATION_ENABLED";
 const NotificationSettings = () => {
   const { dark } = useTheme();
   const { goBack } = useNavigation();
-  const [isEnabled, setIsEnabled] = useState(false);
+  // const [isEnabled, setI÷sEnabled] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(true); // ✅ Enabled by default
 
   const themeStyles = {
     backgroundCont: dark ? COLORS.dark1 : COLORS.white,
@@ -44,11 +45,16 @@ const NotificationSettings = () => {
       const storedValue = await SecureStore.getItemAsync(NOTIFICATION_KEY);
       if (storedValue !== null) {
         setIsEnabled(JSON.parse(storedValue));
+      } else {
+        // ✅ If no value is stored yet, default to true and save it
+        await SecureStore.setItemAsync(NOTIFICATION_KEY, JSON.stringify(true));
+        setIsEnabled(true);
       }
     } catch (error) {
       console.error("Failed to load setting", error);
     }
   };
+  
 
   useEffect(() => {
     getNotificationSetting();

@@ -1,84 +1,76 @@
 import React, { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { Alert, AppState } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerForPushNotificationsAsync, saveFcmTokenToServer } from '@/utils/notificationService';
-// import { registerForPushNotificationsAsync, saveFcmTokenToServer } from '@/utils/notificationService';
+import { useAuth } from '@/contexts/authContext';
 
-export default function NotificationManager({ token, user }: { token: string, user: any }) {
-    const notificationListener = useRef<Notifications.Subscription | null>(null);
-    const responseListener = useRef<Notifications.Subscription | null>(null);
-    const appState = useRef(AppState.currentState);
-    const userId = user?.id;
+export default function NotificationManager() {
+  const { token, userData } = useAuth();
+  const userId = userData?.id;
 
-    // Notification handler (system-level)
-    useEffect(() => {
-        Notifications.setNotificationHandler({
-            handleNotification: async (notification) => {
-                const notifUserId = notification?.request?.content?.data?.userId;
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
 
-                if (parseInt(notifUserId) === userId) {
-                    return {
-                        shouldShowAlert: true,
-                        shouldPlaySound: true,
-                        shouldSetBadge: true,
-                    };
-                }
+  // System-level handler (required for iOS foreground behavior)
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
+        const notifUserId = notification?.request?.content?.data?.userId;
 
-                return {
-                    shouldShowAlert: false,
-                    shouldPlaySound: false,
-                    shouldSetBadge: false,
-                };
-            }
+        return {
+          shouldShowAlert: String(notifUserId) === String(userId),
+          shouldPlaySound: String(notifUserId) === String(userId),
+          shouldSetBadge: String(notifUserId) === String(userId),
+        };
+      },
+    });
+  }, [userId]);
+
+  // Push registration + listener setup
+  useEffect(() => {
+    if (!token || !userId) return;
+
+    const setupNotifications = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('storedFcmToken');
+        const fcmToken = await registerForPushNotificationsAsync();
+
+        if (fcmToken && stored !== fcmToken) {
+          await saveFcmTokenToServer(fcmToken, token);
+          await AsyncStorage.setItem('storedFcmToken', fcmToken);
+          console.log('✅ FCM token saved for user:', userId);
+        } else {
+          console.log('ℹ️ FCM token already saved. Skipping...');
+        }
+
+        // Clean existing listeners if any
+        notificationListener.current && Notifications.removeNotificationSubscription(notificationListener.current);
+        responseListener.current && Notifications.removeNotificationSubscription(responseListener.current);
+
+        // Foreground + background receive
+        notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
+          console.log('📥 Notification received:', notification.request.content);
         });
-    }, [userId]);
 
-    useEffect(() => {
-        if (!token || !userId) return;
+        // Tap response
+        responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+          const body = response.notification.request.content.body || 'You have a new message!';
+          Alert.alert('📩 Notification', body);
+        });
 
-        const setupNotifications = async () => {
-            const fcmToken = await registerForPushNotificationsAsync();
-            if (fcmToken) {
-                await saveFcmTokenToServer(fcmToken, token);
-                console.log('✅ FCM token saved for user:', userId);
-            }
+      } catch (err) {
+        console.error('❌ Notification setup failed:', err);
+      }
+    };
 
-            if (notificationListener.current) {
-                Notifications.removeNotificationSubscription(notificationListener.current);
-            }
-            if (responseListener.current) {
-                Notifications.removeNotificationSubscription(responseListener.current);
-            }
+    setupNotifications();
 
-            notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-                const notifUserId = notification.request.content.data?.userId;
-                console.log('📥 Notification received (background):', notification.request.content);
-                if (parseInt(notifUserId) === userId) {
-                    console.log('📥 Notification received (foreground):', notification.request.content);
-                }
-            });
+    return () => {
+      notificationListener.current && Notifications.removeNotificationSubscription(notificationListener.current);
+      responseListener.current && Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, [token, userId]);
 
-            responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-                const notifUserId = response.notification.request.content.data?.userId;
-                if (parseInt(notifUserId) === userId) {
-                    const body = response.notification.request.content.body || 'You have a new message!';
-                    Alert.alert('📩 Notification', body);
-                }
-            });
-        };
-
-        setupNotifications();
-
-        return () => {
-            if (notificationListener.current) {
-                Notifications.removeNotificationSubscription(notificationListener.current);
-            }
-            if (responseListener.current) {
-                Notifications.removeNotificationSubscription(responseListener.current);
-            }
-        };
-    }, [token, userId]);
-
-    return null;
+  return null;
 }
