@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tercescrow",
     "slug": "terescrow",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "myapp",
@@ -18,7 +18,8 @@
           "remote-notification"
         ]
       },
-      "bundleIdentifier": "com.tercescrow"
+      "bundleIdentifier": "com.tercescrow",
+      "buildNumber": "1.2.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -59,7 +60,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "47d68432-8713-4b4f-a48a-2407ea178fc5"
+        "projectId": "1e13bd1b-502c-4ca0-9c80-c8d71b032161"
       }
     }
   }
