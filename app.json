@@ -19,7 +19,7 @@
         ]
       },
       "bundleIdentifier": "com.tercescrow",
-      "buildNumber": "1.2.0",
+      "buildNumber": "1.3.0",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
