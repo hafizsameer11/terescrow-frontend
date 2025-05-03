@@ -114,6 +114,7 @@ const CardScreen = () => {
         amount,
         icon: categoryData.image,
         subcategorytitle: selectedCardTitle,
+        quantity: cardsConter,
       });
     }
   };
@@ -137,7 +138,7 @@ const CardScreen = () => {
         (card) => card.subCategory.id == +selectedCardId
       );
       if (card?.subCategory.price) {
-        setAmount(+cardsConter * +card.subCategory.price);
+        setAmount(+card.subCategory.price);
       }
     }
   }, [cardsConter, selectedCardId]);

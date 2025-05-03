@@ -72,7 +72,7 @@ const GiftCardCategories = () => {
   const route = useRoute();
   const { push } = useRouter();
   const { navigate, goBack } = useNavigation<NavigationProp<any>>();
-  const { departmentId, departmentTitle }: { departmentId: string, departmentTitle: string } = route.params as any;
+  const { departmentId, departmentTitle ,departmentType}: { departmentId: string, departmentTitle: string,departmentType:string } = route.params as any;
   if (!departmentId) {
     return goBack();
   }
@@ -119,7 +119,7 @@ const GiftCardCategories = () => {
             onSend={() =>
               navigate(`giftcardsubcategories`, {
                 departmentId: departmentId,
-                departmentTitle: departmentTitle,
+                departmentTitle: departmentType,
                 categoryData: item.category,
               })
             } // Navigate to the dynamic route with `id`

@@ -7,56 +7,54 @@ import { useAuth } from '@/contexts/authContext';
 
 export default function NotificationManager() {
   const { token, userData } = useAuth();
-  const userId = userData?.id;
 
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
 
-  // System-level handler (required for iOS foreground behavior)
+  // System-level notification handler (for iOS foreground notifications)
   useEffect(() => {
     Notifications.setNotificationHandler({
-      handleNotification: async (notification) => {
-        const notifUserId = notification?.request?.content?.data?.userId;
-
-        return {
-          shouldShowAlert: String(notifUserId) === String(userId),
-          shouldPlaySound: String(notifUserId) === String(userId),
-          shouldSetBadge: String(notifUserId) === String(userId),
-        };
-      },
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
     });
-  }, [userId]);
+  }, []);
 
   // Push registration + listener setup
   useEffect(() => {
-    if (!token || !userId) return;
+    if (!token || !userData?.id) return;
 
     const setupNotifications = async () => {
       try {
-        const stored = await AsyncStorage.getItem('storedFcmToken');
-        const fcmToken = await registerForPushNotificationsAsync();
+        const storedToken = await AsyncStorage.getItem('storedExpoPushToken');
+        const expoPushToken = await registerForPushNotificationsAsync();
 
-        if (fcmToken && stored !== fcmToken) {
-          await saveFcmTokenToServer(fcmToken, token);
-          await AsyncStorage.setItem('storedFcmToken', fcmToken);
-          console.log('✅ FCM token saved for user:', userId);
+        if (expoPushToken && storedToken !== expoPushToken) {
+          await AsyncStorage.setItem('storedExpoPushToken', expoPushToken);
+          await saveFcmTokenToServer(expoPushToken, token);
+          console.log('✅ Expo Push Token saved for user:', userData.id);
         } else {
-          console.log('ℹ️ FCM token already saved. Skipping...');
+          console.log('ℹ️ Expo token already saved. Skipping...');
         }
 
-        // Clean existing listeners if any
+        // Clean previous listeners
         notificationListener.current && Notifications.removeNotificationSubscription(notificationListener.current);
         responseListener.current && Notifications.removeNotificationSubscription(responseListener.current);
 
-        // Foreground + background receive
+        // Foreground receive
         notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
           console.log('📥 Notification received:', notification.request.content);
         });
 
         // Tap response
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-          const body = response.notification.request.content.body || 'You have a new message!';
+          const body = response.notification.request.content.body || 'You have a new notification!';
           Alert.alert('📩 Notification', body);
+
+          // Clear badge on tap
+          Notifications.setBadgeCountAsync(0);
         });
 
       } catch (err) {
@@ -70,7 +68,7 @@ export default function NotificationManager() {
       notificationListener.current && Notifications.removeNotificationSubscription(notificationListener.current);
       responseListener.current && Notifications.removeNotificationSubscription(responseListener.current);
     };
-  }, [token, userId]);
+  }, [token, userData?.id]);
 
   return null;
 }

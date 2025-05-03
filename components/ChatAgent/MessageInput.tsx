@@ -21,6 +21,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from 'expo-media-library';
 import ImagePreviewModal from "./ImagePreviewModal";
 import ImagePreviewOverlay from "./ImagePreviewOverlay";
+import * as ImageManipulator from 'expo-image-manipulator'; // ✅
 
 interface MessageInputProps {
   sendMessage: (message?: string, image?: string) => void;
@@ -44,10 +45,31 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setInput("");
     }
   };
-
-  const confirmImageSend = () => {
+  async function compressImageAsync(uri: string) {
+    try {
+      const compressedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1024 } }], // Resize width to 1024px
+        {
+          compress: 0.7, // 70% quality for good balance
+          format: ImageManipulator.SaveFormat.JPEG, // Always save as JPEG
+        }
+      );
+      return compressedImage.uri;
+    } catch (error) {
+      console.error('Image compression error:', error);
+      return uri; // fallback: send original if compression fails
+    }
+  }
+  
+  const confirmImageSend = async() => {
     if (selectedImage) {
-      sendMessage("", selectedImage); // Send the selected image
+      const compressedUri = await compressImageAsync(selectedImage);
+      console.log('Compressed Image URI:', compressedUri);
+
+      sendMessage("", compressedUri); // Send compressed image now
+
+      // sendMessage("", selectedImage); // Send the selected image
       setSelectedImage(null); // Clear preview
     }
   };

@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import axios from 'axios';
 
-const API_URL = 'https://46.202.154.203/api/customer/utilities/save-fcm-token';
+const API_URL = 'https://46.202.154.203/api/customer/utilities/sve-fcm-token';
 
 // Configure how notifications are handled when received
 // Notifications.setNotificationHandler({
@@ -18,44 +18,33 @@ const API_URL = 'https://46.202.154.203/api/customer/utilities/save-fcm-token';
  */
 export const registerForPushNotificationsAsync = async (): Promise<string | null> => {
     try {
-        // Step 1: Ensure the app is running on a physical device
-        if (!Device.isDevice) {
-            alert('Push notifications are only supported on physical devices.');
-            console.warn('Device check failed: Not a physical device.');
-            return null;
-        }
-
-        // Step 2: Get current notification permissions
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        console.log('Existing Notification Permission Status:', existingStatus);
-
-        let finalStatus = existingStatus;
-
-        // Step 3: Request permissions if not granted
-        if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-            console.log('Updated Notification Permission Status:', finalStatus);
-        }
-
-        // Step 4: Handle denied permissions
-        if (finalStatus !== 'granted') {
-            alert('Failed to get push token for push notifications. Permissions not granted.');
-            console.error('Notification permissions not granted.');
-            return null;
-        }
-
-        // Step 5: Get the FCM push token using getDevicePushTokenAsync
-        const tokenData = await Notifications.getDevicePushTokenAsync();
-        const fcmToken = tokenData.data;
-        console.log('FCM Push Token Retrieved:', fcmToken);
-
-        return fcmToken; // Return the FCM token for further use
-    } catch (error) {
-        console.error('Error while registering for push notifications:', error);
+      if (!Device.isDevice) {
+        alert('Push notifications are only supported on physical devices.');
         return null;
+      }
+  
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+  
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+  
+      if (finalStatus !== 'granted') {
+        console.warn('Notification permissions not granted.');
+        return null;
+      }
+  
+      const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync();
+      console.log('Expo Push Token:', expoPushToken);
+      return expoPushToken;
+    } catch (error) {
+      console.error('Error registering for push notifications:', error);
+      return null;
     }
-};
+  };
+  
 
 // Define the expected structure of the API response
 interface ApiResponse {

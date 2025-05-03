@@ -12,6 +12,14 @@ import Toast from 'react-native-toast-message';
 import { AuthProvider } from '@/contexts/authContext';
 import { SocketProvider } from '@/contexts/socketContext';
 import toastConfig from '@/utils/toastConfig';
+import * as Notifications from 'expo-notifications';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -164,6 +172,7 @@ export default function RootLayout() {
               <Stack.Screen
                 name="chatwithagent"
                 options={{ headerShown: false }}
+                // component={require('@/app/chatwithagent.rtsx')}
               />
             </Stack>
           </SocketProvider>

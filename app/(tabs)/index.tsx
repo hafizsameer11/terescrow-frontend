@@ -53,8 +53,8 @@ export default function HomeScreen() {
     const route = item.title.includes("Gift Card")
       ? "giftcardcategories"
       : "cryptocategories";
-
-    navigate(route, { departmentId: item.id.toString(),departmentTitle: item.title });
+    // console.log("item", item.Type);
+    navigate(route, { departmentId: item.id.toString(),departmentTitle: item.title,departmentType:item.Type });
   };
 
   const renderHeader = () => (

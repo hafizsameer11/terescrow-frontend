@@ -205,7 +205,15 @@ export const DUMMY_CRYPTO_SOLDS_BOUGHT = [
   },
 ];
 
-export const COUNTRIES = [{ title: "Nigeria", id: 1 }];
+export const COUNTRIES = [
+  { title: "Nigeria", id: 1 },
+  { title: "Ghana", id: 2 },
+  { title: "Cameroon", id: 3 },
+  { title: "Benin republic", id: 4 },
+  { title: "South Africa", id: 5 },
+  { title: "Kenya", id: 6 },
+
+];
 
 export const GENDERS = [
   { id: 1, title: "male" },

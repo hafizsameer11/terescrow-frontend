@@ -28,7 +28,8 @@ const ConnnectingAgent = () => {
     categorytitle,
     subcategorytitle,
     departmentTitle,
-  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string, subcategorytitle?: string,departmentTitle?:string } =
+    quantity
+  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string, subcategorytitle?: string,departmentTitle?:string,quantity:string } =
     route.params as any;
   if (!departmentId || !categoryId || !subCategoryId) {
     return goBack();
@@ -77,7 +78,7 @@ const ConnnectingAgent = () => {
 
             // After sending the icon, send the text message
             const textFormData = new FormData();
-            const message = `I want to ${departmentTitle} ${amount}$ of ${subcategorytitle} ${categorytitle}`;
+            const message = `I want to ${departmentTitle} ${quantity} $${amount}  ${subcategorytitle} ${categorytitle} Gift Card`;
             console.log('message', message);
             textFormData.append('chatId', chatId.toString());
             textFormData.append('message', message);

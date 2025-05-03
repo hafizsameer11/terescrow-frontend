@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Video } from 'expo-av';
 import Signin from './signin';
+import * as Notifications from 'expo-notifications';
 
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
@@ -17,7 +18,14 @@ export default function App() {
 
     loadApp();
   }, []);
-
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+  
   if (!isAppReady) {
     return (
       <View style={styles.splashContainer}>
