@@ -5,6 +5,7 @@ import { Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/contexts/themeContext";
 import { Colors } from "@/constants/Colors";
+import { API_BASE_URL } from "@/utils/apiConfig";
 
 const ChatPfpNav: React.FC<{ image: string; name: string; status: string }> = (
   props
@@ -15,6 +16,7 @@ const ChatPfpNav: React.FC<{ image: string; name: string; status: string }> = (
   const backPressHandler = () => {
     router.dismissTo("/(tabs)");
   };
+  console.log("props", props);
 
   return (
     <View
@@ -45,7 +47,7 @@ const ChatPfpNav: React.FC<{ image: string; name: string; status: string }> = (
 
       <View style={styles.mainContentContainer}>
         <View>
-          <Image source={props.image} style={{ width: 50, height: 50 }} />
+          <Image  source={{ uri: `${API_BASE_URL}/uploads/${props.image}` }} style={{ width: 50, height: 50 }} />
         </View>
         <View style={styles.mainTextContainer}>
           <View>
@@ -60,9 +62,7 @@ const ChatPfpNav: React.FC<{ image: string; name: string; status: string }> = (
               {props.name}
             </Text>
           </View>
-          <View>
-            <Text style={styles.agentStatus}>{props.status}</Text>
-          </View>
+          
         </View>
       </View>
     </View>
@@ -91,6 +91,9 @@ const styles = StyleSheet.create({
   },
   mainTextContainer: {
     marginLeft: 12,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
   },
   mainHeading: {
     fontSize: 18,

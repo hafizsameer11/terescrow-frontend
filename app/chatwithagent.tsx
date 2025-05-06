@@ -77,10 +77,11 @@ const ChatWithAgent = () => {
   } = useQuery({
     queryKey: ["messages", chatId],
     queryFn: () => getChatDetails(chatId, token),
-    // refetchInterval: 1000,
+    refetchInterval: 1000,
 
     enabled: !!chatId,
   });
+  console.log("chat details receier data",chatDetailsData?.data.receiverDetails);
   const { mutate, isPending: sendingMessage } = useMutation({
     mutationKey: ["send-message"],
     mutationFn: (data: FormData) => sendMessageController(data, token),
@@ -317,6 +318,7 @@ const ChatWithAgent = () => {
       ]}
     >
       <ChatPfpNav
+      i
         name={
           chatDetailsData?.data?.receiverDetails.firstname +
           " " +
@@ -328,8 +330,7 @@ const ChatWithAgent = () => {
             : "Offline"
         }
         image={
-          chatDetailsData?.data?.receiverDetails.profilePicture ||
-          images.maskGroup
+          chatDetailsData?.data?.receiverDetails.profilePicture 
         }
       />
       {renderAgentChat()}
