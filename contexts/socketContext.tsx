@@ -97,11 +97,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
       newSocket.on('connect_error', (error) => {
         console.error('Error Connecting toSocket : ', error);
-        showTopToast({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Failed to connect to Socket server',
-        });
+        // showTopToast({
+        //   type: 'error',
+        //   text1: 'Error',
+        //   text2: 'Failed to connect to Socket server',
+        // });
       });
 
       newSocket.on(
@@ -144,11 +144,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
         subCategoryId: subCategoryId,
       });
     } else {
-      showTopToast({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to connect to Socket server',
-      });
+      // showTopToast({
+      //   type: 'error',
+      //   text1: 'Error',
+      //   text2: 'Failed to connect to Socket server',
+      // });
     }
   };
 

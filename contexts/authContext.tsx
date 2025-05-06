@@ -87,10 +87,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const logout = async () => {
-    // Example: Remove token from localStorage or perform other cleanup
-    await SecureStore.deleteItemAsync('authToken');
-    dispatch({ type: 'LOGOUT' });
-    router.replace('/signin');
+    try {
+      // Clear all stored keys used for login & biometrics
+      await SecureStore.deleteItemAsync("authToken");
+      await SecureStore.deleteItemAsync("USER_TOKEN");
+      await SecureStore.deleteItemAsync("USER_DATA");
+      await SecureStore.deleteItemAsync("LOGIN_TIMESTAMP");
+      await SecureStore.deleteItemAsync("BIOMETRIC_AUTH");
+  
+      // Clear context/state
+      dispatch({ type: "LOGOUT" });
+  
+      // Navigate to signin screen
+      router.replace("/signin");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
   };
 
   return (

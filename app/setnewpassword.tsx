@@ -78,7 +78,6 @@ const SetNewPassword = () => {
                 });
                 console.log('Password changed successfully:', response);
 
-                // Show success modal and reset form
                 resetForm();
                 showTopToast({
                   type: 'success',

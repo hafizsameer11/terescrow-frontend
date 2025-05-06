@@ -80,6 +80,8 @@ const Signin = () => {
       await SecureStore.setItemAsync(TOKEN_KEY, token);
       await SecureStore.setItemAsync(USER_DATA_KEY, JSON.stringify(userData));
       await SecureStore.setItemAsync(BIOMETRIC_AUTH_KEY, "true");
+      await SecureStore.setItemAsync("LOGIN_TIMESTAMP", Date.now().toString());
+
       reset({
         index: 0,
         routes: [{ name: "(tabs)" }],
@@ -112,6 +114,42 @@ const Signin = () => {
         });
       },
     });
+  useEffect(() => {
+    const checkAutoLogin = async () => {
+      try {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        const userDataStr = await SecureStore.getItemAsync(USER_DATA_KEY);
+        const timestampStr = await SecureStore.getItemAsync("LOGIN_TIMESTAMP");
+
+        if (token && userDataStr && timestampStr) {
+          const loginTime = parseInt(timestampStr);
+          const now = Date.now();
+
+          // Check if login is within 30 days (in ms)
+          const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+          if (now - loginTime < THIRTY_DAYS) {
+            setToken(token);
+            setUserData(JSON.parse(userDataStr));
+            reset({
+              index: 0,
+              routes: [{ name: "(tabs)" }],
+            });
+          } else {
+            // Expired - clear storage
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            await SecureStore.deleteItemAsync(USER_DATA_KEY);
+            await SecureStore.deleteItemAsync("LOGIN_TIMESTAMP");
+            await SecureStore.deleteItemAsync(BIOMETRIC_AUTH_KEY);
+          }
+        }
+      } catch (err) {
+        console.log("Auto-login error:", err);
+      }
+    };
+
+    checkAutoLogin();
+  }, []);
+
 
   return (
     <SafeAreaView

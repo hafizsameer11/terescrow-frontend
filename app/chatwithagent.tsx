@@ -249,9 +249,9 @@ const ChatWithAgent = () => {
                   borderColor: COLORS.red,
                 }: chatDetailsData?.data.status=="unsucessful"?{
                   color: COLORS.white,  // Set text color to white
-                  backgroundColor:"black",
+                  backgroundColor:"#444444",
                   borderWidth: 1,
-                  borderColor: COLORS.white,
+                  borderColor: COLORS.white
               
                 }
                 : {

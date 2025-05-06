@@ -17,6 +17,10 @@ export const chnagePassword = async (data: IChangePasswordReq, token: string) =>
   //   console.log(data);
   return await apiCall(API_ENDPOINTS.AUTH.ChangePassword, 'POST', data, token);
 };
+export const setNewPassword = async (data: ISetNewPasswordReq, token: string) => {
+  //   console.log(data);
+  return await apiCall(API_ENDPOINTS.AUTH.SetNewPassword, 'POST', data, token);
+};
 
 export const loginUser = async (data: {
   email: string;
@@ -144,3 +148,9 @@ interface IChangePasswordReq {
   oldPassword: string;
   newPassword: string;
 }
+interface ISetNewPasswordReq {
+  userId: number;
+  password: string;
+}
+
+
