@@ -81,14 +81,9 @@ export const validationSetNewPassword = Yup.object().shape({
 // editProfile schema
 export const validationEditProfile = Yup.object().shape({
   firstName: Yup.string()
-    .required('First name is required')
-    .min(5, 'First name must be at least 5 characters')
-    .max(25, 'First name can’t be longer than 25 characters'),
-
+    .required('First name is required'),
   lastName: Yup.string()
-    .required('Last name is required')
-    .min(5, 'Last name must be at least 5 characters')
-    .max(25, 'Last name can’t be longer than 25 characters'),
+    .required('Last name is required'),
 
   email: Yup.string()
     .required('Email is required')

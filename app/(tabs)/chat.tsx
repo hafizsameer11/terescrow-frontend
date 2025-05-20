@@ -65,7 +65,7 @@ const Chat = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mainHeadingContainer}>
-        <Text style={styles.mainHeading}>Chat History</Text>
+        <Text style={styles.mainHeading}>Trade History</Text>
       </View>
       <View
         style={[

@@ -29,7 +29,7 @@ const ConnnectingAgent = () => {
     subcategorytitle,
     departmentTitle,
     quantity
-  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string, subcategorytitle?: string,departmentTitle?:string,quantity:string } =
+  }: { departmentId: string; categoryId: string; subCategoryId: string, icon?: string, amount?: number, categorytitle?: string, subcategorytitle?: string, departmentTitle?: string, quantity: string } =
     route.params as any;
   if (!departmentId || !categoryId || !subCategoryId) {
     return goBack();
@@ -89,7 +89,7 @@ const ConnnectingAgent = () => {
                 setIsWaitingForAgent(false);
                 setTimeout(() => {
                   navigate('chatwithagent', { chatId: chatId.toString() });
-                }, 1000); // 1000ms = 1 second
+                }, 3000); // 1000ms = 1 second
               },
             });
           },

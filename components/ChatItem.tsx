@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, TouchableOpacity,Dimensions } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { COLORS, icons } from "@/constants";
 import { useTheme } from "@/contexts/themeContext";
@@ -21,7 +21,7 @@ const ChatItem: React.FC<{
 }> = (props) => {
   const { dark } = useTheme();
   const { navigate } = useNavigation<NavigationProp<any>>();
-
+  console.log("chat status", props.status)
   return (
     <TouchableOpacity
       onPress={() => {
@@ -73,7 +73,7 @@ const ChatItem: React.FC<{
             </View>
           </View>
           <View style={styles.contentTwo}>
-            <View style={{ flex:isTablet?1:0.8 }}>
+            <View style={{ flex: isTablet ? 1 : 0.8 }}>
               <Text
                 style={[
                   styles.text,
@@ -104,7 +104,7 @@ const ChatItem: React.FC<{
                         ? "green"
                         : props.status === "declined"
                           ? "red"
-                          : props.status == "unsuccessful"
+                          : props.status == "unsucessful"
                             ? "black" : "yellow", // Default to yellow for "pending"
                     color: COLORS.white,
                   },
@@ -184,7 +184,8 @@ const styles = StyleSheet.create({
   date: {
     fontSize: isTablet ? 15 : 9, // Increased font size for tablet
     color: COLORS.greyscale600,
-    marginRight:isTablet? 10:0  },
+    marginRight: isTablet ? 10 : 0
+  },
   detailPriceProduct: {
     fontSize: isTablet ? 17 : 10, // Increased font size for tablet
     fontFamily: "Bold",

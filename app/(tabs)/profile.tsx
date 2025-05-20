@@ -10,8 +10,9 @@ import { useTheme } from "@/contexts/themeContext";
 import { router } from "expo-router";
 import { useAuth } from "@/contexts/authContext";
 import { API_BASE_URL } from "@/utils/apiConfig";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { getPrivacyPageLinks } from "@/utils/queries/quickActionQueries";
+import { deleteCustomer } from "@/utils/queries/accountQueries";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768; // iPads and larger devices
@@ -25,6 +26,16 @@ const Profile = () => {
     queryFn: () => getPrivacyPageLinks(),
     enabled: !!token
   })
+  const { mutate: DeleteAccount } = useMutation({
+    mutationKey: ['deleteAccount'],
+    mutationFn: () => deleteCustomer(token),
+    onSuccess: () => {
+      logout()
+    },
+    onError: (error) => {
+      Alert.alert('Error', error.message)
+    }
+  })
   const imageShown = `${API_BASE_URL}/uploads/${userData?.profilePicture}`
 
   const handlePress = async (url: string) => {
@@ -35,6 +46,10 @@ const Profile = () => {
       Alert.alert(`Don't know how to open this URL: ${url}`);
     }
   };
+  const deleteAccount=()=>{
+    DeleteAccount();
+  }
+
 
   return (
     <View style={{ flex: 1 }}>
@@ -96,7 +111,7 @@ const Profile = () => {
           </View>
         </View>
       </View>
-      <View style={{ flex: 1, backgroundColor: dark ? COLORS.black : COLORS.white }}>
+      <View style={{ flex: 1, backgroundColor: dark ? COLORS.black : COLORS.white,marginBottom: 80 }}>
         <ScrollView>
           <ProfileListItem
             text="Edit Profile"
@@ -149,7 +164,8 @@ const Profile = () => {
             text="Delete Account"
             areLast
             icon={icons.deleteAccount}
-            onPress={() => { }}
+            onPress={() => { deleteAccount()
+            }}
           />
         </ScrollView>
       </View>

@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
     Notifications: API_DOMAIN + '/auth/get-all-notifications',
     SetNewPassword: API_DOMAIN + '/auth/set-new-password',
     GetKycDetails: API_DOMAIN + '/auth/get-kyc-details',
+    DeleteAccount: API_DOMAIN + '/auth/delete-customer',
   },
 
   ACCOUNT_MANAGEMENT: {

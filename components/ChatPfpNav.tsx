@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   pressableArea: {
-    padding: 8,
+  padding: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

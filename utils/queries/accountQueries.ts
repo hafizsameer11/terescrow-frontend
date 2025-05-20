@@ -12,7 +12,14 @@ export const getUserProfile = async (
     token
   );
 };
-
+export const deleteCustomer = async (token: string) => {
+  return await apiCall(
+    API_ENDPOINTS.AUTH.DeleteAccount,
+    'GET',
+    undefined,
+    token
+  );
+};
 export const getUnreadNotifications = async (
   token?: string
 ): Promise<INotificationResponse> => {

@@ -32,6 +32,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import { getChatDetails } from "@/utils/queries/chatQueries";
 import chat from "./(tabs)/chat";
 import ChatStatusMessage from "@/components/ChatStatusMessage";
+import { Colors } from "react-native/Libraries/NewAppScreen";
 
 export type Message = {
   id: string;
@@ -249,8 +250,8 @@ const ChatWithAgent = () => {
                   borderWidth: 1,
                   borderColor: COLORS.red,
                 }: chatDetailsData?.data.status=="unsucessful"?{
-                  color: COLORS.white,  // Set text color to white
-                  backgroundColor:"#444444",
+                  color: COLORS.black,  // Set text color to white
+                  backgroundColor:"#f3f4f6",
                   borderWidth: 1,
                   borderColor: COLORS.white
               
@@ -274,6 +275,7 @@ const ChatWithAgent = () => {
                 subText="Abandoned Trade."
                 icon={icons.close2}
                 status="unsucessful"
+                color={Colors.black}
               />
             ) : (
               <ChatStatusMessage

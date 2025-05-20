@@ -5,7 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -124,18 +124,17 @@ const Signin = () => {
         if (token && userDataStr && timestampStr) {
           const loginTime = parseInt(timestampStr);
           const now = Date.now();
-
-          // Check if login is within 30 days (in ms)
           const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
           if (now - loginTime < THIRTY_DAYS) {
             setToken(token);
+            console.log("token",token)
+            console.log("use data",JSON.parse(userDataStr))
             setUserData(JSON.parse(userDataStr));
             reset({
               index: 0,
               routes: [{ name: "(tabs)" }],
             });
           } else {
-            // Expired - clear storage
             await SecureStore.deleteItemAsync(TOKEN_KEY);
             await SecureStore.deleteItemAsync(USER_DATA_KEY);
             await SecureStore.deleteItemAsync("LOGIN_TIMESTAMP");
