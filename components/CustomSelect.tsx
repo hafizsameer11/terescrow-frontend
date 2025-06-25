@@ -102,7 +102,7 @@ const CustomSelect = ({
             setFieldValue(title, value);
           }else{
 
-            setFieldValue(id, value);
+            setFieldValue(title, value);
           }
         }}
         title={modalLabel}

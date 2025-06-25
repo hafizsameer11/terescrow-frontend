@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import * as Device from 'expo-device';
+import * as Clipboard from 'expo-clipboard';
 
 import React, { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -38,6 +39,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const selectedImageRef = useRef<string | null>(null);
+  const [galleryImages, setGalleryImages] = useState<MediaLibrary.Asset[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isGridModalVisible, setIsGridModalVisible] = useState(false);
 
   const handleSendMessage = () => {
     if (input.trim()) {
@@ -61,8 +65,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
       return uri; // fallback: send original if compression fails
     }
   }
-  
-  const confirmImageSend = async() => {
+
+  const confirmImageSend = async () => {
     if (selectedImage) {
       const compressedUri = await compressImageAsync(selectedImage);
       console.log('Compressed Image URI:', compressedUri);
@@ -106,17 +110,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
       return;
     }
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  
+
     if (status !== "granted") {
       Alert.alert("Permission denied", "Camera access is required to take photos.");
       return;
     }
-  
+
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       quality: 1,
     });
-  
+
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const imageUri = result.assets[0].uri;
       setSelectedImage(imageUri);
@@ -125,7 +129,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setIsImagePickerOpen(false); // Close the picker modal
     }
   };
-  
+
   useEffect(() => {
     if (selectedImage) {
       console.log("selectedImage updated:", selectedImage);
@@ -146,6 +150,29 @@ const MessageInput: React.FC<MessageInputProps> = ({
       console.log("🧹 Modal unmounted");
     };
   }, []);
+  const loadGalleryImages = async () => {
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "We need access to your photos.");
+      return;
+    }
+
+    const album = await MediaLibrary.getAlbumAsync('Camera');
+    const media = await MediaLibrary.getAssetsAsync({
+      first: 100,
+      mediaType: MediaLibrary.MediaType.photo,
+      album: album || undefined,
+      sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+    });
+
+    setGalleryImages(media.assets);
+    setIsGridModalVisible(true); // 🟢 Open grid modal only now
+  };
+  const copyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert("Copied to Clipboard", text);
+  };
+  
 
   return (
     <>
@@ -160,6 +187,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             color={dark ? COLORS.white : COLORS.black}
           />
         </TouchableOpacity>
+
 
         <TextInput
           style={[
@@ -195,27 +223,96 @@ const MessageInput: React.FC<MessageInputProps> = ({
       </View>
 
       {/* Image Picker Modal */}
-      {isImagePickerOpen && (
-        <Modal transparent={true} visible={isImagePickerOpen}>
-          <View style={styles.imagePickerContainer}>
-            <TouchableOpacity onPress={pickImage} style={styles.optionButton}>
-              <Text style={styles.optionText}>Pick from Gallery</Text>
-            </TouchableOpacity>
+      <Modal transparent={true} visible={isImagePickerOpen}>
+        <View style={styles.imagePickerContainer}>
+          <TouchableOpacity onPress={() => {
+            setIsImagePickerOpen(false);
+            loadGalleryImages();
+          }} style={styles.optionButton}>
+            <Text style={styles.optionText}>Pick from Gallery</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={captureImage}
+            style={styles.optionButton}
+          >
+            <Text style={styles.optionText}>Capture from Camera</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setIsImagePickerOpen(false)}
+            style={styles.optionButton}
+          >
+            <Text style={styles.optionText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal visible={isGridModalVisible} animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "#fff", marginTop: 40 }}>
+          {/* 🧭 Modal Header */}
+          <View style={styles.modalHeader}>
             <TouchableOpacity
-              onPress={captureImage}
-              style={styles.optionButton}
+              onPress={() => {
+                setIsGridModalVisible(false);
+                setSelectedImages([]);
+              }}
             >
-              <Text style={styles.optionText}>Capture from Camera</Text>
+              <Ionicons name="arrow-back" size={24} color={COLORS.black} />
             </TouchableOpacity>
+
+            <Text style={styles.modalTitle}>Select Images</Text>
+
             <TouchableOpacity
-              onPress={() => setIsImagePickerOpen(false)}
-              style={styles.optionButton}
+              onPress={async () => {
+                for (const uri of selectedImages) {
+                  const compressed = await compressImageAsync(uri);
+                  sendMessage("", compressed);
+                }
+                setSelectedImages([]);
+                setIsImagePickerOpen(false);
+                setIsGridModalVisible(false);
+              }}
+              disabled={selectedImages.length === 0}
             >
-              <Text style={styles.optionText}>Cancel</Text>
+              <Text style={[styles.sendText, { opacity: selectedImages.length === 0 ? 0.3 : 1 }]}>
+                Send ({selectedImages.length})
+              </Text>
             </TouchableOpacity>
           </View>
-        </Modal>
-      )}
+
+          {/* 🖼️ Image Grid */}
+          <FlatList
+            data={galleryImages}
+            numColumns={3}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => {
+              const isSelected = selectedImages.includes(item.uri);
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isSelected) {
+                      setSelectedImages(selectedImages.filter((uri) => uri !== item.uri));
+                    } else {
+                      setSelectedImages([...selectedImages, item.uri]);
+                    }
+                  }}
+                  style={{
+                    margin: 2,
+                    borderWidth: isSelected ? 3 : 1,
+                    borderColor: isSelected ? COLORS.primary : "#ccc",
+                  }}
+                >
+                  <Image
+                    source={{ uri: item.uri }}
+                    style={{ width: 110, height: 110 }}
+                  />
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      </Modal>
+
+
 
       {/* Image Preview Modal */}
       {/* {selectedImage && ( */}
@@ -314,4 +411,25 @@ const styles = StyleSheet.create({
     width: 120,
     alignItems: "center",
   },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    backgroundColor: '#fff',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.black,
+  },
+  sendText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+
 });

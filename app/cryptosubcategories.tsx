@@ -57,12 +57,15 @@ const CryptoScreen = () => {
   const { dark } = useTheme();
   const { navigate, goBack } = useNavigation<NavigationProp<any>>();
   const router = useRouter();
+  const [blockChain, setBlockchain] = React.useState<string>('');
   const route = useRoute();
   const {
     departmentId,
     categoryData,
+    departmentTitle
   }: {
     departmentId: string;
+    departmentTitle:string;
     categoryData: ICategoryResponse['data']['categories'][number]['category'];
   } = route.params as any;
   if (!departmentId || !categoryData) {
@@ -87,6 +90,8 @@ const CryptoScreen = () => {
 
   const setFieldValue = (field: string, value: any) => {
     console.log(value);
+    setBlockchain(field);
+    console.log('Selected Blockchain value:', field);
     setSelectedBlockchainId(value);
   };
 
@@ -97,8 +102,12 @@ const CryptoScreen = () => {
         categoryId: categoryData.id.toString(),
         categorytitle:categoryData.title,
         subCategoryId: selectedBlockchainId,
+        departmentTitle: departmentTitle,
         amount,
-        icon:categoryData.image
+        subcategorytitle: blockChain,
+        quantity: '',
+        icon:categoryData.image,
+        type:"",
       });
     }
   };

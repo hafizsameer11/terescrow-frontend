@@ -17,7 +17,7 @@ const ChatPfpNav: React.FC<{ image: string; name: string; status: string }> = (
     router.dismissTo("/(tabs)");
   };
   console.log("props", props);
-
+console.log("image from the prop",props.image)
   return (
     <View
       style={[

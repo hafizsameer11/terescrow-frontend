@@ -66,29 +66,29 @@ export default function TabLayout() {
   }, []);
 
   // Trigger push notification on count changes
-  useEffect(() => {
-    if (count?.data > previeusCount) {
-      pushNotification(count?.data - previeusCount);
-    }
-    Notifications.setBadgeCountAsync(count?.data || 0).catch(console.warn);
+  // useEffect(() => {
+  //   if (count?.data > previeusCount) {
+  //     pushNotification(count?.data - previeusCount);
+  //   }
+  //   Notifications.setBadgeCountAsync(count?.data || 0).catch(console.warn);
 
-    setPreviousCount(count?.data || 0);
-  }, [count]);
+  //   setPreviousCount(count?.data || 0);
+  // }, [count]);
 
-  // Push notification function
-  const pushNotification = async (newMessages) => {
-    const content = {
-      title: "New Messages!",
-      body: `You have ${newMessages} new messages.`,
-      sound: "default", // Play default notification sound
-      data: { count: newMessages },
-    };
+  // // Push notification function
+  // const pushNotification = async (newMessages) => {
+  //   const content = {
+  //     title: "New Messages!",
+  //     body: `You have ${newMessages} new messages.`,
+  //     sound: "default", // Play default notification sound
+  //     data: { count: newMessages },
+  //   };
 
-    await Notifications.scheduleNotificationAsync({
-      content,
-      trigger: null, // Show immediately
-    });
-  };
+  //   await Notifications.scheduleNotificationAsync({
+  //     content,
+  //     trigger: null, // Show immediately
+  //   });
+  // };
 
 
   return (

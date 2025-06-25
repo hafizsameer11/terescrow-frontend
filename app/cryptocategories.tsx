@@ -18,7 +18,7 @@ const CryptoCategories = () => {
   const { dark } = useTheme();
   const { navigate, goBack } = useNavigation<NavigationProp<any>>(); 
   const route = useRoute();
-  const { departmentId }: { departmentId: string } = route.params as any;
+  const { departmentId,departmentType }: { departmentId: string,departmentType:string } = route.params as any;
   if (!departmentId) {
     return goBack();
   }
@@ -54,7 +54,7 @@ const CryptoCategories = () => {
       }
     }
   }, [categories, searchTerm]);  // Re-run when categories or searchTerm change
-
+console.log("depart ment type",departmentType)
   return (
     <SafeAreaView
       style={[{ flex: 1 }, dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white }]}
@@ -77,6 +77,7 @@ const CryptoCategories = () => {
               navigate('cryptosubcategories', {
                 departmentId: departmentId,
                 categoryData: item.category,
+                departmentTitle: departmentType,
               })
             }
           />

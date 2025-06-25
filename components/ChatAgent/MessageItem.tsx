@@ -1,9 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View,Dimensions } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View,Dimensions, Alert } from "react-native";
 import React, { SetStateAction } from "react";
 import { Message } from "@/app/chatwithagent";
 import { Image } from "expo-image";
 import { COLORS } from "@/constants";
 import { API_BASE_URL } from "@/utils/apiConfig";
+import * as Clipboard from 'expo-clipboard';
+
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768; // iPads and larger devices
 type PropTypes = {
@@ -12,6 +14,11 @@ type PropTypes = {
 };
 const MessageItem = ({ item, setImagePreview }: PropTypes) => {
   // console.log(`${API_BASE_URL}/uploads/${item.image}`)
+    const copyToClipboard = async (text: string) => {
+      await Clipboard.setStringAsync(text);
+      Alert.alert("Copied to Clipboard", text);
+    };
+    
   return (
     <View
       style={[
@@ -38,17 +45,19 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
         </TouchableOpacity>
       )}
       {!item.image && (
-        <Text
-          style={[
-            styles.messageText,
-            item.isUser
-              ? styles.userMessageTextColor
-              : styles.otherMessageTextColor,
-          ]}
-        >
-          {item.text}
-        </Text>
-      )}
+       <TouchableOpacity onLongPress={() => copyToClipboard(item.text)} delayLongPress={300}>
+       <Text
+         style={[
+           styles.messageText,
+           item.isUser
+             ? styles.userMessageTextColor
+             : styles.otherMessageTextColor,
+         ]}
+       >
+         {item.text}
+       </Text>
+     </TouchableOpacity>
+      )}  
       <Text
         style={[
           styles.timestamp,
@@ -63,6 +72,7 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
       </Text>
     </View>
   );
+  
 };
 
 export default MessageItem;

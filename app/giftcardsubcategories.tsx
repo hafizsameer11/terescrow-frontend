@@ -115,6 +115,7 @@ const CardScreen = () => {
         icon: categoryData.image,
         subcategorytitle: selectedCardTitle,
         quantity: cardsConter,
+        type:"Gift Card"
       });
     }
   };
