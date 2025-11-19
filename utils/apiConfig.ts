@@ -1,7 +1,7 @@
 export const API_BASE_URL = 'https://46.202.154.203';
 
 export const API_DOMAIN = API_BASE_URL + '/api';
-
+// `${API_BASE_URL}/api/auth`;
 export const API_ENDPOINTS = {
   AUTH: {
     Login: API_DOMAIN + '/public/login',

@@ -220,3 +220,12 @@ export const GENDERS = [
   { id: 2, title: "female" },
   { id: 3, title: "other" },
 ];
+export const WayOfHearing=[
+  {id:1,title:"tiktok"},
+  {id:2,title:"youtube"},
+  {id:3,title:"instagram"},
+  {id:4,title:"facebook"},
+  {id:5,title:"twitter"},
+  {id:6,title:"other"},
+  // {id:7,title:"youtube"},
+]

@@ -50,7 +50,7 @@ const SignUp = () => {
   const { data: wayofHearings, isLoading: wayOfHearingLoading } = useQuery<WaysOfHearingResponse>({
     queryKey: ['waysOfHearing'],
     queryFn: getWaysOfHearing,
-    enabled:true
+    enabled: true
   });
 
   const { data: privacyData } = useQuery({
@@ -58,6 +58,7 @@ const SignUp = () => {
     queryFn: () => getPrivacyPageLinks(),
     enabled: true
   })
+  console.log("countries",CountriesData?.data," wayOfHearing",wayofHearings?.data)
   const handlePress = async (url: string) => {
     // Check if the URL can be opened
     console.log(url)
@@ -137,7 +138,7 @@ const SignUp = () => {
     // Append text fields
     Object.entries(values).forEach(([key, value]) => {
       formData.append(key, value as string);
-      console.log("form data",value,key)
+      console.log("form data", value, key)
     });
 
     // Append profile picture if available
@@ -151,17 +152,17 @@ const SignUp = () => {
 
     signUp(formData);
   };
-  
+
   useEffect(() => {
-    
-    if(wayofHearings){
-     console.log("ways of hearing",wayofHearings.data.list)
+
+    if (wayofHearings) {
+      console.log("ways of hearing", wayofHearings.data.list)
     }
   })
   const goToSignIn = () => {
     router.replace('/signin');
   };
-  
+
   return (
     <SafeAreaView
       style={{
@@ -172,9 +173,9 @@ const SignUp = () => {
     >
       <ScrollView contentContainerStyle={{ padding: SIZES.padding2 }}>
         <View style={{ marginBottom: SIZES.padding3 }}>
-        <TouchableOpacity onPress={goToSignIn}>
-  <Image source={icons.arrowLeft} style={{ width: 22, height: 22 }} />
-</TouchableOpacity>
+          <TouchableOpacity onPress={goToSignIn}>
+            <Image source={icons.arrowLeft} style={{ width: 22, height: 22 }} />
+          </TouchableOpacity>
           <Text
             style={{
               fontSize: SIZES.h2,
@@ -216,8 +217,8 @@ const SignUp = () => {
             password: "",
             gender: "male",
             termsAccepted: false,
-            country: "",
-            means: ""
+            country: 1,
+            means: 1
           }}
           validationSchema={validationSignUpSchema}
           onSubmit={(values) => {
@@ -311,19 +312,6 @@ const SignUp = () => {
                   prefilledValue={values.email}
                   id="email"
                 />
-
-                {CountriesData?.data ? (
-                  <CustomSelect
-                    options={CountriesData?.data}
-                    currValue={values.country}
-                    error={errors.country}
-                    touched={touched.country}
-                    placeholder="Select Country"
-                    id="country"
-                    setFieldValue={setFieldValue}
-                    modalLabel="Country"
-                  />
-                ) : (
                   <CustomSelect
                     options={COUNTRIES}
                     currValue={values.country}
@@ -333,20 +321,10 @@ const SignUp = () => {
                     id="country"
                     setFieldValue={setFieldValue}
                     modalLabel="Country"
+                    isSignup={true}
+
                   />
-                )}
-                {wayofHearings?.data ? (
-                  <CustomSelect
-                    options={wayofHearings?.data?.list}
-                    currValue={values.means}
-                    error={errors.means}
-                    touched={touched.means}
-                    placeholder="How did you hear about us?"
-                    id="means"
-                    setFieldValue={setFieldValue}
-                    modalLabel=""
-                  />
-                ) : (
+
                   <CustomSelect
                     options={WayOfHearing}
                     currValue={values.means}
@@ -356,8 +334,9 @@ const SignUp = () => {
                     id="means"
                     setFieldValue={setFieldValue}
                     modalLabel=""
+                    isSignup={true}
                   />
-                )}
+                {/* // )} */}
 
                 <Input
                   keyboardType="phone-pad"
@@ -413,6 +392,8 @@ const SignUp = () => {
                   setFieldValue={setFieldValue}
                   key={values.gender}
                   modalLabel="Gender"
+                  isSignup={true}
+
                 />
 
                 <View
@@ -430,8 +411,6 @@ const SignUp = () => {
                       setFieldValue("termsAccepted", value)
                     }
                     error={errors.termsAccepted}
-
-                    // onValueChange={handleChange("") as unknown as ((value: boolean) => void)}
                     color={values.termsAccepted ? COLORS.primary : undefined}
                   />
                   <Text

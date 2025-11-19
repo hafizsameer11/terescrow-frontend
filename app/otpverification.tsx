@@ -6,6 +6,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -41,40 +42,53 @@ const OTPVerification = () => {
   // console.log(otp);
   // console.log(context);
   // console.log(token);
-  const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
-    mutationFn:
-      context == 'signup'
-        ? () => verifyEmailOtp(token, otp)
-        : () => verifyPasswordOtp(email, otp),
-    mutationKey: ['verify-otp'],
-    onSuccess: (data) => {
-      if (context === 'signup') {
-        reset({
-          index: 0,
-          routes: [{ name: 'signin' }],
-        });
-        navigate('signin');
-      } else {
-        reset({
-          index: 0,
-          routes: [
-            {
-              name: 'setnewpassword',
-              params: { userId: data.data?.userId }, // Pass userId as params
+const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
+  mutationFn:
+    context === "signup"
+      ? () => verifyEmailOtp(token, otp)
+      : () => verifyPasswordOtp(email, otp),
+  mutationKey: ["verify-otp"],
+  onSuccess: (data) => {
+    if (context === "signup") {
+      // ✅ Show success alert before redirecting to signin
+      Alert.alert(
+        "Signup Successful",
+        "Your email has been verified successfully. Please log in to continue.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              reset({
+                index: 0,
+                routes: [{ name: "signin" }],
+              });
+              navigate("signin");
             },
-          ],
-        });
-        navigate('setnewpassword', { userId: data.data.userId });
-      }
-    },
-    onError: (error: ApiError) => {
-      showTopToast({
-        type: 'error',
-        text1: 'Error',
-        text2: error.message,
+          },
+        ]
+      );
+    } else {
+      reset({
+        index: 0,
+        routes: [
+          {
+            name: "setnewpassword",
+            params: { userId: data.data?.userId },
+          },
+        ],
       });
-    },
-  });
+      navigate("setnewpassword", { userId: data.data.userId });
+    }
+  },
+  onError: (error: ApiError) => {
+    showTopToast({
+      type: "error",
+      text1: "Error",
+      text2: error.message,
+    });
+  },
+});
+
 
   const { mutate: resend, isPending: resendingOtp } = useMutation({
     mutationFn:

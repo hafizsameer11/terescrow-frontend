@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tercescrow",
     "slug": "terescrow",
-    "version": "1.3.2",
+    "version": "1.3.6",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "myapp",
@@ -21,7 +21,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.tercescrow",
-      "buildNumber": "1.4.0",
+      "buildNumber": "1.5.0",
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
