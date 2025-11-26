@@ -10,9 +10,9 @@ import {
   Dimensions,
 } from 'react-native';
 import { COLORS, icons, SIZES } from '@/constants';
-import { useTheme } from '@/contexts/themeContext';
 import { Image } from 'expo-image';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useTheme } from '@/contexts/themeContext';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768; // iPads and larger devices
@@ -25,6 +25,8 @@ interface InputProps extends TextInputProps {
   isEditable?: boolean;
   prefilledValue?: string;
   isPassword?: boolean;
+  variant?: 'default' | 'signin';
+  showLock?: boolean;
 }
 
 const Input: React.FC<InputProps> = (props) => {
@@ -64,14 +66,61 @@ const Input: React.FC<InputProps> = (props) => {
     setIsPasswordVisible((prev) => !prev);
   };
 
+  const isSigninVariant = props.variant === 'signin';
+  const signinLabelPosition = useRef(new Animated.Value(16)).current;
+  
+  useEffect(() => {
+    if (isSigninVariant) {
+      if (props.value || isFocused) {
+        Animated.timing(signinLabelPosition, {
+          toValue: 7,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      } else {
+        Animated.timing(signinLabelPosition, {
+          toValue: 16,
+          duration: 200,
+          useNativeDriver: false,
+        }).start();
+      }
+    }
+  }, [props.value, isFocused, isSigninVariant]);
+
+  // Default behavior (when variant is not 'signin')
+  const inputHeight = isSigninVariant ? 56 : undefined;
+  const borderRadius = isSigninVariant ? 12 : SIZES.padding;
+  const borderColor = isSigninVariant 
+    ? (props.errorText ? COLORS.error : '#e2d9ec')
+    : (props.errorText ? COLORS.error : (isFocused ? COLORS.primary : COLORS.greyscale300));
+  const labelColor = isSigninVariant
+    ? (props.errorText ? COLORS.red : '#989898')
+    : (props.errorText 
+        ? COLORS.red 
+        : (isFocused || props.value 
+          ? COLORS.primary 
+          : (dark ? COLORS.grayscale200 : COLORS.greyscale600)));
+  const inputTextColor = isSigninVariant ? '#1e1e1e' : (dark ? COLORS.white : COLORS.black);
+  const placeholderColor = isSigninVariant ? '#989898' : '#BCBCBC';
+  const inputFontSize = isSigninVariant ? 16 : (isTablet ? 18 : SIZES.body3);
+  const labelFontSize = isSigninVariant 
+    ? ((isFocused || props.value) ? 12 : 16) 
+    : (isTablet ? 16 : 12);
+  const labelTop = isSigninVariant ? signinLabelPosition : labelPosition;
+  const inputTop = isSigninVariant ? ((props.value || isFocused) ? 25 : 16) : 6;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isSigninVariant && styles.containerSignin]}>
       <View
         style={[
           styles.inputContainer,
-          props.errorText
-            ? styles.errorInput
-            : { borderColor: isFocused ? COLORS.primary : COLORS.greyscale300 },
+          isSigninVariant && styles.inputContainerSignin,
+          { 
+            height: inputHeight,
+            borderRadius: borderRadius,
+            borderColor: borderColor,
+            backgroundColor: isSigninVariant ? '#FEFEFE' : 'transparent',
+          },
         ]}
       >
         {props.icon && (
@@ -91,14 +140,19 @@ const Input: React.FC<InputProps> = (props) => {
           secureTextEntry={props.isPassword && !isPasswordVisible}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          placeholderTextColor="#BCBCBC"
+          placeholder={isSigninVariant && (props.value || isFocused) ? undefined : (props.placeholder || '')}
+          placeholderTextColor={placeholderColor}
           style={[
             styles.input,
+            isSigninVariant && styles.inputSignin,
             {
-              color: dark ? COLORS.white : COLORS.black,
-              paddingLeft: props.icon ? 50 : 20, // Increased padding for tablets
-              top: 6,
-              fontSize: isTablet ? 18 : SIZES.body3, // Larger font size for tablets
+              color: inputTextColor,
+              paddingLeft: props.icon ? 50 : (isSigninVariant ? 16 : 20),
+              paddingRight: isSigninVariant && (props.isPassword || props.showLock) ? 50 : (isSigninVariant ? 50 : 0),
+              paddingTop: isSigninVariant ? (props.value || isFocused ? 25 : 16) : 0,
+              paddingBottom: isSigninVariant ? (props.value || isFocused ? 8 : 16) : 0,
+              top: isSigninVariant ? 0 : inputTop,
+              fontSize: inputFontSize,
             },
           ]}
         />
@@ -107,16 +161,11 @@ const Input: React.FC<InputProps> = (props) => {
           <Animated.Text
             style={[
               styles.label,
+              isSigninVariant && styles.labelSignin,
               {
-                top: labelPosition,
-                fontSize: isTablet ? 16 : 12, // Larger label font size for tablets
-                color: props.errorText
-                  ? COLORS.red
-                  : isFocused || props.value
-                  ? COLORS.primary
-                  : dark
-                  ? COLORS.grayscale200
-                  : COLORS.greyscale600,
+                top: isSigninVariant ? labelTop : labelPosition,
+                fontSize: labelFontSize,
+                color: labelColor,
               },
             ]}
             onPress={() => inputRef.current?.focus()}
@@ -128,14 +177,34 @@ const Input: React.FC<InputProps> = (props) => {
         {props.isPassword && (
           <TouchableOpacity
             onPress={togglePasswordVisibility}
-            style={styles.passwordToggle}
+            style={[
+              styles.passwordToggle,
+              isSigninVariant && styles.passwordToggleSignin,
+            ]}
           >
             <MaterialIcons
               name={isPasswordVisible ? 'visibility-off' : 'visibility'}
-              size={isTablet ? 24 : 20} // Larger icon for tablets
-              color={isFocused ? COLORS.primary : '#BCBCBC'}
+              size={isTablet ? 24 : 20}
+              color={isSigninVariant ? '#989898' : (isFocused ? COLORS.primary : '#BCBCBC')}
             />
           </TouchableOpacity>
+        )}
+        {props.showLock && (
+          <View
+            style={[
+              styles.lockIcon,
+              isSigninVariant && styles.lockIconSignin,
+            ]}
+          >
+            <Image
+              source={require('../assets/images/lock.png')}
+              style={{
+                width: isTablet ? 20 : 16,
+                height: isTablet ? 20 : 16,
+              }}
+              contentFit="contain"
+            />
+          </View>
         )}
       </View>
 
@@ -152,11 +221,21 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
   },
+  containerSignin: {
+    // marginBottom: 20,
+  },
   inputContainer: {
     borderRadius: SIZES.padding,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  inputContainerSignin: {
+    height: 56,
+    borderRadius: 12,
+    borderColor: '#e2d9ec',
+    borderWidth: 1,
+    backgroundColor: '#FEFEFE',
   },
   errorInput: {
     borderColor: COLORS.error,
@@ -165,6 +244,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     textAlignVertical: 'center',
+  },
+  inputSignin: {
+    paddingVertical: 0,
+    fontSize: 16,
+    color: '#1e1e1e',
+    height: '100%',
   },
   icon: {
     width: isTablet ? 25 : 20, // Increased icon size for tablets
@@ -179,10 +264,31 @@ const styles = StyleSheet.create({
     transitionDuration: '0.3s',
     transitionTimingFunction: 'ease-in-out',
   },
+  labelSignin: {
+    left: 16,
+    fontSize: 12,
+    color: '#989898',
+  },
   passwordToggle: {
     position: 'absolute',
     right: 15,
     top: '55%',
+    transform: [{ translateY: -10 }],
+  },
+  passwordToggleSignin: {
+    right: 16,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+  },
+  lockIcon: {
+    position: 'absolute',
+    right: 15,
+    top: '55%',
+    transform: [{ translateY: -10 }],
+  },
+  lockIconSignin: {
+    right: 16,
+    top: '50%',
     transform: [{ translateY: -10 }],
   },
   errorText: {

@@ -41,6 +41,52 @@ const splashGradientCard = require('../assets/images/splash-gradient-card.png')
 const steamCard = require('../assets/images/steam-card.png')
 const userProfile = require('../assets/images/users/userProfile.jpg')
 const splashCoins = require('../assets/images/splash-coins.png')
+const group2076 = require('../assets/images/Group 2076.png')
+const group2077 = require('../assets/images/Group 2077.png')
+const group2079 = require('../assets/images/Group 2079.png')
+const balanceBackground = require('../assets/images/balance_background.png')
+const headphone = require('../assets/images/headphone.png')
+const maskGroup3 = require('../assets/images/Mask group (3).png')
+const group = require('../assets/images/Group.png')
+const maskGroup2 = require('../assets/images/Mask group (2).png')
+const discountCircle = require('../assets/images/discount-circle.png')
+const assetReceive = require('../assets/images/assetreceive.png')
+const assetSend = require('../assets/images/assetsend.png')
+const vector45 = require('../assets/images/Vector (45).png')
+const vector46 = require('../assets/images/Vector (46).png')
+const vector47 = require('../assets/images/Vector (47).png')
+const vector48 = require('../assets/images/Vector (48).png')
+const lock = require('../assets/images/lock.png')
+const copy = require('../assets/images/copy.png')
+const refsend = require('../assets/images/refsend.png')
+
+const airtime = require('../assets/images/airtinme.png')
+const data = require('../assets/images/data.png')
+const electricity = require('../assets/images/electricity.png')
+const cable = require('../assets/images/cable.png')
+const betting = require('../assets/images/betting.png')
+const ellipse20_1 = require('../assets/images/Ellipse 20 (1).png')
+const ellipse20_2 = require('../assets/images/Ellipse 20 (2).png')
+const ellipse20_3 = require('../assets/images/Ellipse 20 (3).png')
+const ellipse20_4 = require('../assets/images/Ellipse 20 (4).png')
+const ellipse20_5 = require('../assets/images/Ellipse 20 (5).png')
+const ellipse20_6 = require('../assets/images/Ellipse 20 (6).png')
+const ellipse20_7 = require('../assets/images/Ellipse 20 (7).png')
+const ellipse20_8 = require('../assets/images/Ellipse 20 (8).png')
+const ellipse20_9 = require('../assets/images/Ellipse 20 (9).png')
+const ellipse20_10 = require('../assets/images/Ellipse 20 (10).png')
+const ellipse20_11 = require('../assets/images/Ellipse 20 (11).png')
+const ellipse20_12 = require('../assets/images/Ellipse 20 (12).png')
+const ellipse20_13 = require('../assets/images/Ellipse 20 (13).png')
+const ellipse20_14 = require('../assets/images/Ellipse 20 (14).png')
+const ellipse20_15 = require('../assets/images/Ellipse 20 (15).png')
+const ellipse20_17 = require('../assets/images/Ellipse 20 (17).png')
+const ellipse20_18 = require('../assets/images/Ellipse 20 (18).png')
+const ellipse20_19 = require('../assets/images/Ellipse 20 (19).png')
+const vector49 = require('../assets/images/Vector (49).png')
+const vector50 = require('../assets/images/Vector (50).png')
+const notification = require('../assets/images/notification.png')
+const bitcoinTransaction = require('../assets/images/bitcoin-transaction.png')
 
 const images = {
   maskGroup,
@@ -86,6 +132,51 @@ const images = {
   rectangleCard,
   buySellCard,
   cryptoCard,
+  group2076,
+  group2077,
+  group2079,
+  balanceBackground,
+  headphone,
+  maskGroup3,
+  group,
+  maskGroup2,
+  discountCircle,
+  assetReceive,
+  assetSend,
+  vector45,
+  vector46,
+  vector47,
+  vector48,
+  lock,
+  copy,
+  refsend,
+  airtime,
+  data,
+  electricity,
+  cable,
+  betting,
+  ellipse20_1,
+  ellipse20_2,
+  ellipse20_3,
+  ellipse20_4,
+  ellipse20_5,
+  ellipse20_6,
+  ellipse20_7,
+  ellipse20_8,
+  ellipse20_9,
+  ellipse20_10,
+  ellipse20_11,
+  ellipse20_12,
+  ellipse20_13,
+  ellipse20_14,
+  ellipse20_15,
+  ellipse20_17,
+  ellipse20_18,
+  ellipse20_19,
+  vector49,
+  vector50,
+  notification,
+  bitcoinTransaction,
 };
 
 export default images;

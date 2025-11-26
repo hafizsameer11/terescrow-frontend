@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { useTheme } from "@/contexts/themeContext";
-import { icons } from "@/constants";
+import { icons, images } from "@/constants";
 import { Colors } from "@/constants/Colors";
 import { COLORS } from "@/constants";
 import { useRouter } from "expo-router";
@@ -42,17 +42,12 @@ const Header = () => {
         style={styles.notificationContainer}
       >
         <Image
-          source={icons.notification}
-          style={[
-            styles.image,
-            dark
-              ? { tintColor: Colors.dark.tint }
-              : { tintColor: COLORS.black },
-          ]}
+          source={images.notification}
+          style={styles.image}
           contentFit="contain"
         />
 
-        {userData?.unReadNotification > 0 && <View style={styles.redDot} />}
+        {(userData?.unReadNotification ?? 0) > 0 && <View style={styles.redDot} />}
       </Pressable>
     </View>
   );
@@ -80,6 +75,7 @@ const styles = StyleSheet.create({
   image: {
     width: 27,
     height: 27,
+    tintColor: COLORS.black,
   },
   notificationContainer: {
     position: "relative",

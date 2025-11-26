@@ -5,17 +5,19 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert
+  Alert,
+  Dimensions,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import { COLORS, icons, images } from "@/constants";
+import { BlurView } from "expo-blur";
+import { COLORS, icons } from "@/constants";
 import Input from "../components/CustomInput";
-import Button from "../components/Button";
 import { Formik } from "formik";
 import { validationSignInSchema } from "@/utils/validation";
 import { useTheme } from "@/contexts/themeContext";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { forgotPassword, loginUser } from "@/utils/mutations/authMutations";
 import { showTopToast } from "@/utils/helpers";
@@ -25,6 +27,8 @@ import * as SecureStore from "expo-secure-store";
 import * as LocalAuthentication from "expo-local-authentication";
 import { NavigationProp } from "@react-navigation/native";
 
+const { width } = Dimensions.get('window');
+
 const TOKEN_KEY = "USER_TOKEN";
 const USER_DATA_KEY = "USER_DATA";
 const BIOMETRIC_AUTH_KEY = "BIOMETRIC_AUTH";
@@ -32,6 +36,7 @@ const BIOMETRIC_AUTH_KEY = "BIOMETRIC_AUTH";
 const Signin = () => {
   const { dark } = useTheme();
   const { reset, navigate } = useNavigation<NavigationProp<any>>();
+  const router = useRouter();
   const { setToken, setUserData } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -88,10 +93,13 @@ const Signin = () => {
       });
     },
     onError: (error: ApiError) => {
+      console.log("Login Error:", error);
+      console.log("Error Status:", error.statusCode);
+      console.log("Error Data:", error.data);
       showTopToast({
         type: "error",
         text1: "Error",
-        text2: error.message,
+        text2: error.message || "Server error occurred. Please try again.",
       });
     },
   });
@@ -150,113 +158,186 @@ const Signin = () => {
   }, []);
 
 
+  const isFormValid = (email: string, password: string) => {
+    return email.trim().length > 0 && password.trim().length > 0;
+  };
+
   return (
     <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: dark ? COLORS.dark1 : COLORS.white },
-      ]}
+      style={styles.container}
+      edges={['top']}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={images.logo}
-            style={styles.logo}
-          />
-        </View>
+      {/* Back Arrow Button */}
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Image
+          source={icons.arrowBack}
+          style={styles.backIcon}
+        />
+      </TouchableOpacity>
 
-        <Text
-          style={[
-            styles.subtitle,
-            { color: dark ? COLORS.white : COLORS.black, paddingBottom: 10 },
-          ]}
-        >
-          Don't have an account?{" "}
-          <Text
-            style={styles.createAccountText}
-            onPress={() => navigate("signup")}
-          >
-            Create Account
-          </Text>
-        </Text>
-
-        <Formik
-          initialValues={{ email: "", password: "" }}
-          validationSchema={validationSignInSchema}
-          onSubmit={(values) => handleLogin(values)}
-        >
-          {({
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            errors,
-            touched,
-            values,
-          }) => (
-            <View style={{ flex: 1 }}>
-              <Input
-                value={values.email}
-                onChangeText={handleChange("email")}
-                onBlur={handleBlur("email")}
-                label="Email"
-                id="email"
-                keyboardType="email-address"
-                errorText={touched.email && errors.email ? errors.email : ""}
-              />
-
-              <Input
-                value={values.password}
-                onChangeText={handleChange("password")}
-                onBlur={handleBlur("password")}
-                label="Password"
-                isPassword
-                id="password"
-                secureTextEntry
-                errorText={
-                  touched.password && errors.password ? errors.password : ""
-                }
-              />
-
-              <Text
-                style={[
-                  styles.subtitle,
-                  { color: dark ? COLORS.white : COLORS.black },
-                ]}
+      <Formik
+        initialValues={{ email: "", password: "" }}
+        validationSchema={validationSignInSchema}
+        onSubmit={(values) => {
+          console.log("Form submitted with values:", values);
+          handleLogin(values);
+        }}
+      >
+        {({
+          handleChange,
+          handleBlur,
+          handleSubmit,
+          errors,
+          touched,
+          values,
+        }) => {
+          const formValid = isFormValid(values.email, values.password);
+          
+          return (
+            <>
+              <ScrollView 
+                contentContainerStyle={styles.scrollContainer}
+                showsVerticalScrollIndicator={false}
               >
-                Forgot Password?{" "}
-                <Text
-                  style={styles.resetPasswordText}
-                  onPress={() => {
-                    if (!values.email) {
-                      showTopToast({
-                        type: "error",
-                        text1: "Error",
-                        text2: "Please enter your email",
-                      });
-                      return;
-                    }
-                    handleForgotPassword({ email: values.email });
-                  }}
-                >
-                  {forgotPasswordPending ? "Loading..." : "Click here"}
-                </Text>
-              </Text>
+                <View style={styles.contentContainer}>
+                  {/* Title Section */}
+                  <View style={styles.titleSection}>
+                    <Text style={styles.title}>Sign in</Text>
+                    <Text style={styles.subtitle}>
+                      Don't have an account?{" "}
+                      <Text
+                        style={styles.createAccountText}
+                        onPress={() => navigate("signup")}
+                      >
+                        Create account
+                      </Text>
+                    </Text>
+                  </View>
 
-              <View style={styles.buttonContainer}>
-                <Button
-                  title="Sign in"
-                  onPress={handleSubmit as () => void}
-                  isLoading={loginPending}
-                  style={{ width: "80%" }}
-                />
-                <TouchableOpacity onPress={handleBiometricAuth} style={styles.iconButton}>
-                  <Image source={icons.fingerPrint} style={styles.fingerprintIcon} />
-                </TouchableOpacity>
+                  {/* Input Fields Section */}
+                  <View style={styles.inputsSection}>
+                    <View style={styles.inputWrapper}>
+                      <Input
+                        value={values.email}
+                        onChangeText={handleChange("email")}
+                        onBlur={handleBlur("email")}
+                        label="Email Address"
+                        id="email"
+                        keyboardType="email-address"
+                        errorText={touched.email && errors.email ? errors.email : ""}
+                        placeholder="Email Address"
+                        variant="signin"
+                      />
+                    </View>
+
+                    <View style={styles.passwordSection}>
+                      <View style={styles.inputWrapper}>
+                        <Input
+                          value={values.password}
+                          onChangeText={handleChange("password")}
+                          onBlur={handleBlur("password")}
+                          label="Password"
+                          isPassword
+                          id="password"
+                          secureTextEntry
+                          errorText={
+                            touched.password && errors.password ? errors.password : ""
+                          }
+                          placeholder="Password"
+                          variant="signin"
+                        />
+                      </View>
+                      <Text style={styles.forgotPasswordText}>
+                        Forgot password?{" "}
+                        <Text
+                          style={styles.resetPasswordLink}
+                          onPress={() => {
+                            if (!values.email) {
+                              showTopToast({
+                                type: "error",
+                                text1: "Error",
+                                text2: "Please enter your email",
+                              });
+                              return;
+                            }
+                            handleForgotPassword({ email: values.email });
+                          }}
+                        >
+                          Reset here
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* Fixed Bottom Button */}
+              <View style={styles.bottomContainer}>
+                {Platform.OS === 'ios' ? (
+                  <BlurView intensity={14} style={styles.blurContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.signInButton,
+                        formValid ? styles.signInButtonActive : styles.signInButtonInactive,
+                      ]}
+                      onPress={() => {
+                        if (formValid) {
+                          handleSubmit();
+                        }
+                      }}
+                      disabled={!formValid || loginPending}
+                    >
+                      {loginPending ? (
+                        <Text style={[styles.signInButtonText, styles.signInButtonTextActive]}>Loading...</Text>
+                      ) : (
+                        <Text
+                          style={[
+                            styles.signInButtonText,
+                            formValid ? styles.signInButtonTextActive : styles.signInButtonTextInactive,
+                          ]}
+                        >
+                          Sign in
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </BlurView>
+                ) : (
+                  <View style={styles.androidBottomContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.signInButton,
+                        formValid ? styles.signInButtonActive : styles.signInButtonInactive,
+                      ]}
+                      onPress={() => {
+                        if (formValid) {
+                          handleSubmit();
+                        }
+                      }}
+                      disabled={!formValid || loginPending}
+                    >
+                      {loginPending ? (
+                        <Text style={[styles.signInButtonText, styles.signInButtonTextActive]}>Loading...</Text>
+                      ) : (
+                        <Text
+                          style={[
+                            styles.signInButtonText,
+                            formValid ? styles.signInButtonTextActive : styles.signInButtonTextInactive,
+                          ]}
+                        >
+                          Sign in
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            </View>
-          )}
-        </Formik>
-      </ScrollView>
+            </>
+          );
+        }}
+      </Formik>
     </SafeAreaView>
   );
 };
@@ -264,44 +345,111 @@ const Signin = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FEFEFE',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 16,
+    top: 60,
+    zIndex: 10,
+    width: 24,
+    height: 24,
+  },
+  backIcon: {
+    width: 24,
+    height: 24,
+    tintColor: '#121212',
   },
   scrollContainer: {
-    padding: 20,
+    paddingTop: 108,
+    paddingHorizontal: 16,
+    paddingBottom: 120,
+  },
+  contentContainer: {
     flex: 1,
   },
-  logoContainer: {
-    alignItems: "center",
-    marginVertical: 40,
+  titleSection: {
+    marginBottom: 32,
+    gap: 8,
   },
-  logo: {
-    width: 120,
-    height: 120,
-    resizeMode: "contain",
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#121212',
+    lineHeight: 28,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
+    color: '#616161',
+    lineHeight: 23,
   },
   createAccountText: {
-    color: COLORS.primary,
-    fontWeight: "600",
+    color: '#147341',
+    fontWeight: '400',
   },
-  resetPasswordText: {
-    color: COLORS.primary,
-    fontWeight: "700",
+  inputsSection: {
+    gap: 24,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 20,
+  inputWrapper: {
+    marginBottom: 0,
   },
-  iconButton: {
-    marginLeft: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  passwordSection: {
+    gap: 16,
   },
-  fingerprintIcon: {
-    width: 40,
-    height: 40,
+  forgotPasswordText: {
+    fontSize: 14,
+    color: '#8a8a8a',
+    lineHeight: 19,
+  },
+  resetPasswordLink: {
+    color: '#147341',
+  },
+  bottomContainer: {
+    marginTop: 'auto',
+    paddingTop: 12,
+    paddingBottom: 34,
+    height: 103,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blurContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(254, 254, 254, 0.8)',
+  },
+  androidBottomContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FEFEFE',
+  },
+  signInButton: {
+    width: 327,
+    height: 49,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signInButtonActive: {
+    backgroundColor: '#147341',
+  },
+  signInButtonInactive: {
+    backgroundColor: '#a2dfc2',
+    opacity: 0.5,
+  },
+  signInButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    lineHeight: 21,
+  },
+  signInButtonTextActive: {
+    color: '#FEFEFE',
+  },
+  signInButtonTextInactive: {
+    color: '#147341',
   },
 });
 

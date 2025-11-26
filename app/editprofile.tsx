@@ -10,6 +10,7 @@ import {
   Touchable,
   TouchableOpacity,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Input from '../components/CustomInput';
@@ -24,6 +25,9 @@ import { getImageUrl, showTopToast } from '@/utils/helpers';
 import { useEffect, useState } from 'react';
 import * as ImagePicker from "expo-image-picker";
 import { getPrivacyPageLinks } from '@/utils/queries/quickActionQueries';
+
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768;
 
 const EditProfile = () => {
   const dummyData = {
@@ -205,6 +209,9 @@ const EditProfile = () => {
                   onChangeText={handleChange('firstName')}
                   onBlur={handleBlur('firstName')}
                   id="firstName"
+                  variant="signin"
+                  isEditable={false}
+                  showLock={true}
                   errorText={
                     touched.firstName && errors.firstName
                       ? errors.firstName
@@ -219,6 +226,9 @@ const EditProfile = () => {
                   onChangeText={handleChange('lastName')}
                   onBlur={handleBlur('lastName')}
                   id="lastName"
+                  variant="signin"
+                  isEditable={false}
+                  showLock={true}
                   errorText={
                     touched.lastName && errors.lastName ? errors.lastName : ''
                   }
@@ -231,6 +241,9 @@ const EditProfile = () => {
                   onChangeText={handleChange('email')}
                   onBlur={handleBlur('email')}
                   id="email"
+                  variant="signin"
+                  isEditable={false}
+                  showLock={true}
                   errorText={touched.email && errors.email ? errors.email : ''}
                 />
                 <Input
@@ -241,6 +254,9 @@ const EditProfile = () => {
                   onChangeText={handleChange('country')}
                   onBlur={handleBlur('country')}
                   id="country"
+                  variant="signin"
+                  isEditable={false}
+                  showLock={true}
                   errorText={
                     touched.country && errors.country ? errors.country : ''
                   }
@@ -253,6 +269,9 @@ const EditProfile = () => {
                   onChangeText={handleChange('phoneNumber')}
                   onBlur={handleBlur('phoneNumber')}
                   id="phoneNumber"
+                  variant="signin"
+                  isEditable={false}
+                  showLock={true}
                   errorText={
                     touched.phoneNumber && errors.phoneNumber
                       ? errors.phoneNumber
@@ -267,6 +286,9 @@ const EditProfile = () => {
                   onChangeText={handleChange('gender')}
                   onBlur={handleBlur('gender')}
                   id="gender"
+                  variant="signin"
+                  isEditable={false}
+                  showLock={true}
                   errorText={
                     touched.gender && errors.gender ? errors.gender : ''
                   }
@@ -274,11 +296,14 @@ const EditProfile = () => {
                 <Input
                   label="Username"
                   keyboardType="default"
-                  prefilledValue={values.userName}
-                  value={values.userName}
-                  onChangeText={handleChange('userName')}
+                  prefilledValue={`@${values.userName}`}
+                  value={`@${values.userName}`}
+                  onChangeText={(text) => handleChange('userName')(text.replace('@', ''))}
                   onBlur={handleBlur('userName')}
                   id="userName"
+                  variant="signin"
+                  isEditable={false}
+                  showLock={true}
                   errorText={
                     touched.userName && errors.userName ? errors.userName : ''
                   }
@@ -327,7 +352,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 20,
-
   },
   editIcon: {
     width: 35,

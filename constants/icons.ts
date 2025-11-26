@@ -441,6 +441,15 @@ const logoutUser = require('../assets/icons/logout.svg') as string;
 const customerSupport = require('../assets/icons/customer-support.svg') as string;
 const deleteAccount = require('../assets/icons/delete-account.svg') as string;
 const fingerPrint = require('../assets/icons/fingerPrint.png') as string;
+const balanceicon1 = require('../assets/images/send-sqaure-2.png') as string;
+const balanceicon2 = require('../assets/images/receive-square-2.png') as string;
+const firsticon = require('../assets/images/firsticon.png') as string;
+const secondicon = require('../assets/images/import.png') as string;
+const thirdicon = require('../assets/images/send-2.png') as string;
+const fourthicon = require('../assets/images/arrow-swap.png') as string;
+const fifthicon = require('../assets/images/direct-send.png') as string;
+const eyecloseup = require('../assets/images/eye.png') as string;
+
 
 // const eyeFill = require('../assets/icons/eyefill.png') as string;
 
@@ -464,6 +473,7 @@ const icons = {
   eth,
   solana,
   shibaInu,
+  eyecloseup,
   dogeCoin,
   dollarCoin,
   bnb,
@@ -847,6 +857,13 @@ const icons = {
   netflix,
   airbnb,
   amazon,
+  balanceicon1,
+  balanceicon2,
+  firsticon,
+  secondicon,
+  thirdicon,
+  fourthicon,
+  fifthicon,
 };
 
 export default icons;

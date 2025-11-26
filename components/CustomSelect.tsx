@@ -17,7 +17,8 @@ interface SelectProps {
   placeholder: string;
   onSelectOverride?: (value: any) => void; // New prop for custom logic
   isGiftCard?: boolean;
-  isSignup?: boolean
+  isSignup?: boolean;
+  variant?: 'default' | 'signin';
 }
 const CustomSelect = ({
   error,
@@ -30,10 +31,13 @@ const CustomSelect = ({
   placeholder,
   onSelectOverride,
   isGiftCard = false, // Default to false if not provided
-  isSignup
+  isSignup,
+  variant = 'default'
 }: SelectProps) => {
   const { dark } = useTheme();
   const [modalVisible, setIsVisible] = React.useState(false);
+  const isSigninVariant = variant === 'signin';
+  const selectedOption = currValue && options.find((o) => o.id.toString() === currValue);
 
   //   console.log(error);
   return (
@@ -41,42 +45,49 @@ const CustomSelect = ({
       <TouchableOpacity onPress={() => setIsVisible(true)}>
         <View
           style={{
-            height: 50,
+            height: isSigninVariant ? 56 : 50,
             borderWidth: 1,
-            borderColor: COLORS.greyscale300,
-            paddingHorizontal: 10,
+            borderColor: error && touched ? COLORS.error : (isSigninVariant ? '#e2d9ec' : COLORS.greyscale300),
+            paddingHorizontal: isSigninVariant ? 16 : 10,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            marginTop: 7,
-            marginBottom: 16,
-            borderRadius: SIZES.padding,
+            marginTop: isSigninVariant ? 0 : 7,
+            marginBottom: isSigninVariant ? 0 : 16,
+            borderRadius: isSigninVariant ? 12 : SIZES.padding,
+            backgroundColor: isSigninVariant ? '#FEFEFE' : 'transparent',
           }}
         >
-          <Text
-            style={{
-              color: currValue
-                ? dark
-                  ? "#E2D9EC"
-                  : COLORS.grayscale700
-                : dark
-                  ? COLORS.greyscale300
-                  : COLORS.greyscale600,
-              fontSize: isTablet ? 20 : 16
-            }}
-          >
-            {currValue &&
-              options.find((o) => o.id.toString() === currValue)?.title
-              ? options.find((o) => o.id.toString() === currValue)?.title
-              : placeholder}
-          </Text>
+          {isSigninVariant && selectedOption ? (
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, color: '#989898', marginBottom: 2 }}>
+                {placeholder}
+              </Text>
+              <Text style={{ fontSize: 16, color: '#1e1e1e' }}>
+                {selectedOption.title}
+              </Text>
+            </View>
+          ) : (
+            <Text
+              style={{
+                color: currValue
+                  ? (isSigninVariant ? '#1e1e1e' : (dark ? "#E2D9EC" : COLORS.grayscale700))
+                  : (isSigninVariant ? '#989898' : (dark ? COLORS.greyscale300 : COLORS.greyscale600)),
+                fontSize: isSigninVariant ? (currValue ? 16 : 16) : (isTablet ? 20 : 16)
+              }}
+            >
+              {currValue && selectedOption
+                ? selectedOption.title
+                : placeholder}
+            </Text>
+          )}
 
           <Image
-            source={icons.arrowRight}
+            source={isSigninVariant ? icons.arrowDown : icons.arrowRight}
             style={{
-              width: 18,
-              height: 18,
-              tintColor: dark ? COLORS.greyscale300 : COLORS.greyscale600,
+              width: isSigninVariant ? 20 : 18,
+              height: isSigninVariant ? 20 : 18,
+              tintColor: isSigninVariant ? '#989898' : (dark ? COLORS.greyscale300 : COLORS.greyscale600),
             }}
           />
         </View>

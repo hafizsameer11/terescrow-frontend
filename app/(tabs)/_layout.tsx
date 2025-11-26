@@ -1,11 +1,11 @@
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 import { Image } from "expo-image";
 import { Platform } from "react-native";
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
-import { COLORS, icons } from "@/constants";
+import { COLORS, icons, images } from "@/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import * as Notifications from "expo-notifications";
@@ -22,7 +22,7 @@ Notifications.setNotificationHandler({
 });
 export default function TabLayout() {
   const tabBarActiveTintColor = COLORS.primary;
-  const tabBarInactiveTintColor = COLORS.greyscale600;
+  const tabBarInactiveTintColor = '#989898';
   const tabBarBackgroundColor = COLORS.white;
   const [previeusCount, setPreviousCount] = useState(0);
   const { token } = useAuth();
@@ -31,7 +31,7 @@ export default function TabLayout() {
     queryFn: () => getunreadMessageCount(token),
     refetchInterval: 1000,
     enabled: !!token,
-    refetchIntervalInBackground: true, // Keep polling in the background
+    refetchIntervalInBackground: true,
   });
 
   useEffect(() => {
@@ -54,7 +54,6 @@ export default function TabLayout() {
             console.warn("Notification permissions not granted");
           }
 
-          // Save that the permission was asked
           await AsyncStorage.setItem("hasAskedNotificationPermission", "true");
         }
       } catch (error) {
@@ -64,32 +63,6 @@ export default function TabLayout() {
 
     checkAndRequestPermissions();
   }, []);
-
-  // Trigger push notification on count changes
-  // useEffect(() => {
-  //   if (count?.data > previeusCount) {
-  //     pushNotification(count?.data - previeusCount);
-  //   }
-  //   Notifications.setBadgeCountAsync(count?.data || 0).catch(console.warn);
-
-  //   setPreviousCount(count?.data || 0);
-  // }, [count]);
-
-  // // Push notification function
-  // const pushNotification = async (newMessages) => {
-  //   const content = {
-  //     title: "New Messages!",
-  //     body: `You have ${newMessages} new messages.`,
-  //     sound: "default", // Play default notification sound
-  //     data: { count: newMessages },
-  //   };
-
-  //   await Notifications.scheduleNotificationAsync({
-  //     content,
-  //     trigger: null, // Show immediately
-  //   });
-  // };
-
 
   return (
     <Tabs
@@ -103,24 +76,34 @@ export default function TabLayout() {
           ios: {
             position: "absolute",
             backgroundColor: tabBarBackgroundColor,
+            height: 83,
+            paddingTop: 8,
+            paddingBottom: 34,
           },
           default: {
             backgroundColor: tabBarBackgroundColor,
+            height: 83,
+            paddingTop: 8,
+            paddingBottom: 34,
           },
         }),
+        tabBarLabelStyle: {
+          fontSize: 8,
+          fontWeight: '400',
+          marginTop: 4,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "",
+          title: "Home",
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconContainer}>
               <Image
                 source={icons.homeIcon}
-                style={{ width: 28, height: 28, tintColor: color }}
+                style={{ width: 20, height: 20, tintColor: color }}
               />
-              {focused && <View style={[styles.activeBar, { backgroundColor: tabBarActiveTintColor }]} />}
             </View>
           ),
         }}
@@ -128,14 +111,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "",
+          title: "Chat",
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconContainer}>
               <Image
                 source={icons.messageIcon}
-                style={{ width: 28, height: 28, tintColor: color }}
+                style={{ width: 20, height: 20, tintColor: color }}
               />
-              {focused && <View style={[styles.activeBar, { backgroundColor: tabBarActiveTintColor }]} />}
             </View>
           ),
         }}
@@ -143,14 +125,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: "",
+          title: "Transaction",
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconContainer}>
               <Image
                 source={icons.receiptIcon}
-                style={{ width: 28, height: 28, tintColor: color }}
+                style={{ width: 20, height: 20, tintColor: color }}
               />
-              {focused && <View style={[styles.activeBar, { backgroundColor: tabBarActiveTintColor }]} />}
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="support"
+        options={{
+          title: "Support",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={styles.tabIconContainer}>
+              <Image
+                source={images.headphone}
+                style={{ width: 20, height: 20, tintColor: color }}
+              />
             </View>
           ),
         }}
@@ -158,14 +154,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "",
+          title: "Profile",
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconContainer}>
               <Image
                 source={icons.profileIcon}
-                style={{ width: 28, height: 28, tintColor: color }}
+                style={{ width: 20, height: 20, tintColor: color }}
               />
-              {focused && <View style={[styles.activeBar, { backgroundColor: tabBarActiveTintColor }]} />}
             </View>
           ),
         }}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Video } from 'expo-av';
-import Signin from './signin';
+import { Video, ResizeMode } from 'expo-av';
+import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 
 export default function App() {
@@ -18,6 +18,14 @@ export default function App() {
 
     loadApp();
   }, []);
+
+  useEffect(() => {
+    if (isAppReady) {
+      // Always show onboarding screens when app loads
+      router.replace('/onboarding' as any);
+    }
+  }, [isAppReady]);
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -34,11 +42,11 @@ export default function App() {
           rate={1.3}  // Normal playback speed
           volume={1.0}  // Full volume
           isMuted={false}
-          resizeMode="contain"  // Adjust to fit the screen ('contain', 'cover', 'stretch')
+          resizeMode={ResizeMode.CONTAIN}  // Adjust to fit the screen
           shouldPlay
           isLooping={false}  // Change to true if you want it to repeat
           style={styles.video}
-          onPlaybackStatusUpdate={(status) => {
+          onPlaybackStatusUpdate={(status: any) => {
             if (status.didJustFinish) {
               setIsAppReady(true);  // Transition to the next screen after the video finishes
             }
@@ -48,7 +56,7 @@ export default function App() {
     );
   }
 
-  return <Signin />;
+  return null; // Navigation is handled by router.replace
 }
 
 const styles = StyleSheet.create({

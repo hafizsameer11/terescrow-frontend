@@ -46,6 +46,8 @@ export default function RootLayout() {
         <QueryClientProvider client={new QueryClient()}>
           <SocketProvider>
             <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
               <Stack.Screen name="signup" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
@@ -56,7 +58,6 @@ export default function RootLayout() {
                 name="setpinscreen"
                 options={{ headerShown: false }}
               />
-              <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen
                 name="notificationpage"
                 options={{ headerShown: false }}
@@ -173,6 +174,118 @@ export default function RootLayout() {
                 name="chatwithagent"
                 options={{ headerShown: false }}
                 // component={require('@/app/chatwithagent.rtsx')}
+              />
+              <Stack.Screen
+                name="supportchat"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="allassets"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="assetdetail"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="selectasset"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="assetnetwork"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="swap"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="swapsuccess"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="referrals"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="withdrawaldetails"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="blockchainmodal"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="withdrawalsuccess"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="withdrawaccounts"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="addwithdrawaccount"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="billpayments"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="sendcrypto"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="receivecrypto"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="reviewcryptosend"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="buycrypto"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="currencymodal"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="paymentmethodmodal"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="buysummary"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="sellcrypto"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="sellsummary"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="fundwalletmodal"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="withdrawpaymentmethodmodal"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="withdraw"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="reviewwithdraw"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="switchwalletmodal"
+                options={{ headerShown: false, presentation: 'modal' }}
               />
             </Stack>
           </SocketProvider>
