@@ -67,7 +67,7 @@ const CardScreen = () => {
     React.useState<{ id: number; title: string }[]>();
   const [selectedCardId, setSelectedCardId] = React.useState<string>('');
   const [selectedCardTitle, setSelectedCardTitle] = React.useState<string>('');
-  const [amount, setAmount] = React.useState(0.0);
+  const [amount, setAmount] = React.useState<string>('');
   const { token } = useAuth();
   const {
     data: subcategoriesData,
@@ -111,7 +111,7 @@ const CardScreen = () => {
         categorytitle: categoryData.title,
         subCategoryId: selectedCardId,
         departmentTitle: departmentTitle,
-        amount,
+        amount: parseFloat(amount) || 0,
         icon: categoryData.image,
         subcategorytitle: selectedCardTitle,
         quantity: cardsConter,
@@ -139,7 +139,7 @@ const CardScreen = () => {
         (card) => card.subCategory.id == +selectedCardId
       );
       if (card?.subCategory.price) {
-        setAmount(+card.subCategory.price);
+        setAmount(card.subCategory.price.toString());
       }
     }
   }, [cardsConter, selectedCardId]);
@@ -177,7 +177,7 @@ const CardScreen = () => {
           keyboardType="numeric"
           placeholder="Enter amount in USD"
           onChangeText={(text) => setAmount(text)}
-          value={amount} // Directly use the string value
+          value={amount}
           placeholderTextColor="#888"
         />
 
