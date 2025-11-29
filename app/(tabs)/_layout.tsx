@@ -13,6 +13,9 @@ import * as Notifications from "expo-notifications";
 import { useQuery } from "@tanstack/react-query";
 import { getunreadMessageCount } from "@/utils/queries/quickActionQueries";
 import { useAuth } from "@/contexts/authContext";
+
+// Only use TabBarBackground on iOS, where it's properly defined
+const tabBarBackground = Platform.OS === 'ios' ? TabBarBackground : undefined;
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -71,7 +74,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: tabBarInactiveTintColor,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
+        ...(tabBarBackground && { tabBarBackground }),
         tabBarStyle: Platform.select({
           ios: {
             position: "absolute",
