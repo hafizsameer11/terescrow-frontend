@@ -287,6 +287,30 @@ export default function RootLayout() {
                 name="switchwalletmodal"
                 options={{ headerShown: false, presentation: 'modal' }}
               />
+              <Stack.Screen
+                name="buygiftcards"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="giftcarddetail"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="countrymodal"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="giftcardtypemodal"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="giftcardpurchasesuccess"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="giftcarddetails"
+                options={{ headerShown: false }}
+              />
             </Stack>
           </SocketProvider>
           <Toast />

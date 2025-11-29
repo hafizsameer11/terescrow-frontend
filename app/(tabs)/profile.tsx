@@ -213,6 +213,13 @@ const Profile = () => {
               router.push("/billpayments");
             }}
           />
+          <ProfileListItem
+            text="Buy gift cards"
+            icon={icons.gift}
+            onPress={() => {
+              router.push("/buygiftcards");
+            }}
+          />
           
           {/* Other Settings Section */}
           <View style={{ paddingHorizontal: isTablet ? 20 : 10, paddingTop: 20, paddingBottom: 10 }}>
