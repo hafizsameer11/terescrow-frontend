@@ -1,4 +1,6 @@
-export const API_BASE_URL = 'https://46.202.154.203';
+// export const API_BASE_URL = 'https://46.202.154.203';
+export const API_BASE_URL = 'http://10.230.141.151:8000';
+
 
 export const API_DOMAIN = API_BASE_URL + '/api';
 // `${API_BASE_URL}/api/auth`;
@@ -20,6 +22,7 @@ export const API_ENDPOINTS = {
     SetNewPassword: API_DOMAIN + '/auth/set-new-password',
     GetKycDetails: API_DOMAIN + '/auth/get-kyc-details',
     DeleteAccount: API_DOMAIN + '/auth/delete-customer',
+    SetPin: API_DOMAIN + '/auth/set-pin',
   },
 
   ACCOUNT_MANAGEMENT: {

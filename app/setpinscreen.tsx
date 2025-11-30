@@ -16,15 +16,24 @@ import FONTS from '@/constants/fonts';
 import { COLORS } from '@/constants';
 import SuccessModal from './successmodal';
 import { showTopToast } from '@/utils/helpers';
+import { useMutation } from '@tanstack/react-query';
+import { setPin as setPinApi } from '@/utils/mutations/authMutations';
+import { useAuth } from '@/contexts/authContext';
+import { ApiError } from '@/utils/customApiCalls';
+import { useNavigation } from 'expo-router';
+import { NavigationProp } from '@react-navigation/native';
 
 const SetPinScreen: React.FC = () => {
   const searchParams = useSearchParams();
   const title = searchParams.get('title');
   const context = searchParams.get('context');
+  const email = searchParams.get('email');
   const { push } = useRouter();
+  const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const [pin, setPin] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const { dark } = useTheme();
+  const { token: authToken, userData } = useAuth();
 
   const handlePress = (digit: string) => {
     console.log('reached');
@@ -39,41 +48,95 @@ const SetPinScreen: React.FC = () => {
     setPin(pin.slice(0, -1));
   };
 
+  // Mutation for setting PIN
+  const { mutate: handleSetPin, isPending: isSettingPin } = useMutation({
+    mutationFn: async (data: { email: string; pin: string }) => {
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+      const result = await setPinApi(
+        { email: data.email, pin: data.pin },
+        authToken
+      );
+      return result;
+    },
+    mutationKey: ['set-pin'],
+    onSuccess: (data) => {
+      console.log('PIN set successfully:', data);
+      showTopToast({
+        type: 'success',
+        text1: 'Success',
+        text2: 'PIN set successfully. Please log in to continue.',
+      });
+      // Navigate to signin screen after successful PIN setup
+      // Small delay to ensure toast is visible
+      setTimeout(() => {
+        try {
+          reset({
+            index: 0,
+            routes: [{ name: 'signin' as any }],
+          });
+          console.log('Navigation to signin completed');
+        } catch (navError) {
+          console.log('Navigation error, using router:', navError);
+          // Fallback: use router.replace
+          router.replace('/signin');
+        }
+      }, 1000);
+    },
+    onError: (error: ApiError) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to set PIN. Please try again.',
+      });
+      setPin([]);
+    },
+  });
+
   const validatePin = () => {
     const pinValue = pin.join('');
-    router.push('/(tabs)');
+    // Removed router.push('/(tabs)') - it was interfering with navigation flow
     if (title === 'Confirm your Pin') {
       const enteredPin = searchParams.get('enteredPin');
 
-      // if (pinValue !== enteredPin) {
-      //   showTopToast({
-      //     type: 'error',
-      //     text1: 'Error',
-      //     text2: 'Pins do not match!',
-      //   })
-      //   console.log('Pins do not match!');
-      //   setPin([]);
-      //   return;
-      // } else {
-      //   Toast.show({
-      //     type: 'success',
-      //     text1: 'Success',
-      //     text2:
-      //       'Pin confirmed successfully. You can now proceed to your dashboard.',
-      //     position: 'top',
-      //     visibilityTime: 3000,
-      //     autoHide: true,
-      //     topOffset: 50,
-      //   });
-      //   router.back();
-      //   console.log('Pins match successfully!');
-      // }
-
-      if (context === 'signup') {
-        push({
-          pathname: '/setpinscreen',
-          params: { title: 'Pin confirmed', context: 'signup' },
+      // Validate PINs match
+      if (pinValue !== enteredPin) {
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Pins do not match!',
         });
+        setPin([]);
+        return;
+      }
+
+      // If signup context, call the API to set PIN
+      if (context === 'signup') {
+        const userEmail = email || userData?.email;
+        console.log('Setting PIN for signup flow - email:', userEmail, 'context:', context);
+        if (!userEmail) {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Email not found. Please try again.',
+          });
+          setPin([]);
+          return;
+        }
+        if (!authToken) {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Authentication token not found. Please try again.',
+          });
+          setPin([]);
+          return;
+        }
+        // Call API to set PIN
+        console.log('Calling handleSetPin API...');
+        handleSetPin({ email: userEmail, pin: pinValue });
+        return;
       }
 
       if (context === 'transactionPin') {

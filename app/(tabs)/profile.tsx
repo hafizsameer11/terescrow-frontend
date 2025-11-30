@@ -1,6 +1,6 @@
-import { Alert, Linking, ScrollView, StyleSheet, Text, View, Dimensions, TouchableOpacity } from "react-native";
+import { Alert, Linking, ScrollView, StyleSheet, Text, View, Dimensions, TouchableOpacity, RefreshControl, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { Image } from "expo-image";
 import { COLORS, icons, images } from "@/constants";
 import Header from "@/components/index/Header";
@@ -21,11 +21,29 @@ const Profile = () => {
   const { userData, token } = useAuth();
   const { logout } = useAuth();
   const { dark } = useTheme();
-  const { data: privacyData } = useQuery({
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const { 
+    data: privacyData, 
+    isLoading: privacyLoading,
+    refetch: refetchPrivacy 
+  } = useQuery({
     queryKey: ['privacy'],
     queryFn: () => getPrivacyPageLinks(),
     enabled: !!token
   })
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchPrivacy();
+    } catch (error) {
+      console.log("Error refreshing profile data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchPrivacy]);
   const { mutate: DeleteAccount } = useMutation({
     mutationKey: ['deleteAccount'],
     mutationFn: () => deleteCustomer(token),
@@ -58,6 +76,14 @@ const Profile = () => {
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         <View style={{ position: "relative" }}>
           <Image
@@ -179,16 +205,24 @@ const Profile = () => {
               router.push("/profilesecurity");
             }}
           />
-          <ProfileListItem
-            text="Privacy Policy"
-            icon={icons.privacyPolicy}
-            onPress={() => { handlePress((privacyData as any)?.data?.privacyPageLink) }}
-          />
-          <ProfileListItem
-            text="Terms of Services"
-            icon={icons.termsAndServices}
-            onPress={() => { handlePress((privacyData as any)?.data?.termsPageLink) }}
-          />
+          {privacyLoading && !privacyData ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            </View>
+          ) : (
+            <>
+              <ProfileListItem
+                text="Privacy Policy"
+                icon={icons.privacyPolicy}
+                onPress={() => { handlePress((privacyData as any)?.data?.privacyPageLink) }}
+              />
+              <ProfileListItem
+                text="Terms of Services"
+                icon={icons.termsAndServices}
+                onPress={() => { handlePress((privacyData as any)?.data?.termsPageLink) }}
+              />
+            </>
+          )}
           <ProfileListItem
             text="Trade Crypto"
             icon={icons.graph}
@@ -257,4 +291,10 @@ const Profile = () => {
 
 export default Profile;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

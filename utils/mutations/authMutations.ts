@@ -29,9 +29,18 @@ export const loginUser = async (data: {
   return await apiCall(API_ENDPOINTS.AUTH.Login, 'POST', data);
 };
 
-export const verifyEmailOtp = async (token: string, otp: string) => {
-  const data = { otp: otp };
-  return await apiCall(API_ENDPOINTS.AUTH.VerifyEmailOtp, 'POST', data, token);
+export const verifyEmailOtp = async (
+  token: string,
+  otp: string,
+  userId?: number
+): Promise<IVerifyEmailOtpResponse> => {
+  const data: { otp: string; userId?: number } = { otp: otp };
+  if (userId) {
+    data.userId = userId;
+  }
+  const response = await apiCall(API_ENDPOINTS.AUTH.VerifyEmailOtp, 'POST', data, token);
+  console.log('verifyEmailOtp response:', response);
+  return response;
 };
 
 export const verifyPasswordOtp = async (email: string, otp: string) => {
@@ -85,6 +94,13 @@ export const markAllRead = async (
     undefined,
     token
   );
+};
+
+export const setPin = async (
+  data: ISetPinReq,
+  token: string
+): Promise<ISetPinResponse> => {
+  return await apiCall(API_ENDPOINTS.AUTH.SetPin, 'POST', data, token);
 };
 interface Notification {
   id: number;
@@ -151,6 +167,26 @@ interface IChangePasswordReq {
 interface ISetNewPasswordReq {
   userId: number;
   password: string;
+}
+
+interface ISetPinReq {
+  email: string;
+  pin: string;
+}
+
+interface ISetPinResponse extends ApiResponse {
+  status: 'success' | 'error';
+  message: string;
+  data: {
+    email: string;
+    pinSet: boolean;
+  };
+}
+
+interface IVerifyEmailOtpResponse extends ApiResponse {
+  status: 'success' | 'error';
+  message: string;
+  data: null;
 }
 
 

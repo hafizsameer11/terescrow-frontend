@@ -1,4 +1,4 @@
-import { StyleSheet, View, FlatList, Text, Dimensions } from "react-native";
+import { StyleSheet, View, FlatList, Text, Dimensions, RefreshControl, ActivityIndicator } from "react-native";
 import Header from "@/components/index/Header";
 import CardSwiper from "@/components/index/CardSwiper";
 import BalanceCard from "@/components/index/BalanceCard";
@@ -29,11 +29,13 @@ export default function HomeScreen() {
   const { token } = useAuth();
   const { navigate } = useNavigation<NavigationProp<any>>();
   const [activeTab, setActiveTab] = React.useState("Gift Cards");
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const {
     data: departmentsData,
     isLoading: departmentsLoading,
     isError: departmentsIsError,
+    refetch: refetchDepartments,
   } = useQuery({
     queryKey: ["categories"],
     queryFn: () => getDepartments(token),
@@ -43,12 +45,29 @@ export default function HomeScreen() {
     data: chatData,
     isLoading: chatLoading,
     isError: chatisError,
+    refetch: refetchChats,
   } = useQuery({
     queryKey: ["allchats"],
     queryFn: () => getAllChats(token),
     enabled: !!token,
     refetchInterval: 1000,
   });
+
+  // Pull to refresh handler
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Refetch all queries
+      await Promise.all([
+        refetchDepartments(),
+        refetchChats(),
+      ]);
+    } catch (error) {
+      console.log("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchDepartments, refetchChats]);
 
   // Filter chats based on active tab (UI only, no API changes)
   const getFilteredChats = () => {
@@ -95,7 +114,11 @@ export default function HomeScreen() {
         >
           Quick Actions
         </Text>
-        {departmentsData?.data && (
+        {departmentsLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
+        ) : departmentsData?.data ? (
           <FlatList
             data={departmentsData.data}
             scrollEnabled={false}
@@ -111,7 +134,7 @@ export default function HomeScreen() {
             columnWrapperStyle={{ justifyContent: "space-between" }}
             numColumns={2}
           />
-        )}
+        ) : null}
       </View>
 
       <View style={{ marginHorizontal: -5, marginTop: 20 }}>
@@ -132,6 +155,22 @@ export default function HomeScreen() {
       </View>
     </>
   );
+
+  // Show loading indicator on initial load
+  if (departmentsLoading && !departmentsData) {
+    return (
+      <SafeAreaView
+        style={[
+          { flex: 1, justifyContent: "center", alignItems: "center" },
+          dark
+            ? { backgroundColor: COLORS.black }
+            : { backgroundColor: COLORS.white },
+        ]}
+      >
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -163,6 +202,24 @@ export default function HomeScreen() {
         )}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{ paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+        ListEmptyComponent={
+          chatLoading ? (
+            <View style={styles.emptyLoadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={[styles.loadingText, { color: dark ? COLORS.white : COLORS.black }]}>
+                Loading transactions...
+              </Text>
+            </View>
+          ) : null
+        }
       />
     </SafeAreaView>
   );
@@ -186,5 +243,19 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "#121212",
     marginBottom: 16,
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyLoadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
   },
 });

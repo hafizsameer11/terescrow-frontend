@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { StyleSheet, Text, View, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useTheme } from '@/contexts/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, icons } from '@/constants';
@@ -12,12 +12,14 @@ import { useAuth } from '@/contexts/authContext';
 const Chat = () => {
   const { token } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     data: chatData,
     isLoading: chatLoading,
     error: chatError,
     isError: chatisError,
+    refetch: refetchChats,
   } = useQuery({
     queryKey: ['allchats'],
     queryFn: () => getAllChats(token),
@@ -25,6 +27,18 @@ const Chat = () => {
     refetchIntervalInBackground: true,  // Continue fetching even when app is minimized
     enabled: !!token,
   });
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchChats();
+    } catch (error) {
+      console.log("Error refreshing chats:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchChats]);
 
   const getFilteredData = useMemo(() => {
     if (!chatData) return [];
@@ -96,6 +110,24 @@ const Chat = () => {
             />
           )}
           style={styles.dataList}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
+          ListEmptyComponent={
+            chatLoading ? (
+              <View style={styles.emptyLoadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={[styles.loadingText, { color: dark ? COLORS.white : COLORS.black }]}>
+                  Loading chats...
+                </Text>
+              </View>
+            ) : null
+          }
         />
       </View>
     </SafeAreaView>
@@ -141,6 +173,15 @@ const styles = StyleSheet.create({
   errorText: {
     color: COLORS.red,
     fontSize: 16,
+  },
+  emptyLoadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
   },
 });
 

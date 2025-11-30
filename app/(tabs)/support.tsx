@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, FlatList, Dimensions } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { StyleSheet, Text, View, FlatList, Dimensions, RefreshControl, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/contexts/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, icons, images } from '@/constants';
@@ -67,6 +67,8 @@ const Support = () => {
   const { dark } = useTheme();
   const { navigate } = useNavigation<NavigationProp<any>>();
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter dummy data based on selected category
   const getFilteredData = useMemo(() => {
@@ -79,6 +81,21 @@ const Support = () => {
         return dummySupportChats;
     }
   }, [selectedCategory]);
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, you would refetch data here
+      // await refetchSupportChats();
+    } catch (error) {
+      console.log("Error refreshing support chats:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -95,25 +112,51 @@ const Support = () => {
           activeTab={selectedCategory}
           onTabChange={setSelectedCategory}
         />
-        <FlatList
-          data={getFilteredData}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <SupportChatItem
-              id={item.id.toString()}
-              icon={item.department?.icon || icons.chat}
-              heading={`Support - ${item.department?.title || 'General'}`}
-              text={item.recentMessage || "Your complaint is being reviewed"}
-              date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-              status={item.chatStatus}
-              profileImage={item.agent?.profilePicture || undefined}
-            />
-          )}
-          style={styles.dataList}
-        />
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[styles.loadingText, { color: dark ? COLORS.white : COLORS.black }]}>
+              Loading support chats...
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={getFilteredData}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <SupportChatItem
+                id={item.id.toString()}
+                icon={item.department?.icon || icons.chat}
+                heading={`Support - ${item.department?.title || 'General'}`}
+                text={item.recentMessage || "Your complaint is being reviewed"}
+                date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+                status={item.chatStatus}
+                profileImage={item.agent?.profilePicture || undefined}
+              />
+            )}
+            style={styles.dataList}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={COLORS.primary}
+                colors={[COLORS.primary]}
+              />
+            }
+            ListEmptyComponent={
+              getFilteredData.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={[styles.emptyText, { color: dark ? COLORS.white : COLORS.black }]}>
+                    No support chats found
+                  </Text>
+                </View>
+              ) : null
+            }
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -145,6 +188,24 @@ const styles = StyleSheet.create({
   },
   dataList: {
     marginTop: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
   },
 });
 

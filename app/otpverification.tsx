@@ -7,8 +7,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../components/Button';
 import { COLORS, icons } from '@/constants';
@@ -31,13 +32,14 @@ import { ApiError } from '@/utils/customApiCalls';
 
 const OTPVerification = () => {
   const { goBack, navigate, reset } = useNavigation<NavigationProp<any>>();
-  const { token } = useAuth();
+  const { token, userData } = useAuth();
   const [time, setTime] = useState(45);
   const [otp, setOtp] = useState('');
   const [timerOut, setTimerOut] = useState(false);
   const { colors, dark } = useTheme();
   const route = useRoute();
   const { context, email } = route.params as { context: string; email: string };
+  const isVerifyingRef = useRef(false);
 
   // console.log(otp);
   // console.log(context);
@@ -45,47 +47,226 @@ const OTPVerification = () => {
 const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
   mutationFn:
     context === "signup"
-      ? () => verifyEmailOtp(token, otp)
+      ? () => {
+          if (!token) {
+            throw new Error("Authentication token is required");
+          }
+          if (!otp || otp.length !== 4) {
+            throw new Error("Please enter a valid 4-digit OTP");
+          }
+          // Try to get userId from userData
+          let userId: number | undefined = userData?.id;
+          
+          // If userData doesn't have id, try to decode token (JWT format: header.payload.signature)
+          if (!userId && token) {
+            try {
+              const parts = token.split('.');
+              if (parts.length === 3) {
+                const payload = parts[1];
+                // Base64 URL decode for React Native
+                const base64Url = payload.replace(/-/g, '+').replace(/_/g, '/');
+                const padded = base64Url + '='.repeat((4 - (base64Url.length % 4)) % 4);
+                
+                // Use global atob if available (web), otherwise try to decode manually
+                let decodedPayload: string;
+                if (typeof atob !== 'undefined') {
+                  decodedPayload = atob(padded);
+                } else {
+                  // Manual base64 decode for React Native
+                  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+                  let str = '';
+                  for (let i = 0; i < padded.length; i += 4) {
+                    const enc1 = chars.indexOf(padded.charAt(i));
+                    const enc2 = chars.indexOf(padded.charAt(i + 1));
+                    const enc3 = chars.indexOf(padded.charAt(i + 2));
+                    const enc4 = chars.indexOf(padded.charAt(i + 3));
+                    const chr1 = (enc1 << 2) | (enc2 >> 4);
+                    const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+                    const chr3 = ((enc3 & 3) << 6) | enc4;
+                    str += String.fromCharCode(chr1);
+                    if (enc3 !== 64) str += String.fromCharCode(chr2);
+                    if (enc4 !== 64) str += String.fromCharCode(chr3);
+                  }
+                  decodedPayload = str;
+                }
+                
+                const decoded = JSON.parse(decodedPayload);
+                userId = decoded.id;
+                console.log('Decoded userId from token:', userId);
+              }
+            } catch (e) {
+              console.log('Could not decode token:', e);
+            }
+          }
+          
+          if (!userId) {
+            throw new Error("User ID not found. Please try again.");
+          }
+          
+          return verifyEmailOtp(token, otp, userId);
+        }
       : () => verifyPasswordOtp(email, otp),
   mutationKey: ["verify-otp"],
   onSuccess: (data) => {
-    if (context === "signup") {
-      // ✅ Show success alert before redirecting to signin
-      Alert.alert(
-        "Signup Successful",
-        "Your email has been verified successfully. Please log in to continue.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              reset({
-                index: 0,
-                routes: [{ name: "signin" }],
-              });
-              navigate("signin");
+    isVerifyingRef.current = false;
+    console.log("OTP verification success - full response:", JSON.stringify(data, null, 2));
+    
+    // Backend returns: { status: "success", message: "User Verified Successfully.", data: null }
+    // If we reach onSuccess, it means the API call succeeded (2xx status)
+    // Check response to confirm it's actually a success response
+    const isSuccess = data?.status === 'success' || 
+                     (data?.message && (
+                       data.message.toLowerCase().includes('verified') || 
+                       data.message.toLowerCase().includes('success')
+                     ));
+    
+    console.log("Is success response?", isSuccess, "Context:", context);
+    
+    if (isSuccess) {
+      if (context === "signup") {
+        // Navigate to set PIN screen after successful OTP verification
+        // Try multiple sources for email
+        let userEmail = userData?.email || email;
+        
+        // If email still not found, try to decode from token
+        if (!userEmail && token) {
+          try {
+            const parts = token.split('.');
+            if (parts.length === 3) {
+              const payload = parts[1];
+              const base64Url = payload.replace(/-/g, '+').replace(/_/g, '/');
+              const padded = base64Url + '='.repeat((4 - (base64Url.length % 4)) % 4);
+              
+              let decodedPayload: string;
+              if (typeof atob !== 'undefined') {
+                decodedPayload = atob(padded);
+              } else {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+                let str = '';
+                for (let i = 0; i < padded.length; i += 4) {
+                  const enc1 = chars.indexOf(padded.charAt(i));
+                  const enc2 = chars.indexOf(padded.charAt(i + 1));
+                  const enc3 = chars.indexOf(padded.charAt(i + 2));
+                  const enc4 = chars.indexOf(padded.charAt(i + 3));
+                  const chr1 = (enc1 << 2) | (enc2 >> 4);
+                  const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+                  const chr3 = ((enc3 & 3) << 6) | enc4;
+                  str += String.fromCharCode(chr1);
+                  if (enc3 !== 64) str += String.fromCharCode(chr2);
+                  if (enc4 !== 64) str += String.fromCharCode(chr3);
+                }
+                decodedPayload = str;
+              }
+              
+              const decoded = JSON.parse(decodedPayload);
+              userEmail = decoded.email || decoded.username;
+              console.log("Decoded email from token:", userEmail);
+            }
+          } catch (e) {
+            console.log("Could not decode email from token:", e);
+          }
+        }
+        
+        console.log("User email for navigation:", userEmail, "userData:", userData);
+        
+        if (!userEmail) {
+          console.log("Email not found, showing error");
+          showTopToast({
+            type: "error",
+            text1: "Error",
+            text2: "Email not found. Please try again.",
+          });
+          return;
+        }
+        
+        console.log("Navigating to set PIN screen with email:", userEmail);
+        
+        // Show success message
+        showTopToast({
+          type: "success",
+          text1: "Email Verified",
+          text2: "Your email has been verified successfully.",
+        });
+        
+        // Navigate immediately to set PIN screen (no delay)
+        try {
+          reset({
+            index: 0,
+            routes: [
+              {
+                name: "setpinscreen" as any,
+                params: {
+                  title: "Set your Pin",
+                  context: "signup",
+                  email: userEmail,
+                },
+              },
+            ],
+          });
+          console.log("Navigation reset completed");
+        } catch (navError) {
+          console.log("Navigation error:", navError);
+          // Fallback: use navigate instead
+          navigate("setpinscreen" as any, {
+            title: "Set your Pin",
+            context: "signup",
+            email: userEmail,
+          });
+        }
+      } else {
+        reset({
+          index: 0,
+          routes: [
+            {
+              name: "setnewpassword" as any,
+              params: { userId: data.data?.userId },
             },
-          },
-        ]
-      );
+          ],
+        });
+      }
     } else {
-      reset({
-        index: 0,
-        routes: [
-          {
-            name: "setnewpassword",
-            params: { userId: data.data?.userId },
-          },
-        ],
+      // Response doesn't indicate success, treat as error but don't navigate
+      console.log("Response doesn't indicate success, showing error");
+      showTopToast({
+        type: "error",
+        text1: "Error",
+        text2: data?.message || "Failed to verify OTP. Please try again.",
       });
-      navigate("setnewpassword", { userId: data.data.userId });
     }
   },
   onError: (error: ApiError) => {
-    showTopToast({
-      type: "error",
-      text1: "Error",
-      text2: error.message,
-    });
+    isVerifyingRef.current = false;
+    console.log("OTP verification error:", error);
+    
+    // Distinguish between different error types
+    const errorMessage = error.message || "Failed to verify OTP. Please try again.";
+    const isNetworkError = error.statusCode === 500 || 
+                           errorMessage.toLowerCase().includes('network') ||
+                           errorMessage.toLowerCase().includes('server') ||
+                           errorMessage.toLowerCase().includes('timeout');
+    
+    if (isNetworkError) {
+      showTopToast({
+        type: "error",
+        text1: "Network Error",
+        text2: "Unable to connect to server. Please check your internet connection and try again.",
+      });
+    } else if (errorMessage.toLowerCase().includes('invalid otp') || 
+               errorMessage.toLowerCase().includes('otp has been expired')) {
+      // Invalid OTP or expired - stay on screen
+      showTopToast({
+        type: "error",
+        text1: "Invalid OTP",
+        text2: errorMessage,
+      });
+    } else {
+      // Other errors
+      showTopToast({
+        type: "error",
+        text1: "Error",
+        text2: errorMessage,
+      });
+    }
   },
 });
 
@@ -119,6 +300,29 @@ const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
   };
 
   const handleVerifyOTP = () => {
+    // Prevent multiple calls
+    if (verifyingOtp || isVerifyingRef.current) {
+      return;
+    }
+    
+    if (!otp || otp.length !== 4) {
+      showTopToast({
+        type: "error",
+        text1: "Error",
+        text2: "Please enter a valid 4-digit OTP",
+      });
+      return;
+    }
+    if (!token && context === "signup") {
+      showTopToast({
+        type: "error",
+        text1: "Error",
+        text2: "Authentication token not found. Please try again.",
+      });
+      return;
+    }
+    
+    isVerifyingRef.current = true;
     verifyOtp();
   };
 
@@ -168,15 +372,21 @@ const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
               A 4 digits code has been sent to your email address
               {' '} {email}
             </Text>
-            <View style={{ width: '100%' }} >
-
+            <View style={styles.otpWrapper}>
               <Input
-                id="password"
+                id="otp"
                 label="OTP"
                 value={otp}
-                onChangeText={(text) => setOtp(text)}
+                onChangeText={(text) => {
+                  // Only allow numeric input
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  setOtp(numericText);
+                }}
                 keyboardType="numeric"
                 maxLength={4}
+                variant="signin"
+                placeholder=""
+                isPassword={true}
                 style={styles.otpInput}
               />
             </View>
@@ -189,7 +399,7 @@ const { mutate: verifyOtp, isPending: verifyingOtp } = useMutation({
             title="Continue"
             filled
             isLoading={verifyingOtp}
-            disabled={otp.length !== 4}
+            disabled={otp.length !== 4 || verifyingOtp}
             style={[styles.button, themeStyle]}
             onPress={handleVerifyOTP}
           />
@@ -260,22 +470,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   otpWrapper: {
-    width: '100%',      // Ensures the input takes full screen width
-    paddingHorizontal: 16, // Consistent padding from screen edges
+    width: '100%',
+    paddingHorizontal: 0,
     marginBottom: 24,
   },
-
   otpInput: {
-    width: '100%', // Ensures full width within the parent container
-    height: 56, // Consistent input height
-    borderWidth: 2,
-    borderColor: COLORS.greyscale300,
-    borderRadius: 8,
-    textAlign: 'center',
-    fontSize: 18,
-    marginBottom: 24,
-    color: COLORS.black,
-    paddingHorizontal: 16, // Adds padding inside the input
+    // Additional styling can be added here if needed
   },
   resendButton: {
     width: '100%',
