@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -64,6 +65,20 @@ const BillPayments = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Simulate refresh - can be extended to refetch data if needed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error refreshing:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   const handleOptionPress = (option: typeof billPaymentOptions[0]) => {
     if (option.id === '1') {
@@ -110,6 +125,14 @@ const BillPayments = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {billPaymentOptions.map((option) => (
           <TouchableOpacity

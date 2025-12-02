@@ -160,6 +160,51 @@ interface IKycReques{
 dob?: string;
 }
 
+export const submitTier2Kyc = async (
+  data: FormData,
+  token: string
+): Promise<ITier2KycResponse> => {
+  return await apiCall(API_ENDPOINTS.KYC.SubmitTier2, 'POST', data, token);
+};
+
+interface ITier2KycResponse extends ApiResponse {
+  data: {
+    tier: string;
+    status: string;
+    message: string;
+  };
+}
+
+export const submitTier3Kyc = async (
+  data: FormData,
+  token: string
+): Promise<ITier3KycResponse> => {
+  return await apiCall(API_ENDPOINTS.KYC.SubmitTier3, 'POST', data, token);
+};
+
+interface ITier3KycResponse extends ApiResponse {
+  data: {
+    tier: string;
+    status: string;
+    message: string;
+  };
+}
+
+export const submitTier4Kyc = async (
+  data: FormData,
+  token: string
+): Promise<ITier4KycResponse> => {
+  return await apiCall(API_ENDPOINTS.KYC.SubmitTier4, 'POST', data, token);
+};
+
+interface ITier4KycResponse extends ApiResponse {
+  data: {
+    tier: string;
+    status: string;
+    message: string;
+  };
+}
+
 interface IChangePasswordReq {
   oldPassword: string;
   newPassword: string;
@@ -187,6 +232,132 @@ interface IVerifyEmailOtpResponse extends ApiResponse {
   status: 'success' | 'error';
   message: string;
   data: null;
+}
+
+export const createBillPaymentOrder = async (
+  data: ICreateBillPaymentOrderReq,
+  token: string
+): Promise<ICreateBillPaymentOrderResponse> => {
+  // Ensure all required fields are present and properly formatted
+  const requestData = {
+    sceneCode: data.sceneCode,
+    billerId: data.billerId,
+    itemId: data.itemId || '', // Send empty string if not provided (required by backend)
+    rechargeAccount: data.rechargeAccount,
+    amount: data.amount,
+    pin: data.pin,
+  };
+
+  console.log('Creating bill payment order:', {
+    sceneCode: requestData.sceneCode,
+    billerId: requestData.billerId,
+    itemId: requestData.itemId || '(empty)',
+    rechargeAccount: requestData.rechargeAccount,
+    amount: requestData.amount,
+    pin: '****',
+  });
+
+  return await apiCall(API_ENDPOINTS.BILL_PAYMENTS.CreateOrder, 'POST', requestData, token);
+};
+
+export interface ICreateBillPaymentOrderReq {
+  sceneCode: 'airtime' | 'data' | 'betting';
+  billerId: string;
+  itemId?: string; // Optional in request, but always sent to API (empty string if not provided)
+  rechargeAccount: string; // Phone number for airtime/data, user ID for betting
+  amount: number;
+  pin: string;
+}
+
+export interface ICreateBillPaymentOrderResponse extends ApiResponse {
+  data: {
+    transactionId: string;
+    billPaymentId: string;
+    orderNo: string;
+    outOrderNo: string;
+    sceneCode: string;
+    billerId: string;
+    itemId?: string;
+    rechargeAccount: string;
+    amount: number;
+    currency: string;
+    status: string;
+  };
+}
+
+export const verifyBillPaymentAccount = async (
+  data: IVerifyBillPaymentAccountReq,
+  token: string
+): Promise<IVerifyBillPaymentAccountResponse> => {
+  return await apiCall(API_ENDPOINTS.BILL_PAYMENTS.VerifyAccount, 'POST', data, token);
+};
+
+export interface IVerifyBillPaymentAccountReq {
+  sceneCode: 'airtime' | 'data' | 'betting';
+  rechargeAccount: string;
+  billerId: string;
+  itemId?: string; // Optional, required for betting
+}
+
+export interface IVerifyBillPaymentAccountResponse extends ApiResponse {
+  data: {
+    valid: boolean;
+    biller?: string;
+  };
+}
+
+// Support Chat Mutations
+export const createSupportChat = async (
+  data: ICreateSupportChatReq,
+  token: string
+): Promise<ICreateSupportChatResponse> => {
+  return await apiCall(API_ENDPOINTS.SUPPORT.CreateChat, 'POST', data, token);
+};
+
+export interface ICreateSupportChatReq {
+  subject: string;
+  category: string;
+  initialMessage: string;
+}
+
+export interface ICreateSupportChatResponse extends ApiResponse {
+  data: {
+    id: number;
+    subject: string;
+    category: string;
+    status: 'pending' | 'processing' | 'completed';
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export const sendSupportMessage = async (
+  chatId: number,
+  data: ISendSupportMessageReq,
+  token: string
+): Promise<ISendSupportMessageResponse> => {
+  return await apiCall(`${API_ENDPOINTS.SUPPORT.SendMessage}/${chatId}/messages`, 'POST', data, token);
+};
+
+export interface ISendSupportMessageReq {
+  message: string;
+  senderType: 'user' | 'support';
+}
+
+export interface ISendSupportMessageResponse extends ApiResponse {
+  data: {
+    id: number;
+    message: string;
+    senderType: 'user' | 'support';
+    createdAt: string;
+  };
+}
+
+export const markSupportMessagesRead = async (
+  chatId: number,
+  token: string
+): Promise<ApiResponse> => {
+  return await apiCall(`${API_ENDPOINTS.SUPPORT.MarkMessagesRead}/${chatId}/messages/read`, 'PUT', undefined, token);
 }
 
 

@@ -6,15 +6,23 @@ import {
   View,
   Text,
   FlatList,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, icons, images } from "@/constants";
 import { useTheme } from "@/contexts/themeContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import MessageInput from "@/components/ChatAgent/MessageInput";
 import MessageItem from "@/components/ChatAgent/MessageItem";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/authContext";
+import { getSupportChatById, ISupportMessage } from "@/utils/queries/accountQueries";
+import { sendSupportMessage } from "@/utils/mutations/authMutations";
+import { showTopToast } from "@/utils/helpers";
+import { ApiError } from "@/utils/customApiCalls";
 
 export type Message = {
   id: string;
@@ -28,22 +36,78 @@ export type Message = {
 const SupportChat = () => {
   const { dark } = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ chatId?: string }>();
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [quickActionsShown, setQuickActionsShown] = useState(true);
-  const [sendingMessage, setSendingMessage] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Initialize with just the welcome message to show quick actions
+  const chatId = params.chatId ? parseInt(params.chatId, 10) : null;
+
+  // Fetch chat messages from API
+  const {
+    data: chatData,
+    isLoading: isLoadingChat,
+    refetch: refetchChat,
+  } = useQuery({
+    queryKey: ['supportChat', chatId],
+    queryFn: () => getSupportChatById(token, chatId!, { page: 1, limit: 50 }),
+    enabled: !!token && !!chatId && !isNaN(chatId),
+    refetchInterval: 5000, // Refetch every 5 seconds to get new messages
+  });
+
+  // Convert API messages to Message type
   useEffect(() => {
-    const welcomeMessage: Message = {
-      id: "1",
-      text: "Welcome, how can we help you",
-      isUser: false,
-      sentAt: new Date(Date.now() - 2 * 60 * 1000), // 2 mins ago
-    };
-    setMessages([welcomeMessage]);
-    scrollToBottom();
-  }, []);
+    if (chatData?.data?.messages) {
+      const apiMessages: ISupportMessage[] = chatData.data.messages;
+      const convertedMessages: Message[] = apiMessages.map((msg) => ({
+        id: msg.id.toString(),
+        text: msg.message,
+        isUser: msg.senderType === 'user',
+        sentAt: new Date(msg.createdAt),
+      }));
+
+      // If no messages, show welcome message
+      if (convertedMessages.length === 0) {
+        const welcomeMessage: Message = {
+          id: "1",
+          text: "Welcome, how can we help you",
+          isUser: false,
+          sentAt: new Date(Date.now() - 2 * 60 * 1000),
+        };
+        setMessages([welcomeMessage]);
+        setQuickActionsShown(true);
+      } else {
+        setMessages(convertedMessages);
+        setQuickActionsShown(false);
+      }
+      scrollToBottom();
+    } else if (!isLoadingChat && !chatData) {
+      // If no chat data and not loading, show welcome message
+      const welcomeMessage: Message = {
+        id: "1",
+        text: "Welcome, how can we help you",
+        isUser: false,
+        sentAt: new Date(Date.now() - 2 * 60 * 1000),
+      };
+      setMessages([welcomeMessage]);
+      setQuickActionsShown(true);
+    }
+  }, [chatData, isLoadingChat]);
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchChat();
+    } catch (error) {
+      console.error("Error refreshing messages:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchChat]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -51,24 +115,98 @@ const SupportChat = () => {
     }, 100);
   };
 
+  // Send message mutation
+  const { mutate: sendMessage, isPending: sendingMessage } = useMutation({
+    mutationKey: ['sendSupportMessage', chatId],
+    mutationFn: (data: { message: string; senderType: 'user' }) =>
+      sendSupportMessage(chatId!, data, token),
+    onSuccess: (response: any) => {
+      console.log('Send message response:', JSON.stringify(response, null, 2));
+      
+      // Extract message data from response - handle different possible response structures
+      let messageId: number | undefined;
+      let messageText: string | undefined;
+      let senderType: 'user' | 'support' | undefined;
+      let createdAt: string | undefined;
+      
+      if (response?.data?.id) {
+        messageId = response.data.id;
+        messageText = response.data.message;
+        senderType = response.data.senderType;
+        createdAt = response.data.createdAt;
+      } else if (response?.data?.data?.id) {
+        messageId = response.data.data.id;
+        messageText = response.data.data.message;
+        senderType = response.data.data.senderType;
+        createdAt = response.data.data.createdAt;
+      } else if (response?.id) {
+        messageId = response.id;
+        messageText = response.message;
+        senderType = response.senderType;
+        createdAt = response.createdAt;
+      }
+
+      // Only add message if we have valid data
+      if (messageId && messageText && senderType && createdAt) {
+        const newMessage: Message = {
+          id: messageId.toString(),
+          text: messageText,
+          isUser: senderType === 'user',
+          sentAt: new Date(createdAt),
+        };
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+        setQuickActionsShown(false);
+        scrollToBottom();
+      }
+      
+      // Invalidate and refetch to get updated chat (this will also add the message if it wasn't added above)
+      queryClient.invalidateQueries({ queryKey: ['supportChat', chatId] });
+      queryClient.invalidateQueries({ queryKey: ['supportChats'] });
+    },
+    onError: (error: ApiError) => {
+      console.error('Error sending message:', error);
+      let errorMessage = 'Failed to send message. Please try again.';
+      
+      if (error.statusCode === 400) {
+        errorMessage = error.message || 'Cannot send message. Chat may be completed.';
+      } else if (error.statusCode === 404) {
+        errorMessage = 'Support chat not found.';
+      }
+      
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMessage,
+      });
+    },
+  });
+
   const handleSendMessage = (message?: string, image?: string) => {
     if (!message && !image) return;
+    
+    if (!chatId || isNaN(chatId)) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Chat ID is missing. Please try again.',
+      });
+      return;
+    }
 
-    setSendingMessage(true);
-    // Simulate sending message
-    setTimeout(() => {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        text: message || "",
-        isUser: true,
-        sentAt: new Date(),
-        image: image,
-      };
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-      setQuickActionsShown(false);
-      setSendingMessage(false);
-      scrollToBottom();
-    }, 300);
+    // For now, only text messages are supported by the API
+    if (image) {
+      showTopToast({
+        type: 'info',
+        text1: 'Info',
+        text2: 'Image messages are not yet supported.',
+      });
+      return;
+    }
+
+    sendMessage({
+      message: message || '',
+      senderType: 'user',
+    });
   };
 
   const handleQuickAction = (action: string) => {
@@ -113,6 +251,17 @@ const SupportChat = () => {
   }, []);
 
   const renderSupportChat = () => {
+    if (isLoadingChat) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Loading messages...
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <KeyboardAvoidingView
         style={[
@@ -141,6 +290,14 @@ const SupportChat = () => {
           }}
           contentContainerStyle={styles.chatContainer}
           onContentSizeChange={scrollToBottom}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
           ListFooterComponent={
             quickActionsShown && messages.length === 1 ? (
               <View style={styles.quickActionsWrapper}>
@@ -221,9 +378,15 @@ const SupportChat = () => {
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
-              Customer Support
+              {chatData?.data?.chat?.subject || 'Customer Support'}
             </Text>
-            <Text style={styles.headerStatus}>Always online</Text>
+            <Text style={styles.headerStatus}>
+              {chatData?.data?.chat?.status === 'completed' 
+                ? 'Completed' 
+                : chatData?.data?.chat?.status === 'processing'
+                ? 'Processing'
+                : 'Always online'}
+            </Text>
           </View>
         </View>
       </View>
@@ -334,5 +497,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#FFA500",
     textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
   },
 });

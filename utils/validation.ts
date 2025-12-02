@@ -92,20 +92,61 @@ export const validationEditProfile = Yup.object().shape({
       'Please enter a valid email address'
     ),
 
-  country: Yup.string()
+  country: Yup.mixed()
     .required('Country is required')
-    .oneOf(
-      ['Nigeria', 'Ghana', 'Cameroon', 'South Africa', 'Kenya'],
-      'Invalid country'
-    ),
+    .test('is-valid-country', 'Invalid country', function(value) {
+      // Handle empty/null/undefined
+      if (value === null || value === undefined || value === '') {
+        return false;
+      }
+      
+      // Accept number (ID) format: 1, 2, 3, 4, 5, 6
+      if (typeof value === 'number') {
+        return [1, 2, 3, 4, 5, 6].includes(value);
+      }
+      
+      // Accept string number (ID) format: "1", "2", etc.
+      if (typeof value === 'string') {
+        const numValue = Number(value);
+        if (!isNaN(numValue) && [1, 2, 3, 4, 5, 6].includes(numValue)) {
+          return true;
+        }
+        // Accept string name format
+        return ['Nigeria', 'Ghana', 'Cameroon', 'Benin republic', 'South Africa', 'Kenya'].includes(value);
+      }
+      
+      return false;
+    }),
 
   phoneNumber: Yup.string()
     .matches(/^\d+$/, 'Phone number must be numeric')
     .required('Phone number is required'),
 
-  gender: Yup.string()
+  gender: Yup.mixed()
     .required('Gender is required')
-    .oneOf(['male', 'female', 'other'], 'Invalid gender'),
+    .test('is-valid-gender', 'Invalid gender', function(value) {
+      // Handle empty/null/undefined
+      if (value === null || value === undefined || value === '') {
+        return false;
+      }
+      
+      // Accept number (ID) format: 1, 2, 3
+      if (typeof value === 'number') {
+        return [1, 2, 3].includes(value);
+      }
+      
+      // Accept string number (ID) format: "1", "2", "3"
+      if (typeof value === 'string') {
+        const numValue = Number(value);
+        if (!isNaN(numValue) && [1, 2, 3].includes(numValue)) {
+          return true;
+        }
+        // Accept string name format: "male", "female", "other"
+        return ['male', 'female', 'other'].includes(value.toLowerCase());
+      }
+      
+      return false;
+    }),
 
   userName: Yup.string()
     .required('Username is required')

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,8 @@ import {
   Dimensions,
   Alert,
   ImageBackground,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +29,8 @@ const Referrals = () => {
   const [activeTab, setActiveTab] = useState<'Rewards' | 'FAQs'>('Rewards');
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const referralCode = 'DEMSCR3ATIONS';
   const earningBalance = '$0.00';
@@ -41,6 +45,21 @@ const Referrals = () => {
     // TODO: Implement share functionality
     Alert.alert('Share', 'Share functionality to be implemented');
   };
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, you would refetch referral data here
+      // For now, we'll just refresh the state
+    } catch (error) {
+      console.log("Error refreshing referral data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   const faqs = [
     {
@@ -136,10 +155,26 @@ const Referrals = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Loading referral data...
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
+        >
         {activeTab === 'Rewards' ? (
           <>
             {/* Earning Balance Card */}
@@ -383,7 +418,8 @@ const Referrals = () => {
             </View>
           </>
         )}
-      </ScrollView>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -719,6 +755,16 @@ const styles = StyleSheet.create({
     fontSize: isTablet ? 14 : 12,
     lineHeight: 20,
     marginBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
   },
 });
 

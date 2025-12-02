@@ -188,7 +188,10 @@ const DraggableModal: React.FC<DraggableModalProps> = ({
               <View style={{ padding: 15, marginBottom: 10 }}>
                 <Button
                   title="Continue"
-                  onPress={() => router.push('/bvnverification')}
+                  onPress={() => {
+                    onClose();
+                    router.push('/tier2verification');
+                  }}
                 />
               </View>
             </Animated.View>

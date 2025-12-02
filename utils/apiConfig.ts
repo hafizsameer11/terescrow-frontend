@@ -1,5 +1,5 @@
 // export const API_BASE_URL = 'https://46.202.154.203';
-export const API_BASE_URL = 'http://10.230.141.151:8000';
+export const API_BASE_URL = 'http://192.168.1.9:8000';
 
 
 export const API_DOMAIN = API_BASE_URL + '/api';
@@ -33,7 +33,19 @@ export const API_ENDPOINTS = {
     GetNotifications: API_DOMAIN + '/unread-notifications',
     MarkAllNotificationsAsRead: API_DOMAIN + '/mark-all-read',
   },
-
+  WALLETS: {
+    GetWalletOverview: API_DOMAIN + '/v2/wallets/overview',
+    GetWalletTransactions: API_DOMAIN + '/v2/wallets/transactions',
+  },
+  KYC: {
+    GetKycStatus: API_DOMAIN + '/v2/kyc/status',
+    GetTier2Status: API_DOMAIN + '/v2/kyc/tier2/status',
+    SubmitTier2: API_DOMAIN + '/v2/kyc/tier2/submit',
+    GetTier3Status: API_DOMAIN + '/v2/kyc/tier3/status',
+    SubmitTier3: API_DOMAIN + '/v2/kyc/tier3/submit',
+    GetTier4Status: API_DOMAIN + '/v2/kyc/tier4/status',
+    SubmitTier4: API_DOMAIN + '/v2/kyc/tier4/submit',
+  },
   PUBLIC: {
     GetCountries: API_DOMAIN + '/public/countries',
     ReadAllMessages: API_DOMAIN + '/customer/read-all-messages',
@@ -62,5 +74,18 @@ export const API_ENDPOINTS = {
     GetTransactionHistory: API_DOMAIN + '/customer/utilities/get-transaction-group',
     GetTransactionByDepartment: API_DOMAIN + '/customer/utilities/get-transaction-by-department',
 
+  },
+  BILL_PAYMENTS: {
+    GetBillers: API_DOMAIN + '/v2/bill-payments/billers',
+    GetItems: API_DOMAIN + '/v2/bill-payments/items',
+    CreateOrder: API_DOMAIN + '/v2/bill-payments/create-order',
+    VerifyAccount: API_DOMAIN + '/v2/bill-payments/verify-account',
+  },
+  SUPPORT: {
+    CreateChat: API_DOMAIN + '/v2/support/chats',
+    GetChats: API_DOMAIN + '/v2/support/chats',
+    GetChatById: API_DOMAIN + '/v2/support/chats',
+    SendMessage: API_DOMAIN + '/v2/support/chats',
+    MarkMessagesRead: API_DOMAIN + '/v2/support/chats',
   },
 };

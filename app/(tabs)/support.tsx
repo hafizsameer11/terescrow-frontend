@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Dimensions, RefreshControl, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Dimensions, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useTheme } from '@/contexts/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, icons, images } from '@/constants';
@@ -7,95 +7,82 @@ import SupportTabs from '@/components/SupportTabs';
 import SupportChatItem from '@/components/SupportChatItem';
 import { useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getSupportChats, ISupportChat } from '@/utils/queries/accountQueries';
+import { Image } from 'expo-image';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
-// Dummy data for support chats
-const dummySupportChats = [
-  {
-    id: 1,
-    department: { title: 'Crypto', icon: null },
-    recentMessage: 'Your complaint is being reviewed',
-    recentMessageTimestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    chatStatus: 'pending',
-    agent: { profilePicture: null },
-  },
-  {
-    id: 2,
-    department: { title: 'Crypto', icon: null },
-    recentMessage: 'Your complaint is being reviewed',
-    recentMessageTimestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    chatStatus: 'pending',
-    agent: { profilePicture: null },
-  },
-  {
-    id: 3,
-    department: { title: 'Crypto', icon: null },
-    recentMessage: 'Your complaint is being reviewed',
-    recentMessageTimestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    chatStatus: 'pending',
-    agent: { profilePicture: null },
-  },
-  {
-    id: 4,
-    department: { title: 'Crypto', icon: null },
-    recentMessage: 'Your complaint is being reviewed',
-    recentMessageTimestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    chatStatus: 'pending',
-    agent: { profilePicture: null },
-  },
-  {
-    id: 5,
-    department: { title: 'Crypto', icon: null },
-    recentMessage: 'Your complaint is being reviewed',
-    recentMessageTimestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    chatStatus: 'pending',
-    agent: { profilePicture: null },
-  },
-  {
-    id: 6,
-    department: { title: 'Gift cards', icon: null },
-    recentMessage: 'Your complaint is being reviewed',
-    recentMessageTimestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    chatStatus: 'successful',
-    agent: { profilePicture: null },
-  },
-];
-
 const Support = () => {
   const { dark } = useTheme();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Filter dummy data based on selected category
-  const getFilteredData = useMemo(() => {
+  // Map UI category to API status
+  const getStatusFilter = useMemo(() => {
     switch (selectedCategory) {
       case 'Completed':
-        return dummySupportChats.filter((chat) => chat.chatStatus === 'successful');
+        return 'completed';
       case 'Processing':
-        return dummySupportChats.filter((chat) => chat.chatStatus === 'pending');
+        return 'processing'; // API will filter by 'processing', but we'll also show 'pending' in the UI
       default:
-        return dummySupportChats;
+        return undefined; // 'All' - no filter
     }
   }, [selectedCategory]);
+
+  // Fetch support chats from API
+  const {
+    data: supportChatsData,
+    isLoading: isLoadingChats,
+    refetch: refetchChats,
+  } = useQuery({
+    queryKey: ['supportChats', getStatusFilter],
+    queryFn: () => getSupportChats(token, { status: getStatusFilter, page: 1, limit: 50 }),
+    enabled: !!token,
+  });
+
+  const supportChats: ISupportChat[] = supportChatsData?.data?.chats || [];
+
+  // Filter and map data for display
+  const getFilteredData = useMemo(() => {
+    let filteredChats = supportChats;
+    
+    // Additional client-side filtering for 'Processing' tab to include 'pending' status
+    if (selectedCategory === 'Processing') {
+      filteredChats = supportChats.filter(
+        (chat) => chat.status === 'processing' || chat.status === 'pending'
+      );
+    }
+    
+    return filteredChats.map((chat) => ({
+      id: chat.id,
+      department: { title: chat.category || 'General', icon: null },
+      recentMessage: chat.lastMessage?.message || 'No messages yet',
+      recentMessageTimestamp: chat.lastMessage?.createdAt || chat.createdAt,
+      chatStatus: chat.status === 'completed' ? 'completed' : chat.status === 'processing' ? 'processing' : 'pending',
+      agent: { profilePicture: chat.agent?.profilePicture || null },
+    }));
+  }, [supportChats, selectedCategory]);
 
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In a real app, you would refetch data here
-      // await refetchSupportChats();
+      await refetchChats();
     } catch (error) {
       console.log("Error refreshing support chats:", error);
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [refetchChats]);
+
+  const handleCreateChat = () => {
+    navigate('createsupportchat' as any);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -112,7 +99,7 @@ const Support = () => {
           activeTab={selectedCategory}
           onTabChange={setSelectedCategory}
         />
-        {isLoading ? (
+        {isLoadingChats ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={[styles.loadingText, { color: dark ? COLORS.white : COLORS.black }]}>
@@ -127,8 +114,8 @@ const Support = () => {
               <SupportChatItem
                 id={item.id.toString()}
                 icon={item.department?.icon || icons.chat}
-                heading={`Support - ${item.department?.title || 'General'}`}
-                text={item.recentMessage || "Your complaint is being reviewed"}
+                heading={supportChats.find(c => c.id === item.id)?.subject || `Support - ${item.department?.title || 'General'}`}
+                text={item.recentMessage || "No messages yet"}
                 date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -147,7 +134,7 @@ const Support = () => {
               />
             }
             ListEmptyComponent={
-              getFilteredData.length === 0 ? (
+              getFilteredData.length === 0 && !isLoadingChats ? (
                 <View style={styles.emptyContainer}>
                   <Text style={[styles.emptyText, { color: dark ? COLORS.white : COLORS.black }]}>
                     No support chats found
@@ -158,6 +145,19 @@ const Support = () => {
           />
         )}
       </View>
+
+      {/* Floating Action Button - Plus Icon */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={handleCreateChat}
+        activeOpacity={0.8}
+      >
+        <Image
+          source={icons.plus}
+          style={styles.fabIcon}
+          contentFit="contain"
+        />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -206,6 +206,30 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#147341',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  fabIcon: {
+    width: 24,
+    height: 24,
+    tintColor: COLORS.white,
   },
 });
 

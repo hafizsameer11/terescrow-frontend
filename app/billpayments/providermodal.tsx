@@ -8,45 +8,64 @@ import {
   Pressable,
   FlatList,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getBillers, IBiller } from '@/utils/queries/accountQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
-const providers = [
-  { id: '1', name: 'MTN', logo: images.ellipse20_1 },
-  { id: '2', name: 'GLO', logo: images.ellipse20_2 },
-  { id: '3', name: 'Airtel', logo: images.ellipse20_3 },
-  { id: '4', name: '9mobile', logo: images.ellipse20_4 },
-];
-
 const ProviderModal = () => {
   const { dark } = useTheme();
   const router = useRouter();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     selectedProvider?: string;
+    selectedBillerId?: string;
     returnTo?: string;
+    sceneCode?: 'airtime' | 'data' | 'betting';
   }>();
 
   const [selectedProvider, setSelectedProvider] = useState<string | null>(params.selectedProvider || null);
+  const [selectedBillerId, setSelectedBillerId] = useState<string | null>(params.selectedBillerId || null);
   const returnTo = params.returnTo || 'airtime';
+  const sceneCode = params.sceneCode || (returnTo === 'data' ? 'data' : returnTo === 'betting' ? 'betting' : 'airtime');
 
-  const handleSelect = (providerName: string) => {
-    setSelectedProvider(providerName);
+  // Fetch billers from API
+  const { data: billersData, isLoading: billersLoading } = useQuery({
+    queryKey: ['billers', sceneCode],
+    queryFn: () => getBillers(token, sceneCode),
+    enabled: !!token && !!sceneCode,
+  });
+
+  const billers: IBiller[] = billersData?.data?.billers?.data || [];
+
+  const handleSelect = (biller: IBiller) => {
+    setSelectedProvider(biller.billerName);
+    setSelectedBillerId(biller.billerId);
     router.back();
     // Use a small delay to ensure navigation completes
     setTimeout(() => {
-      const pathname = returnTo === 'data' ? '/billpayments/data' : '/billpayments/airtime';
+      const pathname = returnTo === 'data' ? '/billpayments/data' : returnTo === 'betting' ? '/billpayments/betting' : '/billpayments/airtime';
+      // Use different param names based on returnTo
+      const params: any = {
+        selectedBillerId: biller.billerId,
+      };
+      if (returnTo === 'betting') {
+        params.selectedBettingSite = biller.billerName;
+      } else {
+        params.selectedProvider = biller.billerName;
+      }
       router.push({
         pathname: pathname as any,
-        params: {
-          selectedProvider: providerName,
-        },
+        params,
       } as any);
     }, 100);
   };
@@ -80,48 +99,67 @@ const ProviderModal = () => {
             </View>
 
             {/* Provider List */}
-            <FlatList
-              data={providers}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.providerItem,
-                    dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-                  ]}
-                  onPress={() => handleSelect(item.name)}
-                >
-                  <View style={styles.providerLogoContainer}>
+            {billersLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Loading providers...
+                </Text>
+              </View>
+            ) : billers.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  No providers available
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={billers.filter(b => b.status === 1)} // Only show active billers
+                keyExtractor={(item) => item.billerId}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.providerItem,
+                      dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
+                    ]}
+                    onPress={() => handleSelect(item)}
+                  >
+                    <View style={styles.providerLogoContainer}>
+                      {item.billerIcon ? (
+                        <Image
+                          source={{ uri: item.billerIcon }}
+                          style={styles.providerLogo}
+                          contentFit="contain"
+                        />
+                      ) : (
+                        <View style={[styles.providerLogoPlaceholder, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#F7F7F7' }]} />
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.providerName,
+                        dark ? { color: COLORS.white } : { color: COLORS.black },
+                      ]}
+                    >
+                      {item.billerName}
+                    </Text>
                     <Image
-                      source={item.logo}
-                      style={styles.providerLogo}
+                      source={icons.arrowRight}
+                      style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
                       contentFit="contain"
                     />
-                  </View>
-                  <Text
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => (
+                  <View
                     style={[
-                      styles.providerName,
-                      dark ? { color: COLORS.white } : { color: COLORS.black },
+                      styles.separator,
+                      dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
                     ]}
-                  >
-                    {item.name}
-                  </Text>
-                  <Image
-                    source={icons.arrowRight}
-                    style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
-                    contentFit="contain"
                   />
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => (
-                <View
-                  style={[
-                    styles.separator,
-                    dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
-                  ]}
-                />
-              )}
-            />
+                )}
+              />
+            )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -201,6 +239,32 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     marginLeft: 52,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.greyscale600,
+  },
+  providerLogoPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F7F7',
   },
 });
 

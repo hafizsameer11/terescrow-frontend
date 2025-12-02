@@ -9,50 +9,74 @@ import {
   FlatList,
   TextInput,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getBillPaymentItems, IBillPaymentItem } from '@/utils/queries/accountQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
-const plans = [
-  { id: '1', name: '1 YEAR', price: 'NGN100,00' },
-  { id: '2', name: 'DAILY DATA PLAN', price: 'NGN100' },
-  { id: '3', name: 'MONTHLY DATA PLAN', price: 'NGN15,600' },
-  { id: '4', name: 'MONTHLY DATA PLAN', price: 'NGN15,600' },
-  { id: '5', name: 'DAILY DATA PLAN', price: 'NGN100' },
-  { id: '6', name: '1 YEAR', price: 'NGN100,00' },
-  { id: '7', name: 'DAILY DATA PLAN', price: 'NGN100' },
-];
-
 const PlanTypeModal = () => {
   const { dark } = useTheme();
   const router = useRouter();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     selectedPlan?: string;
+    selectedItemId?: string;
+    sceneCode?: 'airtime' | 'data' | 'betting';
+    billerId?: string;
   }>();
 
   const [selectedPlan, setSelectedPlan] = useState<string | null>(params.selectedPlan || null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(params.selectedItemId || null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredPlans = plans.filter(plan =>
-    plan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    plan.price.toLowerCase().includes(searchQuery.toLowerCase())
+  const sceneCode = params.sceneCode || 'data';
+  const billerId = params.billerId || '';
+
+  // Fetch items from API
+  const { data: itemsData, isLoading: itemsLoading } = useQuery({
+    queryKey: ['billPaymentItems', sceneCode, billerId],
+    queryFn: () => getBillPaymentItems(token, sceneCode, billerId),
+    enabled: !!token && !!billerId && !!sceneCode,
+  });
+
+  const items: IBillPaymentItem[] = itemsData?.data?.items?.data || [];
+  const activeItems = items.filter(item => item.status === 1);
+
+  const formatAmount = (amount: number) => {
+    return `NGN${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+  };
+
+  const filteredItems = activeItems.filter(item =>
+    item.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    formatAmount(item.amount).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSelect = (planName: string) => {
-    setSelectedPlan(planName);
+  const handleSelect = (item: IBillPaymentItem) => {
+    setSelectedPlan(item.itemName);
+    setSelectedItemId(item.itemId);
     router.back();
     // Use a small delay to ensure navigation completes
     setTimeout(() => {
+      let pathname = '/billpayments/data';
+      if (sceneCode === 'airtime') {
+        pathname = '/billpayments/airtime';
+      } else if (sceneCode === 'betting') {
+        pathname = '/billpayments/betting';
+      }
       router.push({
-        pathname: '/billpayments/data',
+        pathname: pathname as any,
         params: {
-          selectedPlan: planName,
+          selectedPlan: item.itemName,
+          selectedItemId: item.itemId,
         },
       } as any);
     }, 100);
@@ -103,52 +127,100 @@ const PlanTypeModal = () => {
             </View>
 
             {/* Plans List */}
-            <FlatList
-              data={filteredPlans}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.planItem,
-                    dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-                  ]}
-                  onPress={() => handleSelect(item.name)}
-                >
-                  <View style={styles.planInfo}>
-                    <Text
+            {itemsLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Loading plans...
+                </Text>
+              </View>
+            ) : !itemsData ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  Unable to load plans. Please try again.
+                </Text>
+              </View>
+            ) : itemsData?.data?.items?.status === false ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  {itemsData?.data?.items?.respMsg || 'No plans available for this provider'}
+                </Text>
+              </View>
+            ) : itemsData?.data?.items?.data === null || itemsData?.data?.items?.data?.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  No plans available for this provider. Please try another provider.
+                </Text>
+              </View>
+            ) : activeItems.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  No active plans available for this provider.
+                </Text>
+              </View>
+            ) : filteredItems.length === 0 && searchQuery ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  No plans match your search. Try a different search term.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredItems}
+                keyExtractor={(item) => item.itemId}
+                renderItem={({ item }) => {
+                  // Format amount - if isFixAmount is 1, show fixed amount, otherwise show range
+                  const amountDisplay = item.isFixAmount === 1
+                    ? formatAmount(item.amount)
+                    : item.minAmount && item.maxAmount
+                      ? `${formatAmount(item.minAmount)} - ${formatAmount(item.maxAmount)}`
+                      : formatAmount(item.amount);
+
+                  return (
+                    <TouchableOpacity
                       style={[
-                        styles.planName,
-                        dark ? { color: COLORS.white } : { color: COLORS.black },
+                        styles.planItem,
+                        dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
                       ]}
+                      onPress={() => handleSelect(item)}
                     >
-                      {item.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.planPrice,
-                        dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
-                      ]}
-                    >
-                      {item.price}
-                    </Text>
-                  </View>
-                  <Image
-                    source={icons.arrowRight}
-                    style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
-                    contentFit="contain"
+                      <View style={styles.planInfo}>
+                        <Text
+                          style={[
+                            styles.planName,
+                            dark ? { color: COLORS.white } : { color: COLORS.black },
+                          ]}
+                        >
+                          {item.itemName}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.planPrice,
+                            dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
+                          ]}
+                        >
+                          {amountDisplay}
+                        </Text>
+                      </View>
+                      <Image
+                        source={icons.arrowRight}
+                        style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
+                        contentFit="contain"
+                      />
+                    </TouchableOpacity>
+                  );
+                }}
+                ItemSeparatorComponent={() => (
+                  <View
+                    style={[
+                      styles.separator,
+                      dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
+                    ]}
                   />
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => (
-                <View
-                  style={[
-                    styles.separator,
-                    dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
-                  ]}
-                />
-              )}
-              contentContainerStyle={styles.listContent}
-            />
+                )}
+                contentContainerStyle={styles.listContent}
+              />
+            )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -242,6 +314,27 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#E5E5E5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.greyscale600,
+    textAlign: 'center',
   },
 });
 

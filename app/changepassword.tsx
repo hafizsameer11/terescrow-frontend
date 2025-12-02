@@ -127,9 +127,10 @@ const ChangePassword = () => {
             }) => (
               <View style={styles.formContainer}>
                 <Input
-                id="oldPassword"
+                  id="currentPassword"
                   label="Current Password"
-                  secureTextEntry
+                  isPassword
+                  variant="signin"
                   onChangeText={handleChange('currentPassword')}
                   onBlur={handleBlur('currentPassword')}
                   value={values.currentPassword}
@@ -138,11 +139,14 @@ const ChangePassword = () => {
                       ? errors.currentPassword
                       : ''
                   }
+                  placeholder="Current Password"
                 />
 
                 <Input
+                  id="newPassword"
                   label="New Password"
-                  secureTextEntry
+                  isPassword
+                  variant="signin"
                   onChangeText={handleChange('newPassword')}
                   onBlur={handleBlur('newPassword')}
                   value={values.newPassword}
@@ -151,12 +155,14 @@ const ChangePassword = () => {
                       ? errors.newPassword
                       : ''
                   }
-                  id='newPassword'
+                  placeholder="New Password"
                 />
 
                 <Input
+                  id="confirmPassword"
                   label="Re-enter Password"
-                  secureTextEntry
+                  isPassword
+                  variant="signin"
                   onChangeText={handleChange('confirmPassword')}
                   onBlur={handleBlur('confirmPassword')}
                   value={values.confirmPassword}
@@ -165,7 +171,7 @@ const ChangePassword = () => {
                       ? errors.confirmPassword
                       : ''
                   }
-                  id='confirmPassword'
+                  placeholder="Re-enter Password"
                 />
 
                 <Button

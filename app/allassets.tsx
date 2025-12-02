@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Dimensions,
   ImageBackground,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -81,6 +83,8 @@ const AllAssets = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAssetPress = (asset: typeof dummyAssets[0]) => {
     navigate('assetdetail', {
@@ -88,6 +92,21 @@ const AllAssets = () => {
       assetName: asset.name,
     });
   };
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, you would refetch assets data here
+      // For now, we'll just refresh the state
+    } catch (error) {
+      console.log("Error refreshing assets:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   const renderAssetItem = ({ item }: { item: typeof dummyAssets[0] }) => (
     <TouchableOpacity
@@ -206,12 +225,36 @@ const AllAssets = () => {
         >
           Crypto Assets
         </Text>
-        <FlatList
-          data={dummyAssets}
-          renderItem={renderAssetItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-        />
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Loading assets...
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={dummyAssets}
+            renderItem={renderAssetItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={COLORS.primary}
+                colors={[COLORS.primary]}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  No assets found
+                </Text>
+              </View>
+            }
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -353,6 +396,24 @@ const styles = StyleSheet.create({
   assetValue: {
     fontSize: isTablet ? 14 : 10,
     fontWeight: '400',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
   },
 });
 

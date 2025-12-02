@@ -74,6 +74,15 @@ const BuyGiftCards = () => {
     });
   };
 
+  const handleTabChange = (tab: 'Sell giftcards' | 'Buy giftcards') => {
+    if (tab === 'Sell giftcards') {
+      // Navigate to sell gift cards flow (same as home page)
+      router.push('/giftcardcategories' as any);
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
   const filteredCards = giftCards.filter(card =>
     card.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -108,7 +117,7 @@ const BuyGiftCards = () => {
             activeTab === 'Sell giftcards' && styles.segmentActive,
             activeTab === 'Sell giftcards' && { borderTopLeftRadius: 100, borderBottomLeftRadius: 100 },
           ]}
-          onPress={() => setActiveTab('Sell giftcards')}
+          onPress={() => handleTabChange('Sell giftcards')}
         >
           <Text
             style={[

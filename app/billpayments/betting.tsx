@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -14,6 +16,10 @@ import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import Input from '@/components/CustomInput';
+import { useAuth } from '@/contexts/authContext';
+import { useQuery } from '@tanstack/react-query';
+import { getWalletOverview } from '@/utils/queries/accountQueries';
+import { showTopToast } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -22,36 +28,125 @@ const Betting = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     selectedBettingSite?: string;
+    selectedProvider?: string; // Provider modal uses this param name
+    selectedBillerId?: string;
+    selectedPlan?: string;
+    selectedItemId?: string;
   }>();
-  const [selectedBettingSite, setSelectedBettingSite] = useState<string | null>(params.selectedBettingSite || null);
+  // Handle both selectedBettingSite and selectedProvider (provider modal uses selectedProvider)
+  const [selectedBettingSite, setSelectedBettingSite] = useState<string | null>(
+    params.selectedBettingSite || params.selectedProvider || null
+  );
+  const [selectedBillerId, setSelectedBillerId] = useState<string | null>(params.selectedBillerId || null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(params.selectedPlan || null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(params.selectedItemId || null);
   const [userId, setUserId] = useState('');
   const [amount, setAmount] = useState('');
-  const balance = 'N5,000';
+
+  // Fetch wallet balance
+  const { data: walletData, isLoading: walletLoading, refetch: refetchWallet } = useQuery({
+    queryKey: ['walletOverview'],
+    queryFn: () => getWalletOverview(token),
+    enabled: !!token,
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchWallet();
+    } catch (error) {
+      console.error('Error refreshing wallet:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchWallet]);
+
+  const totalBalance = walletData?.data?.totalBalance || 0;
+  const currency = walletData?.data?.currency || 'NGN';
+  const balance = currency === 'NGN' 
+    ? `N${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalBalance)}`
+    : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalBalance)}`;
+
+  // Track previous billerId to detect provider changes
+  const prevBillerIdRef = React.useRef<string | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
-      if (params.selectedBettingSite) {
-        setSelectedBettingSite(params.selectedBettingSite);
+      // If provider changed, clear the selected plan
+      if (params.selectedBillerId && params.selectedBillerId !== prevBillerIdRef.current && prevBillerIdRef.current !== null) {
+        setSelectedPlan(null);
+        setSelectedItemId(null);
       }
-    }, [params.selectedBettingSite])
+      prevBillerIdRef.current = params.selectedBillerId || null;
+
+      // Handle both selectedBettingSite and selectedProvider (provider modal uses selectedProvider)
+      if (params.selectedBettingSite || params.selectedProvider) {
+        setSelectedBettingSite(params.selectedBettingSite || params.selectedProvider || null);
+      }
+      if (params.selectedBillerId) {
+        setSelectedBillerId(params.selectedBillerId);
+      }
+      if (params.selectedPlan) {
+        setSelectedPlan(params.selectedPlan);
+      }
+      if (params.selectedItemId) {
+        setSelectedItemId(params.selectedItemId);
+      }
+    }, [params.selectedBettingSite, params.selectedProvider, params.selectedBillerId, params.selectedPlan, params.selectedItemId])
   );
 
   const handleSelectBettingSite = () => {
-    navigate('bettingsitemodal' as any, {
-      selectedBettingSite: selectedBettingSite || '',
+    navigate('providermodal' as any, {
+      selectedProvider: selectedBettingSite || '',
+      selectedBillerId: selectedBillerId || '',
+      returnTo: 'betting',
+      sceneCode: 'betting',
+    });
+  };
+
+  const handleSelectPlan = () => {
+    if (!selectedBillerId) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please select a betting site first',
+      });
+      return;
+    }
+    navigate('plantypemodal' as any, {
+      selectedPlan: selectedPlan || '',
+      selectedItemId: selectedItemId || '',
+      sceneCode: 'betting',
+      billerId: selectedBillerId,
     });
   };
 
   const handleProceed = () => {
-    if (!selectedBettingSite || !userId || !amount) {
+    if (!selectedBettingSite || !selectedBillerId || !userId || !amount) {
       return;
     }
-    navigate('reviewbetting' as any, {
-      bettingSite: selectedBettingSite,
-      userId: userId,
+    console.log('Navigating to PIN modal with:', {
+      sceneCode: 'betting',
+      billerId: selectedBillerId,
+      provider: selectedBettingSite,
+      mobileNumber: userId,
       amount: amount,
+      itemId: selectedItemId || undefined,
+    });
+    // Navigate to PIN modal with order details
+    navigate('pinmodal' as any, {
+      sceneCode: 'betting',
+      billerId: selectedBillerId,
+      provider: selectedBettingSite,
+      mobileNumber: userId, // For betting, userId is the rechargeAccount
+      amount: amount,
+      itemId: selectedItemId || undefined, // itemId from API for betting plans
+      type: 'betting',
     });
   };
 
@@ -80,6 +175,14 @@ const Betting = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {/* Select Betting Site */}
         <View style={[styles.inputSection, { marginBottom: 20 }]}>
@@ -94,6 +197,29 @@ const Betting = () => {
             ) : (
               <Text style={styles.selectorPlaceholder}>
                 Select Betting Site
+              </Text>
+            )}
+            <Image
+              source={icons.arrowDown}
+              style={styles.arrowIcon}
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Select Plan */}
+        <View style={[styles.inputSection, { marginBottom: 20 }]}>
+          <TouchableOpacity
+            style={styles.providerSelector}
+            onPress={handleSelectPlan}
+          >
+            {selectedPlan ? (
+              <Text style={styles.selectorValue}>
+                {selectedPlan}
+              </Text>
+            ) : (
+              <Text style={styles.selectorPlaceholder}>
+                Select Plan
               </Text>
             )}
             <Image
@@ -132,9 +258,13 @@ const Betting = () => {
 
         {/* Balance and Topup */}
         <View style={styles.balanceContainer}>
-          <Text style={[styles.balanceText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            Balance: {balance}
-          </Text>
+          {walletLoading ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <Text style={[styles.balanceText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Balance: {balance}
+            </Text>
+          )}
           <TouchableOpacity style={styles.topupButton}>
             <Text style={styles.topupButtonText}>Topup</Text>
           </TouchableOpacity>
@@ -143,9 +273,9 @@ const Betting = () => {
 
       {/* Proceed Button */}
       <TouchableOpacity
-        style={[styles.proceedButton, (!selectedBettingSite || !userId || !amount) && styles.proceedButtonDisabled]}
+        style={[styles.proceedButton, (!selectedBettingSite || !selectedBillerId || !userId || !amount) && styles.proceedButtonDisabled]}
         onPress={handleProceed}
-        disabled={!selectedBettingSite || !userId || !amount}
+        disabled={!selectedBettingSite || !selectedBillerId || !userId || !amount}
       >
         <Text style={styles.proceedButtonText}>Proceed</Text>
       </TouchableOpacity>

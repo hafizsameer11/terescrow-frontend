@@ -116,8 +116,7 @@ const SwitchWalletModal = () => {
                                         >
                                             {selectedWallet === wallet.id && (
                                                 <View style={styles.radioButtonInner} />
-                                            )}`
-                                            ```
+                                            )}
                                         </View>
                                     </View>
                                 </TouchableOpacity>

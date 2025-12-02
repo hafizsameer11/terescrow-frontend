@@ -17,6 +17,7 @@ import {
   IDepartmentResponse,
 } from "@/utils/queries/quickActionQueries";
 import { getAllChats } from "@/utils/queries/chatQueries";
+import { getWalletTransactions } from "@/utils/queries/accountQueries";
 import { NavigationProp } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import React from "react";
@@ -28,8 +29,22 @@ export default function HomeScreen() {
   const { dark } = useTheme();
   const { token } = useAuth();
   const { navigate } = useNavigation<NavigationProp<any>>();
-  const [activeTab, setActiveTab] = React.useState("Gift Cards");
+  const [activeTab, setActiveTab] = React.useState("All");
   const [refreshing, setRefreshing] = React.useState(false);
+
+  // Map tab to API parameters - memoized to prevent recreation
+  const getTransactionParams = React.useMemo(() => {
+    switch (activeTab) {
+      case "Gift Cards":
+        return { type: "giftcard" };
+      case "Crypto":
+        return { type: "crypto" };
+      case "Bill Payments":
+        return { type: "bill" };
+      default:
+        return {}; // "All" - no filter
+    }
+  }, [activeTab]);
 
   const {
     data: departmentsData,
@@ -41,16 +56,19 @@ export default function HomeScreen() {
     queryFn: () => getDepartments(token),
     enabled: !!token,
   });
+
   const {
-    data: chatData,
-    isLoading: chatLoading,
-    isError: chatisError,
-    refetch: refetchChats,
+    data: walletTransactionsData,
+    isLoading: transactionsLoading,
+    isError: transactionsError,
+    refetch: refetchTransactions,
+    isFetching: transactionsFetching,
   } = useQuery({
-    queryKey: ["allchats"],
-    queryFn: () => getAllChats(token),
+    queryKey: ["walletTransactions", activeTab],
+    queryFn: () => getWalletTransactions(token, { ...getTransactionParams, page: 1, limit: 20 }),
     enabled: !!token,
-    refetchInterval: 1000,
+    staleTime: 10000, // Consider data fresh for 10 seconds to prevent unnecessary refetches when switching tabs quickly
+    refetchOnWindowFocus: false, // Prevent refetch when window regains focus
   });
 
   // Pull to refresh handler
@@ -60,47 +78,28 @@ export default function HomeScreen() {
       // Refetch all queries
       await Promise.all([
         refetchDepartments(),
-        refetchChats(),
+        refetchTransactions(),
       ]);
     } catch (error) {
       console.log("Error refreshing data:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchDepartments, refetchChats]);
+  }, [refetchDepartments, refetchTransactions]);
 
-  // Filter chats based on active tab (UI only, no API changes)
-  const getFilteredChats = () => {
-    if (!chatData?.data) return [];
-    
-    if (activeTab === "All") {
-      return chatData.data.slice(0, 5);
-    } else if (activeTab === "Gift Cards") {
-      return chatData.data
-        .filter((chat) => chat.department?.Type === "giftcard" || chat.department?.title?.includes("Gift Card"))
-        .slice(0, 5);
-    } else if (activeTab === "Crypto") {
-      return chatData.data
-        .filter((chat) => chat.department?.Type === "crypto" || chat.department?.title?.includes("Crypto"))
-        .slice(0, 5);
-    } else if (activeTab === "Bill Payments") {
-      return chatData.data
-        .filter((chat) => chat.department?.Type === "bill" || chat.department?.title?.includes("Bill"))
-        .slice(0, 5);
-    }
-    return chatData.data.slice(0, 5);
-  };
+  // Get transactions from API response - memoized to prevent unnecessary recalculations
+  const transactions = React.useMemo(() => {
+    return walletTransactionsData?.data?.transactions || [];
+  }, [walletTransactionsData]);
 
-  const filteredChatData = getFilteredChats();
-
-  const handleClickDepartment = (item: IDepartmentResponse["data"][number]) => {
+  const handleClickDepartment = React.useCallback((item: IDepartmentResponse["data"][number]) => {
     const route = item.title.includes("Gift Card")
       ? "giftcardcategories"
       : "cryptocategories";
     navigate(route, { departmentId: item.id.toString(),departmentTitle: item.title,departmentType:(item as any).Type });
-  };
+  }, [navigate]);
 
-  const renderHeader = () => (
+  const renderHeader = React.useCallback(() => (
     <>
       <Header />
       <BalanceCard />
@@ -154,7 +153,7 @@ export default function HomeScreen() {
         <TransactionTabs activeTab={activeTab} onTabChange={setActiveTab} />
       </View>
     </>
-  );
+  ), [activeTab, dark, departmentsLoading, departmentsData, handleClickDepartment]);
 
   // Show loading indicator on initial load
   if (departmentsLoading && !departmentsData) {
@@ -182,24 +181,35 @@ export default function HomeScreen() {
       ]}
     >
       <FlatList
-        data={filteredChatData || []}
+        data={transactions}
         keyExtractor={(item) => item.id.toString()}
         style={{ paddingHorizontal: 16 }}
-        renderItem={({ item }) => (
-          <ChatItem
-            id={item.id.toString()}
-            icon={item?.department?.icon || icons.chat}
-            heading={item?.department?.title}
-            text={item.recentMessage}
-            date={new Date(item.recentMessageTimestamp).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-            productId={item.messagesCount.toString()}
-            price={`$${item.transaction?.amount?.toString() || "0"} - ₦${item.transaction?.amountNaira?.toString() || "0"}`}
-            status={item.chatStatus}
-          />
-        )}
+        renderItem={({ item }) => {
+          // Format date
+          const transactionDate = new Date(item.createdAt);
+          const formattedDate = transactionDate.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          
+          // Format amount based on currency
+          const formattedAmount = item.currency === 'NGN' 
+            ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
+            : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+
+          return (
+            <ChatItem
+              id={item.id.toString()}
+              icon={icons.chat}
+              heading={item.type || 'Transaction'}
+              text={`${item.type} transaction`}
+              date={formattedDate}
+              productId={item.id.toString()}
+              price={formattedAmount}
+              status={item.status}
+            />
+          );
+        }}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{ paddingBottom: 20 }}
         refreshControl={
@@ -211,11 +221,22 @@ export default function HomeScreen() {
           />
         }
         ListEmptyComponent={
-          chatLoading ? (
+          transactionsLoading ? (
             <View style={styles.emptyLoadingContainer}>
               <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={[styles.loadingText, { color: dark ? COLORS.white : COLORS.black }]}>
                 Loading transactions...
+              </Text>
+            </View>
+          ) : transactions.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: dark ? COLORS.white : COLORS.black }]}>
+                No transactions found
+              </Text>
+              <Text style={[styles.emptySubtext, { color: dark ? COLORS.white : COLORS.black }]}>
+                {activeTab === "All" 
+                  ? "You don't have any transactions yet"
+                  : `You don't have any ${activeTab.toLowerCase()} transactions yet`}
               </Text>
             </View>
           ) : null
@@ -257,5 +278,19 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    opacity: 0.7,
   },
 });

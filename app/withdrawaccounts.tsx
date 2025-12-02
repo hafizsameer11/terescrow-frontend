@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     StyleSheet,
     View,
@@ -7,6 +7,8 @@ import {
     ScrollView,
     Dimensions,
     Alert,
+    RefreshControl,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -50,6 +52,8 @@ const WithdrawAccounts = () => {
     const { navigate } = useNavigation<NavigationProp<any>>();
     const [accounts, setAccounts] = useState(accountsData);
     const [defaultAccountId, setDefaultAccountId] = useState('1');
+    const [refreshing, setRefreshing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSetDefault = (accountId: string) => {
         setDefaultAccountId(accountId);
@@ -108,6 +112,22 @@ const WithdrawAccounts = () => {
         navigate('addwithdrawaccount', { isEdit: false });
     };
 
+    // Pull to refresh handler
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            // In a real app, you would refetch accounts data here
+            // For now, we'll just refresh the state
+            setAccounts(accountsData);
+        } catch (error) {
+            console.log("Error refreshing accounts:", error);
+        } finally {
+            setRefreshing(false);
+        }
+    }, []);
+
     return (
         <SafeAreaView
             style={[
@@ -130,10 +150,26 @@ const WithdrawAccounts = () => {
                 <View style={styles.headerRight} />
             </View>
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        Loading accounts...
+                    </Text>
+                </View>
+            ) : (
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={COLORS.primary}
+                            colors={[COLORS.primary]}
+                        />
+                    }
+                >
                 {accounts.map((account) => (
                     <View key={account.id} style={styles.accountRow}>
                         {/* Radio Button - Separate on the left */}
@@ -242,7 +278,8 @@ const WithdrawAccounts = () => {
                         </View>
                     </View>
                 ))}
-            </ScrollView>
+                </ScrollView>
+            )}
 
             {/* Add New Button */}
             <TouchableOpacity
@@ -389,6 +426,16 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         fontSize: isTablet ? 18 : 16,
         fontWeight: '700',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 14,
     },
 });
 

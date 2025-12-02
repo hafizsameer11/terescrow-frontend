@@ -73,14 +73,18 @@ const GiftCardCategories = () => {
   const { push } = useRouter();
   const { navigate, goBack } = useNavigation<NavigationProp<any>>();
   const { departmentId, departmentTitle ,departmentType}: { departmentId: string, departmentTitle: string,departmentType:string } = route.params as any;
-  if (!departmentId) {
-    return goBack();
-  }
   const [searchTerm, setSearchTerm] = useState('');
   const [displayCategories, setDisplayCategories] =
     useState<ICategoryResponse['data']['categories']>();
   const { dark } = useTheme();
   const { token } = useAuth();
+
+  // Handle missing departmentId - move navigation to useEffect to avoid setState during render
+  useEffect(() => {
+    if (!departmentId) {
+      goBack();
+    }
+  }, [departmentId, goBack]);
   const {
     data: categories,
     isLoading: isLoadingCategories,
@@ -92,21 +96,21 @@ const GiftCardCategories = () => {
   });
 
   useEffect(() => {
+    if (!departmentId) return; // Don't process if no departmentId
+    
     const categoriesData = categories?.data?.categories;
     console.log(categoriesData);
     if (categoriesData) {
       if (searchTerm !== '') {
-        setDisplayCategories((prev) => {
-          const displayCards = prev?.filter((card) =>
-            card.category.title.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-          return displayCards;
-        });
+        const filteredCards = categoriesData.filter((card) =>
+          card.category.title.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setDisplayCategories(filteredCards);
         return;
       }
       setDisplayCategories(categoriesData);
     }
-  }, [categories, searchTerm]);
+  }, [categories, searchTerm, departmentId]);
 
   const renderCardsList = () => {
     return (
@@ -142,10 +146,14 @@ const GiftCardCategories = () => {
           : { backgroundColor: Colors.light.background },
       ]}
     >
-      <NavigateBack text="Giftcards" />
-      {/* Search Input Field */}
-      <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-      {displayCategories && renderCardsList()}
+      {departmentId ? (
+        <>
+          <NavigateBack text="Giftcards" />
+          {/* Search Input Field */}
+          <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+          {displayCategories && renderCardsList()}
+        </>
+      ) : null}
     </SafeAreaView>
   );
 };

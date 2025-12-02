@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { images } from '@/constants';
+import { useAuth } from '@/contexts/authContext';
+import { NavigationProp } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -51,8 +54,61 @@ const onboardingData: OnboardingSlide[] = [
   },
 ];
 
+const TOKEN_KEY = 'authToken';
+const USER_DATA_KEY = 'USER_DATA';
+const BIOMETRIC_AUTH_KEY = 'BIOMETRIC_AUTH';
+
 const OnboardingScreen = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const { setToken, setUserData } = useAuth();
+  const { reset } = useNavigation<NavigationProp<any>>();
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      try {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        const userDataStr = await SecureStore.getItemAsync(USER_DATA_KEY);
+        const timestampStr = await SecureStore.getItemAsync('LOGIN_TIMESTAMP');
+
+        if (token && userDataStr && timestampStr) {
+          const loginTime = parseInt(timestampStr);
+          const now = Date.now();
+          const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+          
+          // Check if token is still valid (within 30 days)
+          if (now - loginTime < THIRTY_DAYS) {
+            // User is authenticated, set token and userData, then navigate to home
+            setToken(token);
+            setUserData(JSON.parse(userDataStr));
+            
+            // Mark onboarding as completed
+            await AsyncStorage.setItem('onboarding_completed', 'true');
+            
+            // Navigate directly to home screen
+            reset({
+              index: 0,
+              routes: [{ name: '(tabs)' }],
+            });
+            return;
+          } else {
+            // Token expired, clear stored data
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            await SecureStore.deleteItemAsync(USER_DATA_KEY);
+            await SecureStore.deleteItemAsync('LOGIN_TIMESTAMP');
+            await SecureStore.deleteItemAsync(BIOMETRIC_AUTH_KEY);
+          }
+        }
+      } catch (err) {
+        console.log('Auth check error:', err);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuthentication();
+  }, [setToken, setUserData, reset]);
 
   const handleNext = async () => {
     if (currentIndex < onboardingData.length - 1) {
@@ -60,6 +116,34 @@ const OnboardingScreen = () => {
     } else {
       // Mark onboarding as completed
       await AsyncStorage.setItem('onboarding_completed', 'true');
+      
+      // Check authentication one more time before navigating
+      try {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        const userDataStr = await SecureStore.getItemAsync(USER_DATA_KEY);
+        const timestampStr = await SecureStore.getItemAsync('LOGIN_TIMESTAMP');
+
+        if (token && userDataStr && timestampStr) {
+          const loginTime = parseInt(timestampStr);
+          const now = Date.now();
+          const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+          
+          if (now - loginTime < THIRTY_DAYS) {
+            // User is authenticated, navigate to home
+            setToken(token);
+            setUserData(JSON.parse(userDataStr));
+            reset({
+              index: 0,
+              routes: [{ name: '(tabs)' }],
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Final auth check error:', err);
+      }
+      
+      // If not authenticated, go to signin
       router.replace('/signin' as any);
     }
   };
@@ -73,9 +157,17 @@ const OnboardingScreen = () => {
 
   const currentSlide = onboardingData[currentIndex];
 
+  // Show nothing while checking authentication
+  if (checkingAuth) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.content} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-        
       <View style={styles.content}>
         {/* Illustration Section */}
         <View style={styles.illustrationContainer}>

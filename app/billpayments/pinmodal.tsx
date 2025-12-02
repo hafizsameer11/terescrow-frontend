@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,12 +7,18 @@ import {
   TouchableOpacity,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useAuth } from '@/contexts/authContext';
+import { useMutation } from '@tanstack/react-query';
+import { createBillPaymentOrder } from '@/utils/mutations/authMutations';
+import { showTopToast } from '@/utils/helpers';
+import { ApiError } from '@/utils/customApiCalls';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -21,15 +27,59 @@ const PinModal = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     amount?: string;
     provider?: string;
     mobileNumber?: string;
+    rechargeAccount?: string; // For betting, might be passed as rechargeAccount
     type?: string;
+    sceneCode?: 'airtime' | 'data' | 'betting';
+    billerId?: string;
+    itemId?: string;
   }>();
+
+  // Debug: Log params when component mounts or params change
+  useEffect(() => {
+    console.log('PIN Modal - Params received:', {
+      sceneCode: params.sceneCode,
+      billerId: params.billerId,
+      itemId: params.itemId,
+      mobileNumber: params.mobileNumber,
+      amount: params.amount,
+      type: params.type,
+      provider: params.provider,
+    });
+  }, [params]);
 
   const [pin, setPin] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(true);
+  const isProcessingRef = useRef(false);
+
+  // Debug: Log params when component mounts or params change
+  useEffect(() => {
+    console.log('PIN Modal - Params received:', {
+      sceneCode: params.sceneCode,
+      billerId: params.billerId,
+      itemId: params.itemId,
+      mobileNumber: params.mobileNumber,
+      amount: params.amount,
+      type: params.type,
+      provider: params.provider,
+    });
+  }, [params]);
+
+  // Debug: Log params when component mounts or params change
+  React.useEffect(() => {
+    console.log('PIN Modal params received:', {
+      sceneCode: params.sceneCode,
+      billerId: params.billerId,
+      itemId: params.itemId,
+      mobileNumber: params.mobileNumber,
+      amount: params.amount,
+      type: params.type,
+    });
+  }, [params]);
 
   const handlePress = (digit: string) => {
     if (pin.length < 4) {
@@ -38,42 +88,147 @@ const PinModal = () => {
   };
 
   const handleBackspace = () => {
-    setPin(pin.slice(0, -1));
+    if (pin.length > 0 && !isProcessingRef.current) {
+      setPin(pin.slice(0, -1));
+    }
   };
 
-  useEffect(() => {
-    if (pin.length === 4) {
-      // TODO: Validate PIN and process transaction
-      // Navigate to success screen after a delay
+  // Mutation for creating bill payment order
+  const { mutate: createOrder, isPending: isCreatingOrder } = useMutation({
+    mutationKey: ['createBillPaymentOrder'],
+    mutationFn: (orderData: {
+      sceneCode: 'airtime' | 'data' | 'betting';
+      billerId: string;
+      itemId?: string;
+      rechargeAccount: string;
+      amount: number;
+      pin: string;
+    }) => createBillPaymentOrder(orderData, token),
+    onSuccess: (data) => {
+      isProcessingRef.current = false;
+      showTopToast({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Order created successfully',
+      });
+      // Close modal and navigate to success screen
+      setModalVisible(false);
+      router.back();
       setTimeout(() => {
-        // Close modal first
-        setModalVisible(false);
-        router.back();
-        // Use a small delay to ensure navigation completes
+        navigate('purchasesuccess' as any, {
+          amount: params.amount,
+          provider: params.provider,
+          mobileNumber: params.mobileNumber,
+          type: params.type || 'airtime',
+        });
+      }, 100);
+    },
+    onError: (error: ApiError) => {
+      isProcessingRef.current = false;
+      setPin([]);
+      let errorMessage = 'Failed to create order. Please try again.';
+      
+      if (error.statusCode === 401) {
+        errorMessage = 'Invalid PIN. Please try again.';
+      } else if (error.statusCode === 400) {
+        errorMessage = error.message || 'Invalid request. Please check your details.';
+      }
+      
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMessage,
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (pin.length === 4 && !isProcessingRef.current) {
+      isProcessingRef.current = true;
+      
+      // Check if this is a bill payment (airtime, data, betting)
+      // For betting, rechargeAccount might be passed as mobileNumber or rechargeAccount
+      const rechargeAccount = params.mobileNumber || params.rechargeAccount;
+      
+      if (params.sceneCode && params.billerId && params.amount && rechargeAccount) {
+        const pinValue = pin.join('');
+        const amountNum = parseFloat(params.amount);
+        
+        if (isNaN(amountNum) || amountNum <= 0) {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Invalid amount',
+          });
+          setPin([]);
+          isProcessingRef.current = false;
+          return;
+        }
+
+        // Validate required fields
+        if (!params.billerId || !rechargeAccount || !params.amount) {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Missing required information',
+          });
+          setPin([]);
+          isProcessingRef.current = false;
+          return;
+        }
+
+        // Prepare order data according to API requirements
+        // itemId is required by backend (can be empty string for airtime/betting)
+        const orderData = {
+          sceneCode: params.sceneCode as 'airtime' | 'data' | 'betting',
+          billerId: params.billerId,
+          itemId: params.itemId || '', // Always send itemId (empty string if not provided)
+          rechargeAccount: rechargeAccount,
+          amount: amountNum,
+          pin: pinValue,
+        };
+
+        console.log('Creating order with data:', {
+          sceneCode: orderData.sceneCode,
+          billerId: orderData.billerId,
+          itemId: orderData.itemId || '(empty string)',
+          rechargeAccount: orderData.rechargeAccount,
+          amount: orderData.amount,
+          pin: '****', // Don't log PIN
+        });
+
+        // Create order
+        createOrder(orderData);
+      } else {
+        // Legacy flow for other transaction types
         setTimeout(() => {
-          if (params.type === 'cryptosend' || params.type === 'cryptobuy' || params.type === 'cryptosell') {
-            // For crypto send/buy/sell, navigate to success screen
-            router.push({
-              pathname: '/billpayments/purchasesuccess',
-              params: {
+          setModalVisible(false);
+          router.back();
+          setTimeout(() => {
+            if (params.type === 'cryptosend' || params.type === 'cryptobuy' || params.type === 'cryptosell') {
+              router.push({
+                pathname: '/billpayments/purchasesuccess',
+                params: {
+                  amount: params.amount,
+                  provider: params.provider,
+                  mobileNumber: params.mobileNumber,
+                  type: params.type,
+                },
+              } as any);
+            } else {
+              navigate('purchasesuccess' as any, {
                 amount: params.amount,
                 provider: params.provider,
                 mobileNumber: params.mobileNumber,
-                type: params.type,
-              },
-            } as any);
-          } else {
-            navigate('purchasesuccess' as any, {
-              amount: params.amount,
-              provider: params.provider,
-              mobileNumber: params.mobileNumber,
-              type: params.type || 'airtime',
-            });
-          }
-        }, 100);
-      }, 500);
+                type: params.type || 'airtime',
+              });
+            }
+          }, 100);
+        }, 500);
+        isProcessingRef.current = false;
+      }
     }
-  }, [pin, navigate, router, params]);
+  }, [pin, params, createOrder, navigate, router]);
 
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
@@ -136,6 +291,16 @@ const PinModal = () => {
               ))}
             </View>
 
+            {/* Loading Indicator */}
+            {isCreatingOrder && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={[styles.loadingText, { color: themeStyles.buttonText }]}>
+                  Processing...
+                </Text>
+              </View>
+            )}
+
             {/* Number Pad */}
             <View style={styles.numberPad}>
               {/* Row 1: 1, 2, 3 */}
@@ -146,7 +311,8 @@ const PinModal = () => {
                     styles.numberButton,
                     { backgroundColor: themeStyles.buttonBackground },
                   ]}
-                  onPress={() => handlePress(digit.toString())}
+                  onPress={() => !isCreatingOrder && handlePress(digit.toString())}
+                  disabled={isCreatingOrder}
                 >
                   <Text
                     style={[
@@ -166,7 +332,8 @@ const PinModal = () => {
                     styles.numberButton,
                     { backgroundColor: themeStyles.buttonBackground },
                   ]}
-                  onPress={() => handlePress(digit.toString())}
+                  onPress={() => !isCreatingOrder && handlePress(digit.toString())}
+                  disabled={isCreatingOrder}
                 >
                   <Text
                     style={[
@@ -186,7 +353,8 @@ const PinModal = () => {
                     styles.numberButton,
                     { backgroundColor: themeStyles.buttonBackground },
                   ]}
-                  onPress={() => handlePress(digit.toString())}
+                  onPress={() => !isCreatingOrder && handlePress(digit.toString())}
+                  disabled={isCreatingOrder}
                 >
                   <Text
                     style={[
@@ -203,9 +371,10 @@ const PinModal = () => {
               <TouchableOpacity
                 style={[
                   styles.numberButton,
-                 { backgroundColor: 'transparent' },
+                  { backgroundColor: 'transparent' },
                 ]}
-                onPress={() => handlePress('0')}
+                onPress={() => !isCreatingOrder && handlePress('0')}
+                disabled={isCreatingOrder}
               >
                 <Text
                   style={[
@@ -219,9 +388,9 @@ const PinModal = () => {
               <TouchableOpacity
                 style={[
                   styles.numberButton,
-                  ,
                 ]}
                 onPress={handleBackspace}
+                disabled={isCreatingOrder}
               >
                 <Text
                   style={[
@@ -311,6 +480,16 @@ const styles = StyleSheet.create({
   emptyButton: {
     width: isTablet ? 100 : (width - 80) / 3,
     height: isTablet ? 60 : 56,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
   },
 });
 

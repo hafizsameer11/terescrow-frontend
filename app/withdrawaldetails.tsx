@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,8 @@ import {
   ScrollView,
   Dimensions,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -28,6 +30,8 @@ const WithdrawalDetails = () => {
   }>();
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(params.selectedNetwork || null);
   const [amount, setAmount] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (params.selectedNetwork) {
@@ -58,6 +62,24 @@ const WithdrawalDetails = () => {
     });
   };
 
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, you would refetch withdrawal data here
+      // For now, we'll just refresh the selected network from params
+      if (params.selectedNetwork) {
+        setSelectedNetwork(params.selectedNetwork);
+      }
+    } catch (error) {
+      console.log("Error refreshing withdrawal details:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [params.selectedNetwork]);
+
   return (
     <SafeAreaView
       style={[
@@ -80,10 +102,26 @@ const WithdrawalDetails = () => {
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Loading withdrawal details...
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
+        >
         {/* Select Network */}
         <View style={styles.networkSelectorContainer}>
           {/* <Text style={styles.networkSelectorLabel}>Select Network</Text> */}
@@ -131,7 +169,8 @@ const WithdrawalDetails = () => {
             Kindly note that minimum withdrawal amount is 100 USDT
           </Text>
         </View>
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {/* Withdraw Button */}
       <TouchableOpacity
@@ -256,6 +295,16 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
   },
 });
 

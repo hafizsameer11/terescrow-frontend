@@ -1,24 +1,42 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, ImageBackground, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useAuth } from '@/contexts/authContext';
 import { useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { getWalletOverview } from '@/utils/queries/accountQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
 const BalanceCard = () => {
   const { dark } = useTheme();
-  const { userData } = useAuth();
+  const { userData, token } = useAuth();
   const { navigate } = useNavigation<NavigationProp<any>>();
   const [balanceVisible, setBalanceVisible] = useState(true);
 
-  // TODO: Replace with actual balance from API when available
-  const nairaBalance = (userData as any)?.nairaBalance || 0;
-  const dollarBalance = (userData as any)?.dollarBalance || 0;
+  // Fetch wallet overview
+  const { 
+    data: walletData, 
+    isLoading: walletLoading,
+    isError: walletError,
+  } = useQuery({
+    queryKey: ['walletOverview'],
+    queryFn: () => getWalletOverview(token),
+    enabled: !!token,
+    refetchInterval: 5000, // Refetch every 5 seconds
+  });
+
+  // Extract balance from API response
+  const totalBalance = walletData?.data?.totalBalance || 0;
+  const currency = walletData?.data?.currency || 'NGN';
+  
+  // Convert to Naira and Dollar (assuming 1 USD = 1500 NGN for now, or use actual conversion rate)
+  const nairaBalance = currency === 'NGN' ? totalBalance : totalBalance * 1500; // Adjust conversion rate as needed
+  const dollarBalance = currency === 'NGN' ? totalBalance / 1500 : totalBalance; // Adjust conversion rate as needed
 
   const formatBalance = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -61,12 +79,25 @@ const BalanceCard = () => {
 
       {/* Balance Amount */}
       <View style={styles.balanceSection}>
-        <Text style={styles.nairaBalance}>
-          {balanceVisible ? `N${formatBalance(nairaBalance)}` : 'N••••••'}
-        </Text>
-        <Text style={styles.dollarBalance}>
-          {balanceVisible ? `≈ $${formatBalance(dollarBalance)}` : '= $••••••'}
-        </Text>
+        {walletLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#FFFFFF" />
+            <Text style={styles.loadingText}>Loading balance...</Text>
+          </View>
+        ) : walletError ? (
+          <Text style={styles.nairaBalance}>
+            {balanceVisible ? 'N0.00' : 'N••••••'}
+          </Text>
+        ) : (
+          <>
+            <Text style={styles.nairaBalance}>
+              {balanceVisible ? `N${formatBalance(nairaBalance)}` : 'N••••••'}
+            </Text>
+            <Text style={styles.dollarBalance}>
+              {balanceVisible ? `≈ $${formatBalance(dollarBalance)}` : '= $••••••'}
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Action Buttons */}
@@ -179,6 +210,17 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: isTablet ? 16 : 14,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '400',
+    marginLeft: 8,
   },
 });
 

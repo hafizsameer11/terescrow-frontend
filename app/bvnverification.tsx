@@ -29,7 +29,6 @@ const BvnVerification = () => {
   const { goBack } = useNavigation();
   const { token, userData } = useAuth();
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
 
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
@@ -39,7 +38,7 @@ const BvnVerification = () => {
 
   const { mutate: submitBVN } = useMutation({
     mutationKey: ['submitBVN'],
-    mutationFn: (values) => KyCRequest(values, token),
+    mutationFn: (values: { surName: string; firstName: string; bvn: string; dob: string }) => KyCRequest(values, token),
     onSuccess: (data) => {
       router.push('/profile');
       console.log('Submission Successful:', data);
@@ -54,17 +53,6 @@ const BvnVerification = () => {
       console.error('Submission Failed:', error);
     },
   });
-
-  const handleDateChange = (event, selected) => {
-    setShowDatePicker(false);
-    if (selected) {
-      const date = new Date(selected);
-      const formattedDate = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      setSelectedDate(formattedDate);
-    }
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
@@ -101,10 +89,26 @@ const BvnVerification = () => {
                   surName: '',
                   firstName: '',
                   bvn: '',
-                  dob: selectedDate,
+                  dob: '',
                 }}
                 validationSchema={validationBVNValidation}
-                onSubmit={(values) => submitBVN(values)}
+                onSubmit={(values) => {
+                  // Ensure dob is a string in YYYY-MM-DD format
+                  let formattedDob = values.dob;
+                  if (typeof formattedDob === 'string' && formattedDob) {
+                    // Already a string, use as is
+                    formattedDob = formattedDob;
+                  } else {
+                    // If somehow it's not a string, format it
+                    formattedDob = '';
+                  }
+                  
+                  const formattedValues = {
+                    ...values,
+                    dob: formattedDob
+                  };
+                  submitBVN(formattedValues);
+                }}
               >
                 {({
                   handleChange,
@@ -114,69 +118,122 @@ const BvnVerification = () => {
                   setFieldValue,
                   errors,
                   touched,
-                }) => (
-                  <View>
-                    <Input
-                      id="surName"
-                      label="Surname"
-                      onChangeText={handleChange('surName')}
-                      keyboardType="default"
-                      onBlur={handleBlur('surName')}
-                      value={values.surName}
-                      errorText={
-                        touched.surName && errors.surName ? errors.surName : ''
-                      }
-                    />
-                    <Input
-                      id="firstName"
-                      label="First Name"
-                      onChangeText={handleChange('firstName')}
-                      keyboardType="default"
-                      onBlur={handleBlur('firstName')}
-                      value={values.firstName}
-                      errorText={
-                        touched.firstName && errors.firstName
-                          ? errors.firstName
-                          : ''
-                      }
-                    />
-                    <Input
-                      id="bvn"
-                      label="BVN"
-                      onChangeText={handleChange('bvn')}
-                      keyboardType="numeric"
-                      onBlur={handleBlur('bvn')}
-                      value={values.bvn}
-                      errorText={touched.bvn && errors.bvn ? errors.bvn : ''}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowDatePicker(true)}
-                      style={styles.dateInput}
-                    >
-                      <Text
-                        style={{
-                          color: selectedDate
-                            ? themeStyles.normalText
-                            : COLORS.gray,
-                        }}
-                      >
-                        {selectedDate || 'Select Date of Birth'}
-                      </Text>
-                    </TouchableOpacity>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={selectedDate ? new Date(selectedDate) : new Date()}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                        onChange={(event, date) => {
-                          handleDateChange(event, date);
-                          setFieldValue('dob', date);
-                        }}
+                }) => {
+                  // Format date for display
+                  const formatDateForDisplay = (dateValue: string | undefined) => {
+                    if (!dateValue) return '';
+                    try {
+                      const date = new Date(dateValue);
+                      if (isNaN(date.getTime())) return '';
+                      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    } catch {
+                      return '';
+                    }
+                  };
+
+                  const displayDate = formatDateForDisplay(values.dob);
+                  const datePickerValue = values.dob 
+                    ? new Date(values.dob)
+                    : new Date();
+
+                  return (
+                    <View>
+                      <Input
+                        id="surName"
+                        label="Surname"
+                        onChangeText={handleChange('surName')}
+                        keyboardType="default"
+                        onBlur={handleBlur('surName')}
+                        value={values.surName || ''}
+                        errorText={
+                          touched.surName && errors.surName ? errors.surName : ''
+                        }
+                        variant="signin"
                       />
-                    )}
-                    <Button title={'Continue'} onPress={() => handleSubmit()} />
-                  </View>
-                )}
+                      <Input
+                        id="firstName"
+                        label="First Name"
+                        onChangeText={handleChange('firstName')}
+                        keyboardType="default"
+                        onBlur={handleBlur('firstName')}
+                        value={values.firstName || ''}
+                        errorText={
+                          touched.firstName && errors.firstName
+                            ? errors.firstName
+                            : ''
+                        }
+                        variant="signin"
+                      />
+                      <Input
+                        id="bvn"
+                        label="BVN"
+                        onChangeText={handleChange('bvn')}
+                        keyboardType="numeric"
+                        onBlur={handleBlur('bvn')}
+                        value={values.bvn || ''}
+                        errorText={touched.bvn && errors.bvn ? errors.bvn : ''}
+                        variant="signin"
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowDatePicker(true)}
+                        style={[
+                          styles.dateInput,
+                          {
+                            borderColor: touched.dob && errors.dob 
+                              ? COLORS.error 
+                              : COLORS.gray,
+                            backgroundColor: '#FEFEFE',
+                          }
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: displayDate
+                              ? themeStyles.normalText
+                              : COLORS.gray,
+                            fontSize: displayDate ? 14 : 16,
+                            paddingTop: displayDate ? 8 : 0,
+                          }}
+                        >
+                          {displayDate || 'Select Date of Birth'}
+                        </Text>
+                        {displayDate && (
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: COLORS.gray,
+                              marginTop: 2,
+                            }}
+                          >
+                            Date of Birth
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                      {touched.dob && errors.dob && (
+                        <Text style={styles.errorText}>{errors.dob}</Text>
+                      )}
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={datePickerValue}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                          onChange={(event, date) => {
+                            setShowDatePicker(Platform.OS === 'ios');
+                            if (date && event.type !== 'dismissed') {
+                              // Format date as YYYY-MM-DD string for Formik
+                              const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                              setFieldValue('dob', formattedDate);
+                            }
+                            if (Platform.OS === 'android') {
+                              setShowDatePicker(false);
+                            }
+                          }}
+                        />
+                      )}
+                      <Button title={'Continue'} onPress={() => handleSubmit()} />
+                    </View>
+                  );
+                }}
               </Formik>
             </View>
           </View>
@@ -209,9 +266,18 @@ const styles = StyleSheet.create({
   dateInput: {
     borderWidth: 1,
     borderColor: COLORS.gray,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 15,
     marginVertical: 10,
+    minHeight: 56,
+    justifyContent: 'center',
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: -5,
+    marginBottom: 5,
+    marginLeft: 2,
   },
 });
 

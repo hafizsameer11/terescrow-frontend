@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -14,6 +16,11 @@ import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import Input from '@/components/CustomInput';
+import { useAuth } from '@/contexts/authContext';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { getWalletOverview } from '@/utils/queries/accountQueries';
+import { showTopToast } from '@/utils/helpers';
+import { verifyBillPaymentAccount } from '@/utils/mutations/authMutations';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -22,36 +29,171 @@ const Airtime = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     selectedProvider?: string;
+    selectedBillerId?: string;
+    selectedPlan?: string;
+    selectedItemId?: string;
   }>();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(params.selectedProvider || null);
+  const [selectedBillerId, setSelectedBillerId] = useState<string | null>(params.selectedBillerId || null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(params.selectedPlan || null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(params.selectedItemId || null);
   const [mobileNumber, setMobileNumber] = useState('');
   const [amount, setAmount] = useState('');
-  const balance = 'N5,000';
+  const [verificationStatus, setVerificationStatus] = useState<{
+    isValid: boolean | null;
+    message: string;
+  }>({ isValid: null, message: '' });
+
+  // Fetch wallet balance
+  const { data: walletData, isLoading: walletLoading, refetch: refetchWallet } = useQuery({
+    queryKey: ['walletOverview'],
+    queryFn: () => getWalletOverview(token),
+    enabled: !!token,
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchWallet();
+    } catch (error) {
+      console.error('Error refreshing wallet:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchWallet]);
+
+  // Account verification mutation
+  const { mutate: verifyAccount, isPending: isVerifying } = useMutation({
+    mutationKey: ['verifyBillPaymentAccount'],
+    mutationFn: (data: { sceneCode: 'airtime' | 'data'; rechargeAccount: string; billerId: string; itemId?: string }) =>
+      verifyBillPaymentAccount(data, token),
+    onSuccess: (data) => {
+      if (data.data?.valid) {
+        setVerificationStatus({
+          isValid: true,
+          message: data.data.biller ? `Valid ${data.data.biller} number` : 'Valid number',
+        });
+      } else {
+        setVerificationStatus({
+          isValid: false,
+          message: 'Invalid number. Please check and try again.',
+        });
+      }
+    },
+    onError: (error: any) => {
+      setVerificationStatus({
+        isValid: false,
+        message: error.message || 'Unable to verify number. Please try again.',
+      });
+    },
+  });
+
+  // Debounced verification when mobile number changes
+  React.useEffect(() => {
+    if (!mobileNumber || mobileNumber.length < 10 || !selectedBillerId) {
+      setVerificationStatus({ isValid: null, message: '' });
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (mobileNumber && selectedBillerId) {
+        verifyAccount({
+          sceneCode: 'airtime',
+          rechargeAccount: mobileNumber,
+          billerId: selectedBillerId,
+          itemId: selectedItemId || undefined,
+        });
+      }
+    }, 1000); // Wait 1 second after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [mobileNumber, selectedBillerId, selectedItemId, verifyAccount]);
+
+  const totalBalance = walletData?.data?.totalBalance || 0;
+  const currency = walletData?.data?.currency || 'NGN';
+  const balance = currency === 'NGN' 
+    ? `N${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalBalance)}`
+    : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalBalance)}`;
+
+  // Track previous billerId to detect provider changes
+  const prevBillerIdRef = React.useRef<string | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
+      // If provider changed, clear the selected plan
+      if (params.selectedBillerId && params.selectedBillerId !== prevBillerIdRef.current && prevBillerIdRef.current !== null) {
+        setSelectedPlan(null);
+        setSelectedItemId(null);
+      }
+      prevBillerIdRef.current = params.selectedBillerId || null;
+
       if (params.selectedProvider) {
         setSelectedProvider(params.selectedProvider);
       }
-    }, [params.selectedProvider])
+      if (params.selectedBillerId) {
+        setSelectedBillerId(params.selectedBillerId);
+      }
+      if (params.selectedPlan) {
+        setSelectedPlan(params.selectedPlan);
+      }
+      if (params.selectedItemId) {
+        setSelectedItemId(params.selectedItemId);
+      }
+    }, [params.selectedProvider, params.selectedBillerId, params.selectedPlan, params.selectedItemId])
   );
 
   const handleSelectProvider = () => {
     navigate('providermodal' as any, {
       selectedProvider: selectedProvider || '',
+      selectedBillerId: selectedBillerId || '',
+      returnTo: 'airtime',
+      sceneCode: 'airtime',
+    });
+  };
+
+  const handleSelectPlan = () => {
+    if (!selectedBillerId) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please select a provider first',
+      });
+      return;
+    }
+    navigate('plantypemodal' as any, {
+      selectedPlan: selectedPlan || '',
+      selectedItemId: selectedItemId || '',
+      sceneCode: 'airtime',
+      billerId: selectedBillerId,
     });
   };
 
   const handleBuyAirtime = () => {
-    if (!selectedProvider || !mobileNumber || !amount) {
+    if (!selectedProvider || !selectedBillerId || !mobileNumber || !amount) {
       return;
     }
-    navigate('reviewairtime' as any, {
+    console.log('Navigating to PIN modal with:', {
+      sceneCode: 'airtime',
+      billerId: selectedBillerId,
       provider: selectedProvider,
       mobileNumber: mobileNumber,
       amount: amount,
+      itemId: selectedItemId || undefined,
+    });
+    // Navigate to PIN modal with order details
+    navigate('pinmodal' as any, {
+      sceneCode: 'airtime',
+      billerId: selectedBillerId,
+      provider: selectedProvider,
+      mobileNumber: mobileNumber,
+      amount: amount,
+      itemId: selectedItemId || undefined, // itemId from API for airtime plans
+      type: 'airtime',
     });
   };
 
@@ -80,6 +222,14 @@ const Airtime = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {/* Select Provider */}
         <View style={[styles.inputSection, { marginBottom: 20 }]}>
@@ -105,6 +255,29 @@ const Airtime = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Select Plan */}
+        <View style={[styles.inputSection, { marginBottom: 20 }]}>
+          <TouchableOpacity
+            style={styles.providerSelector}
+            onPress={handleSelectPlan}
+          >
+            {selectedPlan ? (
+              <Text style={styles.selectorValue}>
+                {selectedPlan}
+              </Text>
+            ) : (
+              <Text style={styles.selectorPlaceholder}>
+                Select Plan
+              </Text>
+            )}
+            <Image
+              source={icons.arrowDown}
+              style={styles.arrowIcon}
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+
         {/* Mobile Number */}
         <View style={styles.inputSection}>
           <Input
@@ -116,6 +289,28 @@ const Airtime = () => {
             variant="signin"
             placeholder="Mobile Number"
           />
+          {isVerifying && (
+            <View style={styles.verificationContainer}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={[styles.verificationText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Verifying...
+              </Text>
+            </View>
+          )}
+          {!isVerifying && verificationStatus.message && (
+            <View style={styles.verificationContainer}>
+              <Text
+                style={[
+                  styles.verificationText,
+                  verificationStatus.isValid
+                    ? { color: COLORS.primary }
+                    : { color: COLORS.red },
+                ]}
+              >
+                {verificationStatus.message}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Amount in Naira */}
@@ -133,9 +328,13 @@ const Airtime = () => {
 
         {/* Balance and Topup */}
         <View style={styles.balanceContainer}>
-          <Text style={[styles.balanceText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            Balance: {balance}
-          </Text>
+          {walletLoading ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <Text style={[styles.balanceText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Balance: {balance}
+            </Text>
+          )}
           <TouchableOpacity style={styles.topupButton}>
             <Text style={styles.topupButtonText}>Topup</Text>
           </TouchableOpacity>
@@ -144,9 +343,9 @@ const Airtime = () => {
 
       {/* Buy Airtime Button */}
       <TouchableOpacity
-        style={[styles.buyButton, (!selectedProvider || !mobileNumber || !amount) && styles.buyButtonDisabled]}
+        style={[styles.buyButton, (!selectedProvider || !selectedBillerId || !mobileNumber || !amount) && styles.buyButtonDisabled]}
         onPress={handleBuyAirtime}
-        disabled={!selectedProvider || !mobileNumber || !amount}
+        disabled={!selectedProvider || !selectedBillerId || !mobileNumber || !amount}
       >
         <Text style={styles.buyButtonText}>Buy airtime</Text>
       </TouchableOpacity>
@@ -263,6 +462,16 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
+  },
+  verificationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingLeft: 4,
+  },
+  verificationText: {
+    fontSize: 12,
+    marginLeft: 8,
   },
 });
 

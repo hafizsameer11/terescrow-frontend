@@ -5,8 +5,9 @@ import DoughnutChart from "@/components/DoughnutChart";
 import TransactionList from "@/components/Transaction/TransactionList";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
+import { getWalletTransactions } from "@/utils/queries/accountQueries";
 
 const transactions = () => {
   const { dark } = useTheme();
@@ -14,18 +15,34 @@ const transactions = () => {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
+  // Fetch wallet transactions
+  const {
+    data: walletTransactionsData,
+    isLoading: transactionsLoading,
+    isError: transactionsError,
+    refetch: refetchTransactions,
+  } = useQuery({
+    queryKey: ["walletTransactions", "all"],
+    queryFn: () => getWalletTransactions(token, { page: 1, limit: 100 }), // Get more transactions for the full list
+    enabled: !!token,
+    staleTime: 10000,
+  });
+
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Refetch transaction history query (used by both DoughnutChart and TransactionList)
-      await queryClient.invalidateQueries({ queryKey: ["transactionHistory"] });
+      // Refetch wallet transactions and old transaction history (for backward compatibility with DoughnutChart)
+      await Promise.all([
+        refetchTransactions(),
+        queryClient.invalidateQueries({ queryKey: ["transactionHistory"] }),
+      ]);
     } catch (error) {
       console.log("Error refreshing transactions:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [queryClient]);
+  }, [refetchTransactions, queryClient]);
 
   return (
     <SafeAreaView
