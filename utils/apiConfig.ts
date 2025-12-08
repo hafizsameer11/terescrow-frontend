@@ -1,5 +1,5 @@
 // export const API_BASE_URL = 'https://46.202.154.203';
-export const API_BASE_URL = 'http://192.168.1.9:8000';
+export const API_BASE_URL = 'http://10.230.141.151:8000';
 
 
 export const API_DOMAIN = API_BASE_URL + '/api';
@@ -87,5 +87,12 @@ export const API_ENDPOINTS = {
     GetChatById: API_DOMAIN + '/v2/support/chats',
     SendMessage: API_DOMAIN + '/v2/support/chats',
     MarkMessagesRead: API_DOMAIN + '/v2/support/chats',
+  },
+  GIFT_CARDS: {
+    GetProducts: API_DOMAIN + '/v2/giftcards/products',
+    GetProductById: API_DOMAIN + '/v2/giftcards/products', // + /{productId}
+    GetProductCountries: API_DOMAIN + '/v2/giftcards/products', // + /{productId}/countries
+    GetProductTypes: API_DOMAIN + '/v2/giftcards/products', // + /{productId}/types
+    Purchase: API_DOMAIN + '/v2/giftcards/purchase',
   },
 };

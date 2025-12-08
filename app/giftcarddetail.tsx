@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -14,6 +15,13 @@ import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import Input from '@/components/CustomInput';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import {
+  getGiftCardProductById,
+  getGiftCardProductCountries,
+  getGiftCardProductTypes,
+} from '@/utils/queries/quickActionQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -22,18 +30,67 @@ const GiftCardDetail = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
-    cardId?: string;
-    cardName?: string;
+    productId?: string;
+    productName?: string;
+    imageUrl?: string;
+    cardId?: string; // Legacy support
+    cardName?: string; // Legacy support
     selectedCountry?: string;
+    selectedCountryCode?: string;
     selectedGiftCardType?: string;
   }>();
 
-  const cardName = params.cardName || 'Nike';
+  // Support both new (productId) and legacy (cardId) params
+  const productIdParam = params.productId || params.cardId;
+  const productName = params.productName || params.cardName || 'Gift Card';
+  const imageUrl = params.imageUrl;
+
+  // Validate productId is a valid number
+  const productId = productIdParam && !isNaN(Number(productIdParam)) ? Number(productIdParam) : null;
+  const isValidProductId = productId !== null && productId > 0;
+
   const [quantity, setQuantity] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(params.selectedCountry || null);
   const [selectedGiftCardType, setSelectedGiftCardType] = useState<string | null>(params.selectedGiftCardType || null);
   const [amountUSD, setAmountUSD] = useState('');
+
+  // Fetch product details if productId is available and valid
+  const {
+    data: productData,
+    isLoading: productLoading,
+    isError: productError,
+  } = useQuery({
+    queryKey: ['giftCardProduct', productId],
+    queryFn: () => getGiftCardProductById(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
+
+  // Fetch available countries for the product
+  const {
+    data: countriesData,
+    isLoading: countriesLoading,
+    isError: countriesError,
+  } = useQuery({
+    queryKey: ['giftCardProductCountries', productId],
+    queryFn: () => getGiftCardProductCountries(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
+
+  // Fetch available card types for the product
+  const {
+    data: typesData,
+    isLoading: typesLoading,
+    isError: typesError,
+  } = useQuery({
+    queryKey: ['giftCardProductTypes', productId],
+    queryFn: () => getGiftCardProductTypes(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
 
   useEffect(() => {
     if (params.selectedCountry) {
@@ -44,18 +101,9 @@ const GiftCardDetail = () => {
     }
   }, [params.selectedCountry, params.selectedGiftCardType]);
 
-  // Map card name to image
-  const getCardImage = (name: string) => {
-    const nameLower = name.toLowerCase();
-    if (nameLower.includes('nike')) return images.nikeCard;
-    if (nameLower.includes('apple')) return images.itunesCard;
-    if (nameLower.includes('google')) return images.googlePlayCard;
-    if (nameLower.includes('ebay')) return images.ebayCard;
-    if (nameLower.includes('steam') || nameLower.includes('razer')) return images.steamCard;
-    return images.nikeCard; // Default
-  };
-
-  const cardImage = getCardImage(cardName);
+  // Use product image from API or fallback to param or default
+  const cardImage = productData?.data?.imageUrl || imageUrl || images.nikeCard;
+  const displayName = productData?.data?.productName || productName;
 
   const handleDecreaseQuantity = () => {
     if (quantity > 1) {
@@ -68,32 +116,48 @@ const GiftCardDetail = () => {
   };
 
   const handleSelectCountry = () => {
+    if (!isValidProductId) return;
     navigate('countrymodal' as any, {
       selectedCountry: selectedCountry || '',
-      returnTo: 'giftcarddetail',
-      cardName: cardName,
-      cardId: params.cardId,
+      returnTo: 'giftcarddetails',
+      productName: displayName,
+      productId: productId?.toString(),
+      imageUrl: cardImage,
     });
   };
 
   const handleSelectGiftCardType = () => {
+    if (!isValidProductId) return;
     navigate('giftcardtypemodal' as any, {
       selectedGiftCardType: selectedGiftCardType || '',
-      returnTo: 'giftcarddetail',
-      cardName: cardName,
-      cardId: params.cardId,
+      returnTo: 'giftcarddetails',
+      productName: displayName,
+      productId: productId?.toString(),
+      imageUrl: cardImage,
       selectedCountry: selectedCountry || '',
     });
   };
 
   const handleProceed = () => {
-    if (!selectedCountry || !selectedGiftCardType || !amountUSD) {
+    if (!selectedCountry || !selectedGiftCardType || !amountUSD || !isValidProductId) {
       return;
     }
-    navigate('giftcardpurchasesuccess' as any, {
-      cardName: cardName,
-      amount: amountUSD,
+
+    // Validate amount
+    const unitPrice = parseFloat(amountUSD);
+    if (isNaN(unitPrice) || unitPrice <= 0) {
+      return;
+    }
+
+    // Navigate to PIN modal for purchase
+    navigate('giftcardpinmodal' as any, {
+      productId: productId?.toString(),
+      productName: displayName,
       quantity: quantity.toString(),
+      unitPrice: unitPrice.toString(),
+      selectedCountry: selectedCountry,
+      selectedCountryCode: params.selectedCountryCode || '',
+      selectedGiftCardType: selectedGiftCardType,
     });
   };
 
@@ -114,23 +178,43 @@ const GiftCardDetail = () => {
           />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, dark ? { color: COLORS.black } : { color: COLORS.black }]}>
-          {cardName}
+          {displayName}
         </Text>
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Gift Card Image */}
-        <View style={styles.cardImageContainer}>
-          <Image
-            source={cardImage}
-            style={styles.cardImage}
-            contentFit="cover"
-          />
+      {!isValidProductId ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Invalid product ID. Please go back and try again.
+          </Text>
         </View>
+      ) : productLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Loading product details...
+          </Text>
+        </View>
+      ) : productError ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Product not found. Please go back and try again.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Gift Card Image */}
+          <View style={styles.cardImageContainer}>
+            <Image
+              source={typeof cardImage === 'string' ? { uri: cardImage } : cardImage}
+              style={styles.cardImage}
+              contentFit="cover"
+            />
+          </View>
 
         {/* How many cards? */}
         <View style={[styles.quantitySection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
@@ -214,7 +298,20 @@ const GiftCardDetail = () => {
             placeholder="Enter amount in USD"
           />
         </View>
-      </ScrollView>
+
+        {/* Redemption Instructions */}
+        {productData?.data?.redemptionInstructions?.concise && (
+          <View style={[styles.instructionsSection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#FEFEFE' }]}>
+            <Text style={[styles.instructionsTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              How to Redeem
+            </Text>
+            <Text style={[styles.instructionsText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              {productData.data.redemptionInstructions.concise}
+            </Text>
+          </View>
+        )}
+        </ScrollView>
+      )}
 
       {/* Proceed Button */}
       <TouchableOpacity
@@ -369,6 +466,49 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  instructionsSection: {
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2d9ec',
+    backgroundColor: '#FEFEFE',
+  },
+  instructionsTitle: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
+    marginBottom: 8,
+    color: COLORS.black,
+  },
+  instructionsText: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: COLORS.greyscale600,
   },
 });
 

@@ -360,4 +360,58 @@ export const markSupportMessagesRead = async (
   return await apiCall(`${API_ENDPOINTS.SUPPORT.MarkMessagesRead}/${chatId}/messages/read`, 'PUT', undefined, token);
 }
 
+// Gift Card Purchase Mutation
+export interface IPurchaseGiftCardReq {
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  senderName: string;
+  pin: string;
+}
+
+export interface IPurchaseGiftCardResponse extends ApiResponse {
+  data: {
+    transactionId: number;
+    amount: number;
+    discount: number;
+    currencyCode: string;
+    fee: number;
+    totalFee: number;
+    recipientEmail: string;
+    customIdentifier: string;
+    status: string;
+    product: {
+      productId: number;
+      productName: string;
+      countryCode: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      currencyCode: string;
+      brand: {
+        brandId: number;
+        brandName: string;
+      };
+    };
+    transactionCreatedTime: string;
+    preOrdered: boolean;
+    balanceInfo: {
+      oldBalance: number;
+      newBalance: number;
+      cost: number;
+      currencyCode: string;
+      currencyName: string;
+      updatedAt: string;
+    };
+    orderId: string;
+  };
+}
+
+export const purchaseGiftCard = async (
+  data: IPurchaseGiftCardReq,
+  token: string
+): Promise<IPurchaseGiftCardResponse> => {
+  return await apiCall(API_ENDPOINTS.GIFT_CARDS.Purchase, 'POST', data, token);
+}
+
 

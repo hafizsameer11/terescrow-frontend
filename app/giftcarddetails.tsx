@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,13 +6,22 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
+import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
+import { NavigationProp } from '@react-navigation/native';
+import Input from '@/components/CustomInput';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import {
+  getGiftCardProductById,
+  getGiftCardProductCountries,
+  getGiftCardProductTypes,
+} from '@/utils/queries/quickActionQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -20,43 +29,136 @@ const isTablet = width >= 768;
 const GiftCardDetails = () => {
   const { dark } = useTheme();
   const router = useRouter();
+  const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
-    cardName?: string;
-    amount?: string;
-    quantity?: string;
+    productId?: string;
+    productName?: string;
+    imageUrl?: string;
+    cardId?: string; // Legacy support
+    cardName?: string; // Legacy support
+    selectedCountry?: string;
+    selectedCountryCode?: string;
+    selectedGiftCardType?: string;
   }>();
 
-  const cardName = params.cardName || 'Nike Gift Card';
-  const amount = params.amount || '$50';
-  const quantity = params.quantity || '1';
+  // Support both new (productId) and legacy (cardId) params
+  const productIdParam = params.productId || params.cardId;
+  const productName = params.productName || params.cardName || 'Gift Card';
+  const imageUrl = params.imageUrl;
 
-  // Map card name to image
-  const getCardImage = (name: string) => {
-    const nameLower = name.toLowerCase();
-    if (nameLower.includes('nike')) return images.nikeCard;
-    if (nameLower.includes('apple')) return images.itunesCard;
-    if (nameLower.includes('google')) return images.googlePlayCard;
-    if (nameLower.includes('ebay')) return images.ebayCard;
-    if (nameLower.includes('steam') || nameLower.includes('razer')) return images.steamCard;
-    return images.nikeCard; // Default
+  // Validate productId is a valid number
+  const productId = productIdParam && !isNaN(Number(productIdParam)) ? Number(productIdParam) : null;
+  const isValidProductId = productId !== null && productId > 0;
+
+  const [quantity, setQuantity] = useState(1);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(params.selectedCountry || null);
+  const [selectedGiftCardType, setSelectedGiftCardType] = useState<string | null>(params.selectedGiftCardType || null);
+  const [amountUSD, setAmountUSD] = useState('');
+
+  // Fetch product details if productId is available and valid
+  const {
+    data: productData,
+    isLoading: productLoading,
+    isError: productError,
+  } = useQuery({
+    queryKey: ['giftCardProduct', productId],
+    queryFn: () => getGiftCardProductById(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
+
+  // Fetch available countries for the product
+  const {
+    data: countriesData,
+    isLoading: countriesLoading,
+    isError: countriesError,
+  } = useQuery({
+    queryKey: ['giftCardProductCountries', productId],
+    queryFn: () => getGiftCardProductCountries(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
+
+  // Fetch available card types for the product
+  const {
+    data: typesData,
+    isLoading: typesLoading,
+    isError: typesError,
+  } = useQuery({
+    queryKey: ['giftCardProductTypes', productId],
+    queryFn: () => getGiftCardProductTypes(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
+
+  useEffect(() => {
+    if (params.selectedCountry) {
+      setSelectedCountry(params.selectedCountry);
+    }
+    if (params.selectedGiftCardType) {
+      setSelectedGiftCardType(params.selectedGiftCardType);
+    }
+  }, [params.selectedCountry, params.selectedGiftCardType]);
+
+  // Use product image from API or fallback to param or default
+  const cardImage = productData?.data?.imageUrl || imageUrl || images.nikeCard;
+  const displayName = productData?.data?.productName || productName;
+
+  const handleDecreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
   };
 
-  const cardImage = getCardImage(cardName);
-
-  // Dummy card data
-  const cardCode = 'skfkfkkfkwkc349we9vw9v';
-  const brand = cardName;
-  const value = amount;
-  const expirationDate = 'June, 2026';
-
-  const handleCopyCode = async () => {
-    await Clipboard.setStringAsync(cardCode);
-    // TODO: Show toast notification
+  const handleIncreaseQuantity = () => {
+    setQuantity(quantity + 1);
   };
 
-  const handleViewTransaction = () => {
-    // TODO: Navigate to transaction details
-    router.replace('/(tabs)/transactions');
+  const handleSelectCountry = () => {
+    if (!isValidProductId) return;
+    navigate('countrymodal' as any, {
+      selectedCountry: selectedCountry || '',
+      returnTo: 'giftcarddetails',
+      productName: displayName,
+      productId: productId?.toString(),
+      imageUrl: cardImage,
+    });
+  };
+
+  const handleSelectGiftCardType = () => {
+    if (!isValidProductId) return;
+    navigate('giftcardtypemodal' as any, {
+      selectedGiftCardType: selectedGiftCardType || '',
+      returnTo: 'giftcarddetails',
+      productName: displayName,
+      productId: productId?.toString(),
+      imageUrl: cardImage,
+      selectedCountry: selectedCountry || '',
+    });
+  };
+
+  const handleProceed = () => {
+    if (!selectedCountry || !selectedGiftCardType || !amountUSD || !isValidProductId) {
+      return;
+    }
+
+    // Validate amount
+    const unitPrice = parseFloat(amountUSD);
+    if (isNaN(unitPrice) || unitPrice <= 0) {
+      return;
+    }
+
+    // Navigate to PIN modal for purchase
+    navigate('giftcardpinmodal' as any, {
+      productId: productId?.toString(),
+      productName: displayName,
+      quantity: quantity.toString(),
+      unitPrice: unitPrice.toString(),
+      selectedCountry: selectedCountry,
+      selectedCountryCode: params.selectedCountryCode || '',
+      selectedGiftCardType: selectedGiftCardType,
+    });
   };
 
   return (
@@ -76,88 +178,148 @@ const GiftCardDetails = () => {
           />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, dark ? { color: COLORS.black } : { color: COLORS.black }]}>
-          Card Details
+          {displayName}
         </Text>
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Gift Card Image */}
-        <View style={styles.cardImageContainer}>
-          <Image
-            source={cardImage}
-            style={styles.cardImage}
-            contentFit="cover"
+      {!isValidProductId ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Invalid product ID. Please go back and try again.
+          </Text>
+        </View>
+      ) : productLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Loading product details...
+          </Text>
+        </View>
+      ) : productError ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Product not found. Please go back and try again.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Gift Card Image */}
+          <View style={styles.cardImageContainer}>
+            <Image
+              source={typeof cardImage === 'string' ? { uri: cardImage } : cardImage}
+              style={styles.cardImage}
+              contentFit="cover"
+            />
+          </View>
+
+        {/* How many cards? */}
+        <View style={[styles.quantitySection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+          <Text style={[styles.quantityLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.black }]}>
+            How many cards?
+          </Text>
+          <View style={styles.quantityControls}>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={handleDecreaseQuantity}
+            >
+              <Text style={styles.quantityButtonText}>-</Text>
+            </TouchableOpacity>
+            <Text style={[styles.quantityValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              {quantity}
+            </Text>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={handleIncreaseQuantity}
+            >
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Select Country */}
+        <View style={styles.inputSection}>
+          <TouchableOpacity
+            style={styles.selector}
+            onPress={handleSelectCountry}
+          >
+            {selectedCountry ? (
+              <Text style={styles.selectorValue}>
+                {selectedCountry}
+              </Text>
+            ) : (
+              <Text style={styles.selectorPlaceholder}>
+                Select country
+              </Text>
+            )}
+            <Image
+              source={icons.arrowDown}
+              style={styles.arrowIcon}
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Gift card type */}
+        <View style={styles.inputSection}>
+          <TouchableOpacity
+            style={styles.selector}
+            onPress={handleSelectGiftCardType}
+          >
+            {selectedGiftCardType ? (
+              <Text style={styles.selectorValue}>
+                {selectedGiftCardType}
+              </Text>
+            ) : (
+              <Text style={styles.selectorPlaceholder}>
+                Gift card type
+              </Text>
+            )}
+            <Image
+              source={icons.arrowDown}
+              style={styles.arrowIcon}
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Enter amount in USD */}
+        <View style={styles.inputSection}>
+          <Input
+            label=""
+            keyboardType="decimal-pad"
+            value={amountUSD}
+            onChangeText={setAmountUSD}
+            id="amountUSD"
+            variant="signin"
+            placeholder="Enter amount in USD"
           />
         </View>
 
-        {/* Card Details Panel */}
-        <View style={[styles.detailsPanel, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#E8F5E9' }]}>
-          {/* Card Code */}
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-              Card Code:
+        {/* Redemption Instructions */}
+        {productData?.data?.redemptionInstructions?.concise && (
+          <View style={[styles.instructionsSection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#FEFEFE' }]}>
+            <Text style={[styles.instructionsTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              How to Redeem
             </Text>
-            <View style={styles.detailValueContainer}>
-              <Image
-                source={images.lock}
-                style={[styles.lockIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
-                contentFit="contain"
-              />
-              <Text style={[styles.detailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]} numberOfLines={1}>
-                {cardCode}
-              </Text>
-              <TouchableOpacity onPress={handleCopyCode} style={styles.copyButton}>
-                <Image
-                  source={images.copy}
-                  style={[styles.copyIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
-                  contentFit="contain"
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Brand */}
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-              Brand:
-            </Text>
-            <Text style={[styles.detailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-              {brand}
+            <Text style={[styles.instructionsText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              {productData.data.redemptionInstructions.concise}
             </Text>
           </View>
+        )}
+        </ScrollView>
+      )}
 
-          {/* Value */}
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-              Value
-            </Text>
-            <Text style={[styles.detailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-              {value}
-            </Text>
-          </View>
-
-          {/* Expiration */}
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-              Exp
-            </Text>
-            <Text style={[styles.detailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-              {expirationDate}
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* View Transaction Button */}
+      {/* Proceed Button */}
       <TouchableOpacity
-        style={styles.viewTransactionButton}
-        onPress={handleViewTransaction}
+        style={[styles.proceedButton, (!selectedCountry || !selectedGiftCardType || !amountUSD) && styles.proceedButtonDisabled]}
+        onPress={handleProceed}
+        disabled={!selectedCountry || !selectedGiftCardType || !amountUSD}
       >
-        <Text style={styles.viewTransactionButtonText}>View Transaction</Text>
+        <Text style={styles.proceedButtonText}>Proceed</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -208,49 +370,84 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 33,
   },
-  detailsPanel: {
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-  },
-  detailRow: {
+  quantitySection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2d9ec',
+    backgroundColor: COLORS.white,
+    marginBottom: 24,
   },
-  detailLabel: {
-    fontSize: isTablet ? 14 : 12,
-    fontWeight: '400',
-    color: COLORS.greyscale600,
-  },
-  detailValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    justifyContent: 'flex-end',
-    maxWidth: '60%',
-  },
-  detailValue: {
-    fontSize: isTablet ? 14 : 15,
+  quantityLabel: {
+    fontSize: isTablet ? 16 : 16,
     fontWeight: '400',
     color: COLORS.black,
-    flexShrink: 1,
   },
-  lockIcon: {
-    width: 16,
-    height: 16,
-    tintColor: COLORS.greyscale600,
+  quantityControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
   },
-  copyButton: {
-    padding: 4,
+  quantityButton: {
+    width: 25,
+    height: 25,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4A4A4A',
   },
-  copyIcon: {
-    width: 18,
-    height: 18,
+  quantityButtonText: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: '600',
+    color: COLORS.white,
+    textAlign: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  viewTransactionButton: {
+  quantityValue: {
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: '600',
+    color: COLORS.black,
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  inputSection: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  selector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    height: 56,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2d9ec',
+    backgroundColor: '#FEFEFE',
+  },
+  selectorValue: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#1e1e1e',
+    flex: 1,
+  },
+  selectorPlaceholder: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#989898',
+    flex: 1,
+  },
+  arrowIcon: {
+    width: 20,
+    height: 20,
+    tintColor: '#989898',
+  },
+  proceedButton: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -262,10 +459,55 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 100,
   },
-  viewTransactionButtonText: {
+  proceedButtonDisabled: {
+    backgroundColor: '#A2DFC2',
+  },
+  proceedButtonText: {
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  instructionsSection: {
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2d9ec',
+    backgroundColor: '#FEFEFE',
+  },
+  instructionsTitle: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
+    marginBottom: 8,
+    color: COLORS.black,
+  },
+  instructionsText: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: COLORS.greyscale600,
+  },
 });
-

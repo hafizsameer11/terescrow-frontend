@@ -57,6 +57,41 @@ export const getWaysOfHearing = async (): Promise<WaysOfHearingResponse> => {
   return await apiCall(`${API_ENDPOINTS.QUICK_ACTIONS.GetAllWaysOfHearing}`, 'GET', undefined)
 }
 
+// Gift Card Products APIs
+export const getGiftCardProducts = async (
+  token: string,
+  page: number = 1,
+  limit: number = 50
+): Promise<IGiftCardProductsResponse> => {
+  const query = new URLSearchParams({ page: page.toString(), limit: limit.toString() }).toString();
+  const url = `${API_ENDPOINTS.GIFT_CARDS.GetProducts}?${query}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+export const getGiftCardProductById = async (
+  token: string,
+  productId: number
+): Promise<IGiftCardProductDetailResponse> => {
+  const url = `${API_ENDPOINTS.GIFT_CARDS.GetProductById}/${productId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+export const getGiftCardProductCountries = async (
+  token: string,
+  productId: number
+): Promise<IGiftCardProductCountriesResponse> => {
+  const url = `${API_ENDPOINTS.GIFT_CARDS.GetProductCountries}/${productId}/countries`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+export const getGiftCardProductTypes = async (
+  token: string,
+  productId: number
+): Promise<IGiftCardProductTypesResponse> => {
+  const url = `${API_ENDPOINTS.GIFT_CARDS.GetProductTypes}/${productId}/types`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
 interface WayOfHearing {
   id: number
   means: string
@@ -144,4 +179,71 @@ export interface BannersResponse extends ApiResponse {
     image: string;
     createdAt: Date;
   }[]
+}
+
+// Gift Card Products Interfaces
+export interface IGiftCardProduct {
+  productId: number;
+  id: string;
+  productName: string;
+  brandName: string | null;
+  countryCode: string | null;
+  minValue: number | null;
+  maxValue: number | null;
+  fixedValue: number | null;
+  isVariableDenomination: boolean;
+  imageUrl: string;
+  category: string | null;
+  status: string;
+  description: string | null;
+  redeemInstruction: {
+    concise: string;
+    verbose: string;
+  } | null;
+}
+
+export interface IGiftCardProductsResponse extends ApiResponse {
+  data: {
+    products: IGiftCardProduct[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      returned: number;
+    };
+  };
+}
+
+export interface IGiftCardProductDetailResponse extends ApiResponse {
+  data: {
+    productId: number;
+    productName: string;
+    imageUrl: string;
+    redemptionInstructions: {
+      concise: string;
+      verbose: string;
+    };
+  };
+}
+
+export interface IGiftCardProductCountriesResponse extends ApiResponse {
+  data: {
+    countries: Array<{
+      countryCode: string;
+      countryName: string;
+    }>;
+  };
+}
+
+export interface IGiftCardProductType {
+  type: string;
+  description: string;
+  available: boolean;
+}
+
+export interface IGiftCardProductTypesResponse extends ApiResponse {
+  data: {
+    cardTypes: IGiftCardProductType[];
+  };
 }

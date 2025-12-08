@@ -19,20 +19,26 @@ const GiftCardPurchaseSuccess = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
-    cardName?: string;
+    productName?: string;
+    cardName?: string; // Legacy support
     amount?: string;
+    unitPrice?: string;
     quantity?: string;
+    transactionId?: string;
+    orderId?: string;
+    status?: string;
   }>();
 
-  const cardName = params.cardName || 'Apple Gift card';
-  const amount = params.amount || '$150';
+  const productName = params.productName || params.cardName || 'Gift Card';
+  const amount = params.amount || params.unitPrice || '$150';
   const quantity = params.quantity || '1';
 
   const handleViewCardDetails = () => {
     router.push({
       pathname: '/giftcarddetails',
       params: {
-        cardName: cardName,
+        productName: productName,
+        cardName: productName, // Legacy support
         amount: amount,
         quantity: quantity,
       },
@@ -66,8 +72,22 @@ const GiftCardPurchaseSuccess = () => {
 
         {/* Success Message */}
         <Text style={[styles.message, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-          You have successfully bought {amount} worth of {cardName}
+          You have successfully purchased {quantity} {quantity === '1' ? 'gift card' : 'gift cards'} of {productName} worth ${amount}
         </Text>
+        
+        {/* Transaction Info */}
+        {params.transactionId && (
+          <View style={styles.transactionInfo}>
+            <Text style={[styles.transactionText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Transaction ID: {params.transactionId}
+            </Text>
+            {params.status && (
+              <Text style={[styles.transactionText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Status: {params.status}
+              </Text>
+            )}
+          </View>
+        )}
       </View>
 
       {/* View Card Details Button */}
@@ -135,6 +155,16 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
+  },
+  transactionInfo: {
+    marginTop: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  transactionText: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    color: COLORS.greyscale600,
   },
 });
 

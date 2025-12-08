@@ -181,11 +181,11 @@ const UpdateKycLevel = () => {
   }, [userData?.isVerified])
   console.log(userData)
   useEffect(() => {
-    if (kycLimits) {
+    if (kycLimits && Array.isArray(kycLimits?.data)) {
       if (KycData?.data?.state === 'verified') {
-        setCurrentKycLimits(kycLimits?.data?.find((limit: KycLimit) => limit.tier === 'tier2'))
+        setCurrentKycLimits(kycLimits?.data?.find((limit: KycLimit) => limit.tier === 'tier2') || null)
       } else {
-        setCurrentKycLimits(kycLimits?.data?.find((limit: KycLimit) => limit.tier === 'tier1'))
+        setCurrentKycLimits(kycLimits?.data?.find((limit: KycLimit) => limit.tier === 'tier1') || null)
       }
     }
 
@@ -236,205 +236,201 @@ const UpdateKycLevel = () => {
             </Text>
           </View>
 
-          <View style={{ paddingHorizontal: 20 }}>
-            <Text
-              style={[
-                { fontSize: isTablet?24: 16, marginVertical: 10 },
-                { color: themeStyles.normalText },
-              ]}
-            >
-              {kycStatusData?.data?.currentTier === 'tier2' 
-                ? 'Tier 2 - Verified' 
-                : kycStatusData?.data?.currentTier === 'tier1'
-                ? 'Tier 1'
-                : KycData?.data?.state === 'verified' 
-                ? 'Tier 2 - Verified' 
-                : 'Tier 1'}
+          <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
+            {/* Display all 4 tiers */}
+            {kycStatusData?.data?.tiers?.map((tier, index) => {
+              const isCurrentTier = kycStatusData?.data?.currentTier === tier.tier;
+              const tierNumber = tier.tier.replace('tier', '');
+              const tierNames: { [key: string]: string } = {
+                tier1: 'Basic Verification',
+                tier2: 'Standard Verification',
+                tier3: 'Enhanced Verification',
+                tier4: 'Advanced Verification',
+              };
 
-            </Text>
+              const getStatusBadgeColor = (status: string) => {
+                if (status === 'verified') return COLORS.primary;
+                if (status === 'pending') return '#FFA500';
+                return '#FF6B6B';
+              };
 
-            <View>
-              <View style={styles.rowContainer}>
-                <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
-                  BVN Verification
-                </Text>
+              const getStatusText = (status: string) => {
+                if (status === 'verified') return 'Verified';
+                if (status === 'pending') return 'Pending';
+                return 'Unverified';
+              };
+
+              const formatAmount = (amount: string) => {
+                const num = parseFloat(amount);
+                if (isNaN(num) || num === 0) return 'NGN 0';
+                // Format with commas for thousands
+                return `NGN ${num.toLocaleString('en-US')}`;
+              };
+
+              return (
                 <View
+                  key={tier.tier}
                   style={[
-                    styles.verifiedContainer,
-                    { backgroundColor: themeStyles.verifiedBackground },
+                    styles.tierCard,
+                    {
+                      backgroundColor: dark ? COLORS.dark2 : COLORS.white,
+                      marginBottom: index < 3 ? 16 : 0,
+                    },
                   ]}
                 >
-                  <Text style={styles.verifiedText}>
-                    {tier2StatusData?.data?.status === 'verified' 
-                      ? 'Verified' 
-                      : tier2StatusData?.data?.status === 'pending'
-                      ? 'Pending'
-                      : tier2StatusData?.data?.status === 'rejected'
-                      ? 'Rejected'
-                      : kycStatusData?.data?.tiers?.find(t => t.tier === 'tier2')?.status === 'verified'
-                      ? 'Verified'
-                      : kycStatusData?.data?.tiers?.find(t => t.tier === 'tier2')?.status === 'pending'
-                      ? 'Pending'
-                      : KycData?.data?.state || 'Not Verified'}
+                  {/* Tier Header */}
+                  <View style={styles.tierHeader}>
+                    <Text
+                      style={[
+                        styles.tierTitle,
+                        { color: themeStyles.normalText },
+                        isCurrentTier && { fontWeight: '700' },
+                      ]}
+                    >
+                      Tier {tierNumber} {isCurrentTier && '(Current level)'}
+                    </Text>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: getStatusBadgeColor(tier.status) },
+                      ]}
+                    >
+                      <Text style={styles.statusBadgeText}>
+                        {getStatusText(tier.status)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Tier Name */}
+                  <Text
+                    style={[
+                      styles.tierName,
+                      { color: themeStyles.normalText },
+                    ]}
+                  >
+                    {tierNames[tier.tier] || tier.tier}
                   </Text>
+
+                  {/* Deposit Limits */}
+                  <View style={styles.limitSection}>
+                    <View style={styles.limitLabelRow}>
+                      <Image
+                        source={icons.activity}
+                        style={[
+                          styles.limitIcon,
+                          { tintColor: themeStyles.normalText },
+                        ]}
+                      />
+                      <Text style={[styles.limitLabel, { color: themeStyles.normalText }]}>
+                        Deposit limit:
+                      </Text>
+                    </View>
+                    <View style={styles.limitValueRow}>
+                      <Text style={[styles.limitValue, { color: themeStyles.normalText }]}>
+                        Daily: {formatAmount(tier.limits.deposit.daily)}
+                      </Text>
+                      <Text style={[styles.limitValue, { color: themeStyles.normalText }]}>
+                        Monthly: {formatAmount(tier.limits.deposit.monthly)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Withdrawal Limits */}
+                  <View style={styles.limitSection}>
+                    <View style={styles.limitLabelRow}>
+                      <Image
+                        source={icons.activity}
+                        style={[
+                          styles.limitIcon,
+                          { tintColor: themeStyles.normalText },
+                        ]}
+                      />
+                      <Text style={[styles.limitLabel, { color: themeStyles.normalText }]}>
+                        Withdrawal limit:
+                      </Text>
+                    </View>
+                    <View style={styles.limitValueRow}>
+                      <Text style={[styles.limitValue, { color: themeStyles.normalText }]}>
+                        Daily: {formatAmount(tier.limits.withdrawal.daily)}
+                      </Text>
+                      <Text style={[styles.limitValue, { color: themeStyles.normalText }]}>
+                        Monthly: {formatAmount(tier.limits.withdrawal.monthly)}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-
-              <Text
-                style={[
-                  {
-                    fontSize: isTablet?20:16,
-                    marginBottom: 15,
-                    marginTop: 20,
-                    fontWeight: 'bold',
-                  },
-                  { color: themeStyles.normalText },
-                ]}
-              >
-                Current limit
-              </Text>
-
-
-              {/* <View style={styles.limitContainer}>
-                <View style={styles.limitHeader}>
-                  <Image
-                    source={icons.activity}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      marginRight: 10,
-                      tintColor: themeStyles.normalText,
-                    }}
-                  />
-                  <Text style={[{ color: themeStyles.normalText,fontSize:isTablet?20:16 }]}>
-                    Crypto Limits
-                  </Text>
-                </View>
-
-
-                <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
-                    Crypto Sell
-                  </Text>
-                  <Text style={{ color: themeStyles.normalText ,fontSize:isTablet?18:14}}>
-                    {currentKycLimit?.cryptoSellLimit}
-                  </Text>
-                </View>
-                <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
-                    Crypto Buy
-                  </Text>
-                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
-                    {currentKycLimit?.cryptoBuyLimit}
-                  </Text>
-                </View>
-
-              </View> */}
-              <View style={styles.limitContainer}>
-                <View style={styles.limitHeader}>
-                  <Image
-                    source={icons.activity}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      marginRight: 10,
-                      tintColor: themeStyles.normalText,
-                    }}
-                  />
-                  <Text style={[{ color: themeStyles.normalText,fontSize:isTablet?20:16 }]}>
-                    Gift Card Limits
-                  </Text>
-                </View>
-
-
-                <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
-                    Gift Card Sell
-                  </Text>
-                  <Text style={{ color: themeStyles.normalText }}>
-                    {currentKycLimit?.giftCardSellLimit}
-                  </Text>
-                </View>
-                <View style={styles.limitRow}>
-                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
-                    Gift Card Buy
-                  </Text>
-                  <Text style={{ color: themeStyles.normalText,fontSize:isTablet?18:14 }}>
-                    {currentKycLimit?.giftCardBuyLimit}
-                  </Text>
-                </View>
-
-              </View>
-
-            </View>
+              );
+            })}
           </View>
         </ScrollView>
         )}
 
         <DraggableModal isVisible={isModalVisible} onClose={closeModal} />
-        <Button title="Upgrade to Tier 2" onPress={openModal} />
 
-        {
-          (kycStatusData?.data?.currentTier !== 'tier2' && tier2StatusData?.data?.status !== 'verified' && KycData?.data?.state !== 'verified') && (
+        {/* Upgrade Button - Show for next tier that can be upgraded */}
+        {(() => {
+          const currentTier = kycStatusData?.data?.currentTier || 'tier1';
+          const tiers = kycStatusData?.data?.tiers || [];
+          
+          // Find the next tier that can be upgraded
+          let nextTierToUpgrade: typeof tiers[0] | null = null;
+          let nextTierNumber = 0;
+
+          if (currentTier === 'tier1') {
+            nextTierToUpgrade = tiers.find(t => t.tier === 'tier2') || null;
+            nextTierNumber = 2;
+          } else if (currentTier === 'tier2') {
+            nextTierToUpgrade = tiers.find(t => t.tier === 'tier3') || null;
+            nextTierNumber = 3;
+          } else if (currentTier === 'tier3') {
+            nextTierToUpgrade = tiers.find(t => t.tier === 'tier4') || null;
+            nextTierNumber = 4;
+          }
+
+          // For tier 2, always show button if status is 'unverified' (user can always try to upgrade from tier1 to tier2)
+          // For other tiers, check canUpgrade flag
+          if (!nextTierToUpgrade) {
+            return null;
+          }
+
+          // Allow upgrade if:
+          // 1. Tier 2 and status is 'unverified' (always allow upgrade from tier1)
+          // 2. Any tier with canUpgrade === true
+          // 3. Status is not 'verified' (already verified)
+          const canShowUpgradeButton = 
+            (nextTierNumber === 2 && nextTierToUpgrade.status === 'unverified') ||
+            (nextTierToUpgrade.canUpgrade && nextTierToUpgrade.status !== 'verified');
+
+          if (!canShowUpgradeButton) {
+            return null;
+          }
+
+          const tierStatus = nextTierToUpgrade.status;
+
+          return (
             <View style={styles.buttonContainer}>
-              {tier2StatusData?.data?.status === 'pending' || kycStatusData?.data?.tiers?.find(t => t.tier === 'tier2')?.status === 'pending' || KycData?.data?.state === 'pending' ? (
+              {tierStatus === 'pending' ? (
                 <Text style={{ color: themeStyles.normalText, textAlign: 'center', paddingVertical: 10 }}>
-                  Your Tier 2 request is submitted and will be processed soon
-                </Text>
-              ) : tier2StatusData?.data?.status === 'rejected' || KycData?.data?.state === 'failed' ? (
-                <Text style={{ color: COLORS.red, textAlign: 'center', paddingVertical: 10 }}>
-                  Your Tier 2 request has been {tier2StatusData?.data?.status === 'rejected' ? 'rejected' : 'failed'}
-                  {tier2StatusData?.data?.submission?.reason && ` because of: ${tier2StatusData.data.submission.reason}`}
-                  {KycData?.data?.reason && ` because of: ${KycData.data.reason}`}
+                  Your Tier {nextTierNumber} request is submitted and will be processed soon
                 </Text>
               ) : (
-                <Button title="Upgrade to Tier 2" onPress={openModal} />
+                <Button
+                  title={`Upgrade to tier ${nextTierNumber}`}
+                  onPress={() => {
+                    if (nextTierNumber === 2) {
+                      // Open modal which will navigate to tier2verification
+                      openModal();
+                    } else if (nextTierNumber === 3) {
+                      router.push('/tier3verification');
+                    } else if (nextTierNumber === 4) {
+                      router.push('/tier4verification');
+                    }
+                  }}
+                />
               )}
             </View>
-          )
-        }
-
-        {/* Tier 3 Upgrade Button */}
-        {
-          (tier2StatusData?.data?.status === 'verified' || kycStatusData?.data?.currentTier === 'tier2') && 
-          (kycStatusData?.data?.currentTier !== 'tier3' && tier3StatusData?.data?.status !== 'verified') && (
-            <View style={styles.buttonContainer}>
-              {tier3StatusData?.data?.status === 'pending' || kycStatusData?.data?.tiers?.find(t => t.tier === 'tier3')?.status === 'pending' ? (
-                <Text style={{ color: themeStyles.normalText, textAlign: 'center', paddingVertical: 10 }}>
-                  Your Tier 3 request is submitted and will be processed soon
-                </Text>
-              ) : tier3StatusData?.data?.status === 'rejected' ? (
-                <Text style={{ color: COLORS.red, textAlign: 'center', paddingVertical: 10 }}>
-                  Your Tier 3 request has been rejected
-                  {tier3StatusData?.data?.submission?.reason && ` because of: ${tier3StatusData.data.submission.reason}`}
-                </Text>
-              ) : (
-                <Button title="Upgrade to Tier 3" onPress={() => router.push('/tier3verification')} />
-              )}
-            </View>
-          )
-        }
-
-        {/* Tier 4 Upgrade Button */}
-        {
-          (tier3StatusData?.data?.status === 'verified' || kycStatusData?.data?.currentTier === 'tier3') && 
-          (kycStatusData?.data?.currentTier !== 'tier4' && tier4StatusData?.data?.status !== 'verified') && (
-            <View style={styles.buttonContainer}>
-              {tier4StatusData?.data?.status === 'pending' || kycStatusData?.data?.tiers?.find(t => t.tier === 'tier4')?.status === 'pending' ? (
-                <Text style={{ color: themeStyles.normalText, textAlign: 'center', paddingVertical: 10 }}>
-                  Your Tier 4 request is submitted and will be processed soon
-                </Text>
-              ) : tier4StatusData?.data?.status === 'rejected' ? (
-                <Text style={{ color: COLORS.red, textAlign: 'center', paddingVertical: 10 }}>
-                  Your Tier 4 request has been rejected
-                  {tier4StatusData?.data?.submission?.reason && ` because of: ${tier4StatusData.data.submission.reason}`}
-                </Text>
-              ) : (
-                <Button title="Upgrade to Tier 4" onPress={() => router.push('/tier4verification')} />
-              )}
-            </View>
-          )
-        }
+          );
+        })()}
 
 
 
@@ -489,6 +485,66 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
+  },
+  tierCard: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2d9ec',
+    marginBottom: 16,
+  },
+  tierHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tierTitle: {
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    color: COLORS.white,
+    fontSize: isTablet ? 12 : 10,
+    fontWeight: '600',
+  },
+  tierName: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    marginBottom: 16,
+    opacity: 0.7,
+  },
+  limitSection: {
+    marginBottom: 12,
+  },
+  limitLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  limitIcon: {
+    width: 16,
+    height: 16,
+    marginRight: 6,
+  },
+  limitLabel: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '500',
+  },
+  limitValueRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingLeft: 22,
+  },
+  limitValue: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
   },
 });
 

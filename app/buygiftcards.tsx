@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -15,77 +16,109 @@ import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import SearchInputField from '@/components/SearchInputField';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { 
+  getDepartments, 
+  IDepartmentResponse,
+  getGiftCardProducts,
+  IGiftCardProduct,
+} from '@/utils/queries/quickActionQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 const cardWidth = (width - 48) / 2; // 2 columns with padding
 
-// Dummy gift card data - using available images
-const giftCards = [
-  {
-    id: '1',
-    name: 'USA Apple Store',
-    range: '(500-2000)',
-    image: images.itunesCard,
-  },
-  {
-    id: '2',
-    name: 'USA Apple Store',
-    range: '(100)',
-    image: images.itunesCard,
-  },
-  {
-    id: '3',
-    name: 'UK Google Play',
-    range: '(10-500)',
-    image: images.googlePlayCard,
-  },
-  {
-    id: '4',
-    name: 'USA Apple Horizontal',
-    range: '(50-500)',
-    image: images.itunesCard,
-  },
-  {
-    id: '5',
-    name: 'Razer Gold',
-    range: '(10-500)',
-    image: images.steamCard,
-  },
-  {
-    id: '6',
-    name: 'USA Ebay',
-    range: '(100-500)',
-    image: images.ebayCard,
-  },
-];
-
 const BuyGiftCards = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<'Sell giftcards' | 'Buy giftcards'>('Buy giftcards');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleCardPress = (card: typeof giftCards[0]) => {
-    navigate('giftcarddetail' as any, {
-      cardId: card.id,
-      cardName: card.name,
+  // Fetch departments to get Gift Card department info
+  const {
+    data: departmentsData,
+    isLoading: departmentsLoading,
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => getDepartments(token),
+    enabled: !!token,
+  });
+
+  // Fetch gift card products when Buy giftcards tab is active
+  const {
+    data: productsData,
+    isLoading: productsLoading,
+    isError: productsError,
+  } = useQuery({
+    queryKey: ['giftCardProducts', activeTab],
+    queryFn: () => getGiftCardProducts(token, 1, 50),
+    enabled: !!token && activeTab === 'Buy giftcards',
+  });
+
+  const handleCardPress = (product: IGiftCardProduct) => {
+    if (!product.productId) {
+      console.warn('Product ID is missing');
+      return;
+    }
+    navigate('giftcarddetails' as any, {
+      productId: product.productId.toString(),
+      productName: product.productName,
+      imageUrl: product.imageUrl,
     });
   };
 
   const handleTabChange = (tab: 'Sell giftcards' | 'Buy giftcards') => {
     if (tab === 'Sell giftcards') {
-      // Navigate to sell gift cards flow (same as home page)
-      router.push('/giftcardcategories' as any);
+      // Find Gift Card department from fetched data
+      const giftCardDepartment = departmentsData?.data?.find(
+        (dept) => dept.title.includes('Gift Card')
+      );
+      
+      if (giftCardDepartment) {
+        // Navigate to sell gift cards flow with proper parameters (same as home page)
+        navigate('giftcardcategories' as any, {
+          departmentId: giftCardDepartment.id.toString(),
+          departmentTitle: giftCardDepartment.title,
+          departmentType: (giftCardDepartment as any).Type || 'Gift Card',
+        });
+      } else if (!departmentsLoading) {
+        // If departments are loaded but no Gift Card found, show error or fallback
+        console.warn('Gift Card department not found');
+      }
     } else {
       setActiveTab(tab);
     }
   };
 
-  const filteredCards = giftCards.filter(card =>
-    card.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter products based on search query
+  const filteredProducts = useMemo(() => {
+    if (activeTab !== 'Buy giftcards' || !productsData?.data?.products) {
+      return [];
+    }
+    if (!searchQuery.trim()) {
+      return productsData.data.products;
+    }
+    return productsData.data.products.filter((product) =>
+      product.productName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [productsData, searchQuery, activeTab]);
+
+  // Format product value range for display
+  const getProductValueRange = (product: IGiftCardProduct): string => {
+    if (product.fixedValue) {
+      return `$${product.fixedValue}`;
+    }
+    if (product.minValue && product.maxValue) {
+      return `$${product.minValue}-$${product.maxValue}`;
+    }
+    if (product.minValue) {
+      return `From $${product.minValue}`;
+    }
+    return 'Variable';
+  };
 
   return (
     <SafeAreaView
@@ -160,31 +193,54 @@ const BuyGiftCards = () => {
       </View>
 
       {/* Gift Cards Grid */}
-      <FlatList
-        data={filteredCards}
-        numColumns={2}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.gridContainer}
-        columnWrapperStyle={styles.row}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.cardContainer}
-            onPress={() => handleCardPress(item)}
-          >
-            <Image
-              source={item.image}
-              style={styles.cardImage}
-              contentFit="cover"
-            />
-            <Text style={[styles.cardName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-              {item.name}
+      {activeTab === 'Buy giftcards' ? (
+        productsLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Loading products...
             </Text>
-            <Text style={[styles.cardRange, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-              {item.range}
+          </View>
+        ) : productsError ? (
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Error loading products. Please try again.
             </Text>
-          </TouchableOpacity>
-        )}
-      />
+          </View>
+        ) : filteredProducts.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              {searchQuery ? 'No products found' : 'No products available'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredProducts}
+            numColumns={2}
+            keyExtractor={(item) => item.productId.toString()}
+            contentContainerStyle={styles.gridContainer}
+            columnWrapperStyle={styles.row}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.cardContainer}
+                onPress={() => handleCardPress(item)}
+              >
+                <Image
+                  source={item.imageUrl ? { uri: item.imageUrl } : icons.gift}
+                  style={styles.cardImage}
+                  contentFit="cover"
+                />
+                <Text style={[styles.cardName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  {item.productName}
+                </Text>
+                <Text style={[styles.cardRange, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  {getProductValueRange(item)}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        )
+      ) : null}
     </SafeAreaView>
   );
 };
@@ -270,6 +326,39 @@ const styles = StyleSheet.create({
   cardRange: {
     fontSize: isTablet ? 12 : 12,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

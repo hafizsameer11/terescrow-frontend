@@ -329,7 +329,15 @@ const EditProfile = () => {
                     <Image
                       source={
                         profileImage
-                          ? { uri: getImageUrl(profileImage) }
+                          ? { 
+                              uri: (profileImage.startsWith('http') || 
+                                    profileImage.startsWith('file://') || 
+                                    profileImage.startsWith('content://') || 
+                                    profileImage.startsWith('ph://') || 
+                                    profileImage.startsWith('assets-library://'))
+                                ? profileImage
+                                : getImageUrl(profileImage)
+                            }
                           : images.userProfile
                       }
                       style={{
@@ -338,6 +346,7 @@ const EditProfile = () => {
                         borderRadius: 60,
                         marginBottom: 10,
                       }}
+                      contentFit="cover"
                     />
                     <View style={styles.editIcon}>
                       <Image

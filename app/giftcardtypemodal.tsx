@@ -8,6 +8,7 @@ import {
   Pressable,
   FlatList,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -15,43 +16,63 @@ import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getGiftCardProductTypes } from '@/utils/queries/quickActionQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
-
-// Dummy gift card types
-const giftCardTypes = [
-  { id: '1', name: 'Physical Card' },
-  { id: '2', name: 'Digital Code' },
-  { id: '3', name: 'Email Delivery' },
-  { id: '4', name: 'SMS Delivery' },
-];
 
 const GiftCardTypeModal = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     selectedGiftCardType?: string;
     returnTo?: string;
-    cardName?: string;
-    cardId?: string;
+    productId?: string;
+    productName?: string;
+    imageUrl?: string;
+    cardName?: string; // Legacy support
+    cardId?: string; // Legacy support
     selectedCountry?: string;
   }>();
 
+  const productIdParam = params.productId || params.cardId;
   const [selectedGiftCardType, setSelectedGiftCardType] = useState<string | null>(params.selectedGiftCardType || null);
-  const returnTo = params.returnTo || 'giftcarddetail';
+  const returnTo = params.returnTo || 'giftcarddetails';
+
+  // Validate productId is a valid number
+  const productId = productIdParam && !isNaN(Number(productIdParam)) ? Number(productIdParam) : null;
+  const isValidProductId = productId !== null && productId > 0;
+
+  // Fetch card types from API if productId is available and valid
+  const {
+    data: typesData,
+    isLoading: typesLoading,
+    isError: typesError,
+  } = useQuery({
+    queryKey: ['giftCardProductTypes', productId],
+    queryFn: () => getGiftCardProductTypes(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
+
+  // Use API types or fallback to empty array
+  const giftCardTypes = typesData?.data?.cardTypes || [];
 
   const handleSelect = (typeName: string) => {
     setSelectedGiftCardType(typeName);
     router.back();
     setTimeout(() => {
       router.push({
-        pathname: returnTo === 'giftcarddetail' ? '/giftcarddetail' : '/giftcarddetail',
+        pathname: returnTo === 'giftcarddetails' ? '/giftcarddetails' : '/giftcarddetails',
         params: {
           selectedGiftCardType: typeName,
-          cardName: params.cardName,
-          cardId: params.cardId,
+          productId: params.productId || params.cardId,
+          productName: params.productName || params.cardName,
+          imageUrl: params.imageUrl,
           selectedCountry: params.selectedCountry,
         },
       } as any);
@@ -87,38 +108,72 @@ const GiftCardTypeModal = () => {
             </View>
 
             {/* Gift Card Type List */}
-            <FlatList
-              data={giftCardTypes}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.typeItem,
-                    dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-                  ]}
-                  onPress={() => handleSelect(item.name)}
-                >
-                  <Text style={[styles.typeName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-                    {item.name}
-                  </Text>
-                  {selectedGiftCardType === item.name && (
-                    <Image
-                      source={images.vector45}
-                      style={styles.checkmark}
-                      contentFit="contain"
-                    />
-                  )}
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => (
-                <View
-                  style={[
-                    styles.separator,
-                    dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
-                  ]}
-                />
-              )}
-            />
+            {!isValidProductId ? (
+              <View style={styles.errorContainer}>
+                <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Invalid product ID
+                </Text>
+              </View>
+            ) : typesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Loading card types...
+                </Text>
+              </View>
+            ) : typesError ? (
+              <View style={styles.errorContainer}>
+                <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Error loading card types. Please try again.
+                </Text>
+              </View>
+            ) : giftCardTypes.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  No card types available
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={giftCardTypes.filter((type) => type.available)}
+                keyExtractor={(item, index) => item.type || index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.typeItem,
+                      dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
+                    ]}
+                    onPress={() => handleSelect(item.type)}
+                  >
+                    <View style={styles.typeInfo}>
+                      <Text style={[styles.typeName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        {item.type}
+                      </Text>
+                      {item.description && (
+                        <Text style={[styles.typeDescription, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                          {item.description}
+                        </Text>
+                      )}
+                    </View>
+                    {selectedGiftCardType === item.type && (
+                      <Image
+                        source={images.vector45}
+                        style={styles.checkmark}
+                        contentFit="contain"
+                      />
+                    )}
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => (
+                  <View
+                    style={[
+                      styles.separator,
+                      dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
+                    ]}
+                  />
+                )}
+              />
+            )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -174,10 +229,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
   },
+  typeInfo: {
+    flex: 1,
+  },
   typeName: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: '700',
     color: COLORS.black,
+    marginBottom: 4,
+  },
+  typeDescription: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    color: COLORS.greyscale600,
   },
   checkmark: {
     width: 20,
@@ -186,6 +250,39 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     marginLeft: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

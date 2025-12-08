@@ -8,6 +8,7 @@ import {
   Pressable,
   FlatList,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -15,44 +16,63 @@ import { COLORS, icons } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getGiftCardProductCountries } from '@/utils/queries/quickActionQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
-
-const countries = [
-  { id: '1', name: 'United States', currency: 'USD ($)' },
-  { id: '2', name: 'Norway', currency: 'DKK Kroner (Kr)' },
-  { id: '3', name: 'Germany', currency: 'EUR (#)' },
-  { id: '4', name: 'France', currency: 'EUR (#)' },
-  { id: '5', name: 'Switzerland', currency: 'CHF (Fr)' },
-  { id: '6', name: 'Greece', currency: 'EUR (#)' },
-  { id: '7', name: 'Netherlands', currency: 'EUR (#)' },
-];
 
 const CountryModal = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     selectedCountry?: string;
     returnTo?: string;
-    cardName?: string;
-    cardId?: string;
+    productId?: string;
+    productName?: string;
+    imageUrl?: string;
+    cardName?: string; // Legacy support
+    cardId?: string; // Legacy support
   }>();
 
+  const productIdParam = params.productId || params.cardId;
   const [selectedCountry, setSelectedCountry] = useState<string | null>(params.selectedCountry || null);
-  const returnTo = params.returnTo || 'giftcarddetail';
+  const returnTo = params.returnTo || 'giftcarddetails';
 
-  const handleSelect = (countryName: string) => {
+  // Validate productId is a valid number
+  const productId = productIdParam && !isNaN(Number(productIdParam)) ? Number(productIdParam) : null;
+  const isValidProductId = productId !== null && productId > 0;
+
+  // Fetch countries from API if productId is available and valid
+  const {
+    data: countriesData,
+    isLoading: countriesLoading,
+    isError: countriesError,
+  } = useQuery({
+    queryKey: ['giftCardProductCountries', productId],
+    queryFn: () => getGiftCardProductCountries(token, productId!),
+    enabled: !!token && isValidProductId,
+    retry: false, // Don't retry on 404 errors
+  });
+
+  // Use API countries or fallback to empty array
+  const countries = countriesData?.data?.countries || [];
+
+  const handleSelect = (countryName: string, countryCode?: string) => {
     setSelectedCountry(countryName);
     router.back();
     setTimeout(() => {
       router.push({
-        pathname: returnTo === 'giftcarddetail' ? '/giftcarddetail' : '/giftcarddetail',
+        pathname: returnTo === 'giftcarddetails' ? '/giftcarddetails' : '/giftcarddetails',
         params: {
           selectedCountry: countryName,
-          cardName: params.cardName,
-          cardId: params.cardId,
+          selectedCountryCode: countryCode || '',
+          productId: params.productId || params.cardId,
+          productName: params.productName || params.cardName,
+          imageUrl: params.imageUrl,
         },
       } as any);
     }, 100);
@@ -87,41 +107,70 @@ const CountryModal = () => {
             </View>
 
             {/* Country List */}
-            <FlatList
-              data={countries}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.countryItem,
-                    dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-                  ]}
-                  onPress={() => handleSelect(item.name)}
-                >
-                  <View style={styles.countryInfo}>
-                    <Text style={[styles.countryName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-                      {item.name}
-                    </Text>
-                    <Text style={[styles.countryCurrency, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                      {item.currency}
-                    </Text>
-                  </View>
-                  <Image
-                    source={icons.arrowRight}
-                    style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
-                    contentFit="contain"
+            {!isValidProductId ? (
+              <View style={styles.errorContainer}>
+                <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Invalid product ID
+                </Text>
+              </View>
+            ) : countriesLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Loading countries...
+                </Text>
+              </View>
+            ) : countriesError ? (
+              <View style={styles.errorContainer}>
+                <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Error loading countries. Please try again.
+                </Text>
+              </View>
+            ) : countries.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  No countries available
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={countries}
+                keyExtractor={(item, index) => item.countryCode || index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.countryItem,
+                      dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
+                    ]}
+                    onPress={() => handleSelect(item.countryName, item.countryCode)}
+                  >
+                    <View style={styles.countryInfo}>
+                      <Text style={[styles.countryName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        {item.countryName}
+                      </Text>
+                      {item.countryCode && (
+                        <Text style={[styles.countryCurrency, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                          {item.countryCode}
+                        </Text>
+                      )}
+                    </View>
+                    <Image
+                      source={icons.arrowRight}
+                      style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
+                      contentFit="contain"
+                    />
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => (
+                  <View
+                    style={[
+                      styles.separator,
+                      dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
+                    ]}
                   />
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => (
-                <View
-                  style={[
-                    styles.separator,
-                    dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
-                  ]}
-                />
-              )}
-            />
+                )}
+              />
+            )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -199,6 +248,39 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     marginLeft: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

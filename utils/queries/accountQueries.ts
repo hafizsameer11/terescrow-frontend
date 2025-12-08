@@ -174,7 +174,14 @@ export interface IKycTier {
   tier: string;
   status: 'verified' | 'pending' | 'unverified';
   limits: {
-    [key: string]: any;
+    deposit: {
+      daily: string;
+      monthly: string;
+    };
+    withdrawal: {
+      daily: string;
+      monthly: string;
+    };
   };
   canUpgrade: boolean;
 }
