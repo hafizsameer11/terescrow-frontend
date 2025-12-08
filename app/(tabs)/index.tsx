@@ -13,13 +13,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import {
   getAllBanners,
-  getDepartments,
-  IDepartmentResponse,
 } from "@/utils/queries/quickActionQueries";
 import { getAllChats } from "@/utils/queries/chatQueries";
 import { getWalletTransactions } from "@/utils/queries/accountQueries";
-import { NavigationProp } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
+import { router } from "expo-router";
 import React from "react";
 
 const { width } = Dimensions.get('window');
@@ -28,7 +25,6 @@ const isTablet = width >= 768;
 export default function HomeScreen() {
   const { dark } = useTheme();
   const { token } = useAuth();
-  const { navigate } = useNavigation<NavigationProp<any>>();
   const [activeTab, setActiveTab] = React.useState("All");
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -46,16 +42,6 @@ export default function HomeScreen() {
     }
   }, [activeTab]);
 
-  const {
-    data: departmentsData,
-    isLoading: departmentsLoading,
-    isError: departmentsIsError,
-    refetch: refetchDepartments,
-  } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => getDepartments(token),
-    enabled: !!token,
-  });
 
   const {
     data: walletTransactionsData,
@@ -77,7 +63,6 @@ export default function HomeScreen() {
     try {
       // Refetch all queries
       await Promise.all([
-        refetchDepartments(),
         refetchTransactions(),
       ]);
     } catch (error) {
@@ -85,19 +70,55 @@ export default function HomeScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [refetchDepartments, refetchTransactions]);
+  }, [refetchTransactions]);
 
   // Get transactions from API response - memoized to prevent unnecessary recalculations
   const transactions = React.useMemo(() => {
     return walletTransactionsData?.data?.transactions || [];
   }, [walletTransactionsData]);
 
-  const handleClickDepartment = React.useCallback((item: IDepartmentResponse["data"][number]) => {
-    const route = item.title.includes("Gift Card")
-      ? "giftcardcategories"
-      : "cryptocategories";
-    navigate(route, { departmentId: item.id.toString(),departmentTitle: item.title,departmentType:(item as any).Type });
-  }, [navigate]);
+  // Hardcoded quick actions matching the design
+  const quickActions = React.useMemo(() => [
+    {
+      id: '1',
+      title: 'Trade giftcards',
+      description: 'Buy and sell your gift cards with ease',
+      icon: icons.gift,
+      onPress: () => {
+        router.push('/buygiftcards');
+      },
+    },
+    {
+      id: '2',
+      title: 'Trade Crypto',
+      description: 'Buy, sell and send any crypto asset with ease',
+      icon: icons.graph,
+      onPress: () => {
+        router.push({
+          pathname: '/selectasset',
+          params: { fromTradeCrypto: 'true' }
+        });
+      },
+    },
+    {
+      id: '3',
+      title: 'Bill Payments',
+      description: 'Buy airtimes, mobile date, Subscriptions and more',
+      icon: icons.payment,
+      onPress: () => {
+        router.push('/billpayments');
+      },
+    },
+    {
+      id: '4',
+      title: 'Earn',
+      description: 'Earn for life from our crowd Ambassador program',
+      icon: icons.people,
+      onPress: () => {
+        router.push('/referrals');
+      },
+    },
+  ], []);
 
   const renderHeader = React.useCallback(() => (
     <>
@@ -113,27 +134,21 @@ export default function HomeScreen() {
         >
           Quick Actions
         </Text>
-        {departmentsLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-          </View>
-        ) : departmentsData?.data ? (
-          <FlatList
-            data={departmentsData.data}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <QuickBoxItem
-                icon={item?.icon || icons.gift}
-                title={item?.title}
-                description={item.description}
-                onClick={() => handleClickDepartment(item)}
-              />
-            )}
-            keyExtractor={(item) => item.id.toString()}
-            columnWrapperStyle={{ justifyContent: "space-between" }}
-            numColumns={2}
-          />
-        ) : null}
+        <FlatList
+          data={quickActions}
+          scrollEnabled={false}
+          renderItem={({ item }) => (
+            <QuickBoxItem
+              icon={item.icon}
+              title={item.title}
+              description={item.description}
+              onClick={item.onPress}
+            />
+          )}
+          keyExtractor={(item) => item.id}
+          columnWrapperStyle={{ justifyContent: "space-between" }}
+          numColumns={2}
+        />
       </View>
 
       <View style={{ marginHorizontal: -5, marginTop: 20 }}>
@@ -153,23 +168,8 @@ export default function HomeScreen() {
         <TransactionTabs activeTab={activeTab} onTabChange={setActiveTab} />
       </View>
     </>
-  ), [activeTab, dark, departmentsLoading, departmentsData, handleClickDepartment]);
+  ), [activeTab, dark, quickActions]);
 
-  // Show loading indicator on initial load
-  if (departmentsLoading && !departmentsData) {
-    return (
-      <SafeAreaView
-        style={[
-          { flex: 1, justifyContent: "center", alignItems: "center" },
-          dark
-            ? { backgroundColor: COLORS.black }
-            : { backgroundColor: COLORS.white },
-        ]}
-      >
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView

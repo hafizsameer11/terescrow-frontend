@@ -115,7 +115,7 @@ const BalanceCard = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => navigate('withdrawpaymentmethodmodal' as any)}
+          onPress={() => navigate('withdraw' as any, { paymentMethod: 'Bank Transfer' })}
         >
           <Image
             source={icons.balanceicon2}

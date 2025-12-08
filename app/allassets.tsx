@@ -16,163 +16,150 @@ import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getCryptoAssets, ICryptoAsset } from '@/utils/queries/accountQueries';
+import { getImageUrl } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
-
-// Dummy crypto assets data
-const dummyAssets = [
-  {
-    id: '1',
-    name: 'BTC',
-    fullName: 'Bitcoin',
-    icon: icons.btc,
-    price: '$108,000',
-    change: '+2.56%',
-    changeType: 'positive',
-    quantity: '0.0012',
-    value: '$2,000 ≈ N1,500,000',
-  },
-  {
-    id: '2',
-    name: 'ETH',
-    fullName: 'Ethereum',
-    icon: icons.eth,
-    price: '$1,430',
-    change: '+2.56%',
-    changeType: 'negative',
-    quantity: '0.0012',
-    value: '$2,000 ≈ N1,500,000',
-  },
-  {
-    id: '3',
-    name: 'USDT',
-    fullName: 'Tether',
-    icon: icons.usdt,
-    price: '$1',
-    change: '+2.56%',
-    changeType: 'positive',
-    quantity: '25,000',
-    value: '$2,000 ≈ N1,500,000',
-  },
-  {
-    id: '4',
-    name: 'BNB',
-    fullName: 'Binance Coin',
-    icon: icons.bnb,
-    price: '$650',
-    change: '+2.56%',
-    changeType: 'negative',
-    quantity: '0.056',
-    value: '$2,000 ≈ N1,500,000',
-  },
-  {
-    id: '5',
-    name: 'SOL',
-    fullName: 'Solana',
-    icon: icons.solana,
-    price: '$180',
-    change: '+2.56%',
-    changeType: 'positive',
-    quantity: '12',
-    value: '$2,000 ≈ N1,500,000',
-  },
-];
 
 const AllAssets = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
-  const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { token } = useAuth();
 
-  const handleAssetPress = (asset: typeof dummyAssets[0]) => {
+  // Fetch crypto assets from API
+  const {
+    data: assetsData,
+    isLoading: assetsLoading,
+    isError: assetsError,
+    refetch: refetchAssets,
+    isFetching: assetsFetching,
+  } = useQuery({
+    queryKey: ['cryptoAssets'],
+    queryFn: () => getCryptoAssets(token),
+    enabled: !!token,
+  });
+
+  const assets: ICryptoAsset[] = assetsData?.data?.assets || [];
+  const totals = assetsData?.data?.totals || { totalUsd: '0', totalNaira: '0' };
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    try {
+      await refetchAssets();
+    } catch (error) {
+      console.log('Error refreshing assets:', error);
+    }
+  }, [refetchAssets]);
+
+  const handleAssetPress = (asset: ICryptoAsset) => {
     navigate('assetdetail', {
-      assetId: asset.id,
+      assetId: asset.id.toString(),
       assetName: asset.name,
     });
   };
 
-  // Pull to refresh handler
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In a real app, you would refetch assets data here
-      // For now, we'll just refresh the state
-    } catch (error) {
-      console.log("Error refreshing assets:", error);
-    } finally {
-      setRefreshing(false);
+  // Get icon for asset based on currency
+  const getAssetIcon = (currency: string, symbol?: string) => {
+    const currencyUpper = currency.toUpperCase();
+    switch (currencyUpper) {
+      case 'BTC':
+        return icons.btc;
+      case 'ETH':
+        return icons.eth;
+      case 'USDT':
+        return icons.usdt;
+      case 'BNB':
+        return icons.bnb;
+      case 'SOL':
+        return icons.solana;
+      default:
+        // If symbol is provided, try to use it as image URL
+        if (symbol) {
+          return { uri: getImageUrl(symbol) };
+        }
+        return icons.btc; // Default fallback
     }
-  }, []);
+  };
 
-  const renderAssetItem = ({ item }: { item: typeof dummyAssets[0] }) => (
-    <TouchableOpacity
-      style={[
-        styles.assetItem,
-        dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' },
-      ]}
-      onPress={() => handleAssetPress(item)}
-    >
-      <View style={styles.assetLeft}>
-        <View style={styles.assetIconContainer}>
-          <Image
-            source={item.icon}
-            style={styles.assetIcon}
-            contentFit="contain"
-          />
-        </View>
-        <View style={styles.assetInfo}>
-          <Text
-            style={[
-              styles.assetName,
-              dark ? { color: COLORS.white } : { color: COLORS.black },
-            ]}
-          >
-            {item.name}
-          </Text>
-          <View style={{flexDirection: 'row', alignItems: 'center', gap: 5}}>
-          <Text
-            style={[
-              styles.assetPrice,
-              dark ? { color: COLORS.white } : { color: COLORS.black },
-            ]}
-          >
-            {item.price}
-          </Text>
-          <Text
-            style={[
-              styles.assetChange,
-              item.changeType === 'positive' ? { color: '#46BE84' } : { color: '#FF0000' },
-            ]}
-          >
-            {item.change}
-          </Text>
+  // Format price change (mock for now, as API doesn't provide this)
+  const getPriceChange = () => {
+    return { change: '+0.00%', changeType: 'positive' as const };
+  };
+
+  const renderAssetItem = ({ item }: { item: ICryptoAsset }) => {
+    const priceChange = getPriceChange();
+    const assetIcon = getAssetIcon(item.currency, item.symbol);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.assetItem,
+          dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' },
+        ]}
+        onPress={() => handleAssetPress(item)}
+      >
+        <View style={styles.assetLeft}>
+          <View style={styles.assetIconContainer}>
+            <Image
+              source={assetIcon}
+              style={styles.assetIcon}
+              contentFit="contain"
+            />
+          </View>
+          <View style={styles.assetInfo}>
+            <Text
+              style={[
+                styles.assetName,
+                dark ? { color: COLORS.white } : { color: COLORS.black },
+              ]}
+            >
+              {item.name}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Text
+                style={[
+                  styles.assetPrice,
+                  dark ? { color: COLORS.white } : { color: COLORS.black },
+                ]}
+              >
+                ${parseFloat(item.price || '0').toLocaleString()}
+              </Text>
+              <Text
+                style={[
+                  styles.assetChange,
+                  priceChange.changeType === 'positive' ? { color: '#46BE84' } : { color: '#FF0000' },
+                ]}
+              >
+                {priceChange.change}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      <View style={styles.assetRight}>
-        <Text
-          style={[
-            styles.assetQuantity,
-            dark ? { color: COLORS.white } : { color: COLORS.black },
-          ]}
-        >
-          {item.quantity}
-        </Text>
-        <Text
-          style={[
-            styles.assetValue,
-            dark ? { color: COLORS.white } : { color: COLORS.black },
-          ]}
-        >
-          {item.value}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.assetRight}>
+          <Text
+            style={[
+              styles.assetQuantity,
+              dark ? { color: COLORS.white } : { color: COLORS.black },
+            ]}
+          >
+            {parseFloat(item.balance || '0').toLocaleString()}
+          </Text>
+          <Text
+            style={[
+              styles.assetValue,
+              dark ? { color: COLORS.white } : { color: COLORS.black },
+            ]}
+          >
+            ${parseFloat(item.balanceUsd || '0').toLocaleString()} ≈ N{parseFloat(item.balanceNaira || '0').toLocaleString()}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView
@@ -212,7 +199,9 @@ const AllAssets = () => {
           />
         </View>
         <Text style={styles.balanceLabel}>Available balance</Text>
-        <Text style={styles.balanceAmount}>$0.00 ≈ N0.00</Text>
+        <Text style={styles.balanceAmount}>
+          ${parseFloat(totals.totalUsd || '0').toLocaleString()} ≈ N{parseFloat(totals.totalNaira || '0').toLocaleString()}
+        </Text>
       </ImageBackground>
 
       {/* Assets List */}
@@ -225,22 +214,28 @@ const AllAssets = () => {
         >
           Crypto Assets
         </Text>
-        {isLoading ? (
+        {assetsLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
               Loading assets...
             </Text>
           </View>
+        ) : assetsError ? (
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Error loading assets
+            </Text>
+          </View>
         ) : (
           <FlatList
-            data={dummyAssets}
+            data={assets}
             renderItem={renderAssetItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.listContainer}
             refreshControl={
               <RefreshControl
-                refreshing={refreshing}
+                refreshing={assetsFetching}
                 onRefresh={onRefresh}
                 tintColor={COLORS.primary}
                 colors={[COLORS.primary]}
@@ -271,13 +266,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop :20, 
+    paddingTop: 20,
     paddingVertical: 16,
     backgroundColor: COLORS.primary,
   },
   backButton: {
     padding: 8,
-    paddingTop:25,
+    paddingTop: 25,
   },
   backIcon: {
     width: 24,
@@ -286,7 +281,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: isTablet ? 20 : 18,
     fontWeight: '700',
-    paddingTop:20,
+    paddingTop: 20,
     color: COLORS.white,
   },
   headerRight: {
@@ -416,4 +411,3 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-

@@ -8,12 +8,18 @@ const { width } = Dimensions.get('window');
 const isTablet = width >= 768; // iPads generally have width 768+
 
 const QuickBoxItem: React.FC<{
-  icon: string;
+  icon: string | any;
   title: string;
   description: string;
-  onClick: (item: any) => void;
+  onClick: () => void;
 }> = (props) => {
   const { dark } = useTheme();
+  
+  // Handle both string URLs and icon objects
+  const iconSource = typeof props.icon === 'string' 
+    ? { uri: getImageUrl(props.icon) }
+    : props.icon;
+  
   return (
     <Pressable
       style={[
@@ -32,7 +38,7 @@ const QuickBoxItem: React.FC<{
             : { backgroundColor: COLORS.transparentAccount },
         ]}
       >
-        <Image source={{ uri: getImageUrl(props.icon) }} style={styles.icon} />
+        <Image source={iconSource} style={styles.icon} contentFit="contain" />
       </View>
       <View style={styles.textContainer}>
         <Text

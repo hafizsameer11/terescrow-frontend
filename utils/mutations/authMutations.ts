@@ -414,4 +414,120 @@ export const purchaseGiftCard = async (
   return await apiCall(API_ENDPOINTS.GIFT_CARDS.Purchase, 'POST', data, token);
 }
 
+// Payment Mutations
+export const verifyBankAccount = async (
+  data: IVerifyBankAccountReq,
+  token: string
+): Promise<IVerifyBankAccountResponse> => {
+  return await apiCall(API_ENDPOINTS.PAYMENTS.VerifyAccount, 'POST', data, token);
+};
+
+export const initiatePayout = async (
+  data: IInitiatePayoutReq,
+  token: string
+): Promise<IInitiatePayoutResponse> => {
+  return await apiCall(API_ENDPOINTS.PAYMENTS.InitiatePayout, 'POST', data, token);
+};
+
+export interface IVerifyBankAccountReq {
+  bankCode: string;
+  accountNumber: string;
+}
+
+export interface IVerifyBankAccountResponse extends ApiResponse {
+  statusCode: number;
+  data: {
+    accountName: string;
+    accountStatus: number;
+    isValid: boolean;
+  };
+  message: string;
+}
+
+export interface IInitiatePayoutReq {
+  amount: number;
+  currency: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  phoneNumber: string;
+}
+
+export interface IInitiatePayoutResponse extends ApiResponse {
+  statusCode: number;
+  data: {
+    transactionId: string;
+    status: string;
+    amount: number;
+    currency: string;
+  };
+  message: string;
+}
+
+// Crypto Buy Mutation
+export interface IBuyCryptoRequest {
+  amount: number;
+  currency: string;
+  blockchain: string;
+}
+
+export interface IBuyCryptoResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    transactionId: string;
+    amountCrypto: string;
+    amountUsd: string;
+    amountNgn: string;
+    rateUsdToCrypto: string;
+    rateNgnToUsd: string;
+    fiatWalletId: string;
+    virtualAccountId: number;
+    balanceBefore: string;
+    balanceAfter: string;
+    cryptoBalanceBefore: string;
+    cryptoBalanceAfter: string;
+  };
+}
+
+export const buyCrypto = async (
+  token: string,
+  data: IBuyCryptoRequest
+): Promise<IBuyCryptoResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.ExecuteBuy, 'POST', data, token);
+};
+
+// Crypto Sell Mutation
+export interface ISellCryptoRequest {
+  amount: number;
+  currency: string;
+  blockchain: string;
+}
+
+export interface ISellCryptoResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    transactionId: string;
+    amountCrypto: string;
+    amountUsd: string;
+    amountNgn: string;
+    rateCryptoToUsd: string;
+    rateUsdToNgn: string;
+    fiatWalletId: string;
+    virtualAccountId: number;
+    cryptoBalanceBefore: string;
+    cryptoBalanceAfter: string;
+    balanceBefore: string;
+    balanceAfter: string;
+  };
+}
+
+export const sellCrypto = async (
+  token: string,
+  data: ISellCryptoRequest
+): Promise<ISellCryptoResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.ExecuteSell, 'POST', data, token);
+};
+
 

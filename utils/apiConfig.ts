@@ -95,4 +95,21 @@ export const API_ENDPOINTS = {
     GetProductTypes: API_DOMAIN + '/v2/giftcards/products', // + /{productId}/types
     Purchase: API_DOMAIN + '/v2/giftcards/purchase',
   },
+  PAYMENTS: {
+    GetBanks: API_DOMAIN + '/v2/payments/palmpay/banks',
+    VerifyAccount: API_DOMAIN + '/v2/payments/palmpay/verify-account',
+    InitiatePayout: API_DOMAIN + '/v2/payments/palmpay/payout/initiate',
+    GetPayoutStatus: API_DOMAIN + '/v2/payments/palmpay/payout', // + /{transactionId}
+  },
+  CRYPTO: {
+    GetAssets: API_DOMAIN + '/v2/crypto/assets',
+    GetAssetById: API_DOMAIN + '/v2/crypto/assets', // + /{id}
+    GetBuyCurrencies: API_DOMAIN + '/v2/crypto/buy/currencies',
+    GetSellCurrencies: API_DOMAIN + '/v2/crypto/sell/currencies',
+    GetBuyQuote: API_DOMAIN + '/v2/crypto/buy/quote',
+    ExecuteBuy: API_DOMAIN + '/v2/crypto/buy',
+    GetSellQuote: API_DOMAIN + '/v2/crypto/sell/quote',
+    GetSellPreview: API_DOMAIN + '/v2/crypto/sell/preview',
+    ExecuteSell: API_DOMAIN + '/v2/crypto/sell',
+  },
 };

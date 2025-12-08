@@ -126,6 +126,17 @@ const Chat = () => {
                   Loading chats...
                 </Text>
               </View>
+            ) : getFilteredData.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: dark ? COLORS.white : COLORS.black }]}>
+                  No chats found
+                </Text>
+                <Text style={[styles.emptySubtext, { color: dark ? COLORS.greyscale500 : COLORS.greyscale600 }]}>
+                  {selectedCategory === 'all' 
+                    ? "You don't have any trade history yet"
+                    : `You don't have any ${selectedCategory} trades yet`}
+                </Text>
+              </View>
             ) : null
           }
         />
@@ -182,6 +193,22 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    opacity: 0.7,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });
 

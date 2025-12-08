@@ -6,12 +6,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { ThemeProvider } from '@/contexts/themeContext';
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Toast from 'react-native-toast-message';
 import { AuthProvider } from '@/contexts/authContext';
 import { SocketProvider } from '@/contexts/socketContext';
 import toastConfig from '@/utils/toastConfig';
+import { QueryClientWrapper } from '@/components/QueryClientWrapper';
 import * as Notifications from 'expo-notifications';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -43,7 +43,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <QueryClientProvider client={new QueryClient()}>
+        <QueryClientWrapper>
           <SocketProvider>
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -315,7 +315,7 @@ export default function RootLayout() {
           </SocketProvider>
           <Toast />
           <StatusBar style="auto" />
-        </QueryClientProvider>
+        </QueryClientWrapper>
       </AuthProvider>
     </ThemeProvider>
   );

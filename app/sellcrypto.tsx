@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -14,6 +17,12 @@ import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import Input from '@/components/CustomInput';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getSellQuote, getSellPreview, ISellQuoteRequest, ISellPreviewRequest } from '@/utils/queries/accountQueries';
+import { sellCrypto, ISellCryptoRequest } from '@/utils/mutations/authMutations';
+import { showTopToast } from '@/utils/helpers';
+import { getImageUrl } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -22,23 +31,34 @@ const SellCrypto = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     assetName?: string;
     assetId?: string;
     selectedNetwork?: string;
     selectedCurrency?: string;
-    selectedPaymentMethod?: string;
+    currencySymbol?: string;
+    availableBalance?: string;
   }>();
 
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(params.selectedNetwork || null);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(params.selectedCurrency || null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(params.selectedPaymentMethod || null);
-  const [quantity, setQuantity] = useState('0.000');
+  const [quantity, setQuantity] = useState('');
   const [amountUSD, setAmountUSD] = useState('');
   const [amountLocal, setAmountLocal] = useState('');
+  const [quoteData, setQuoteData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isGettingQuote, setIsGettingQuote] = useState(false);
+  const [isGettingPreview, setIsGettingPreview] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [insufficientBalance, setInsufficientBalance] = useState(false);
+  
   const assetName = params.assetName || 'USDT';
   const assetId = params.assetId || '1';
+  const currencySymbol = params.currencySymbol || '';
+  const availableBalance = parseFloat(params.availableBalance || '0');
 
+  // Auto-fill currency and network from params
   useEffect(() => {
     if (params.selectedNetwork) {
       setSelectedNetwork(params.selectedNetwork);
@@ -46,13 +66,145 @@ const SellCrypto = () => {
     if (params.selectedCurrency) {
       setSelectedCurrency(params.selectedCurrency);
     }
-    if (params.selectedPaymentMethod) {
-      setSelectedPaymentMethod(params.selectedPaymentMethod);
+  }, [params.selectedNetwork, params.selectedCurrency]);
+
+  // Get quote when quantity changes (for real-time calculation)
+  const getQuote = useCallback(async (qty: string) => {
+    if (!qty || parseFloat(qty) <= 0 || !selectedCurrency || !selectedNetwork) {
+      setQuoteData(null);
+      setAmountUSD('');
+      setAmountLocal('');
+      return;
     }
-  }, [params.selectedNetwork, params.selectedCurrency, params.selectedPaymentMethod]);
+
+    const qtyNum = parseFloat(qty);
+    
+    // Validate quantity doesn't exceed available balance
+    if (availableBalance > 0 && qtyNum > availableBalance) {
+      setQuoteData(null);
+      setAmountUSD('');
+      setAmountLocal('');
+      return;
+    }
+
+    setIsGettingQuote(true);
+    try {
+      const quoteRequest: ISellQuoteRequest = {
+        amount: qtyNum,
+        currency: selectedCurrency,
+        blockchain: selectedNetwork,
+      };
+      const response = await getSellQuote(token, quoteRequest);
+      if (response?.data) {
+        setQuoteData(response.data);
+        setAmountUSD(response.data.amountUsd);
+        setAmountLocal(parseFloat(response.data.amountNgn).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      }
+    } catch (error: any) {
+      console.error('Error getting quote:', error);
+      setQuoteData(null);
+      setAmountUSD('');
+      setAmountLocal('');
+      
+      // Handle specific error cases
+      const errorMessage = error?.message || '';
+      if (errorMessage.toLowerCase().includes('rate') || errorMessage.toLowerCase().includes('no rate')) {
+        // Don't show toast for rate errors as they might be temporary
+        console.log('Rate not available for sell transaction');
+      } else {
+        // Only show toast for unexpected errors
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: errorMessage || 'Failed to calculate quote. Please try again.',
+        });
+      }
+    } finally {
+      setIsGettingQuote(false);
+    }
+  }, [selectedCurrency, selectedNetwork, token, availableBalance]);
+
+  // Debounce quote call
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (quantity) {
+        getQuote(quantity);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [quantity, getQuote]);
+
+  // Get preview when user clicks proceed (for summary modal)
+  const getPreview = useCallback(async () => {
+    if (!quantity || parseFloat(quantity) <= 0 || !selectedCurrency || !selectedNetwork) {
+      showTopToast({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter a valid quantity',
+      });
+      return;
+    }
+
+    setIsGettingPreview(true);
+    setInsufficientBalance(false); // Reset insufficient balance state
+    
+    try {
+      const previewRequest: ISellPreviewRequest = {
+        amount: parseFloat(quantity),
+        currency: selectedCurrency,
+        blockchain: selectedNetwork,
+      };
+      const response = await getSellPreview(token, previewRequest);
+      if (response?.data) {
+        setPreviewData(response.data);
+        
+        // Check if user has sufficient balance
+        if (!response.data.hasSufficientBalance || !response.data.canProceed) {
+          setInsufficientBalance(true);
+          setIsGettingPreview(false);
+          return;
+        }
+        
+        // Show summary modal if preview is successful
+        setShowSummaryModal(true);
+      }
+    } catch (error: any) {
+      console.error('Error getting preview:', error);
+      const errorMessage = error?.message || '';
+      if (errorMessage.toLowerCase().includes('insufficient')) {
+        setInsufficientBalance(true);
+      } else if (errorMessage.toLowerCase().includes('rate') || errorMessage.toLowerCase().includes('no rate')) {
+        showTopToast({
+          type: 'error',
+          text1: 'Rate Not Available',
+          text2: 'Sell rate is not configured at this time. Please contact support or try again later.',
+        });
+      } else if (error?.statusCode === 400) {
+        showTopToast({
+          type: 'error',
+          text1: 'Validation Error',
+          text2: errorMessage || 'Invalid transaction parameters. Please check your inputs.',
+        });
+      } else {
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: errorMessage || 'Failed to get preview. Please try again.',
+        });
+      }
+    } finally {
+      setIsGettingPreview(false);
+    }
+  }, [quantity, selectedCurrency, selectedNetwork, token]);
 
   // Map asset name to icon
-  const getAssetIcon = (name: string) => {
+  const getAssetIcon = (name: string, symbol?: string) => {
+    if (symbol && symbol.startsWith('http')) {
+      return { uri: symbol };
+    } else if (symbol) {
+      return { uri: getImageUrl(symbol) };
+    }
     const nameLower = name.toLowerCase();
     if (nameLower.includes('bitcoin') || nameLower.includes('btc')) return icons.btc;
     if (nameLower.includes('ethereum') || nameLower.includes('eth')) return icons.eth;
@@ -67,66 +219,84 @@ const SellCrypto = () => {
     return icons.usdt;
   };
 
-  const assetIcon = getAssetIcon(assetName);
+  const assetIcon = getAssetIcon(assetName, currencySymbol);
 
-  const handleSelectNetwork = () => {
-    navigate('blockchainmodal' as any, {
-      selectedNetwork: selectedNetwork || '',
-      returnTo: 'sellcrypto',
-      assetName: assetName,
-      assetId: assetId,
-      selectedCurrency: selectedCurrency || '',
-      selectedPaymentMethod: selectedPaymentMethod || '',
-    });
-  };
-
-  const handleSelectCurrency = () => {
-    navigate('currencymodal' as any, {
-      selectedCurrency: selectedCurrency || '',
-      assetName: assetName,
-      assetId: assetId,
-      selectedNetwork: selectedNetwork || '',
-      selectedPaymentMethod: selectedPaymentMethod || '',
-      returnTo: 'sellcrypto',
-    });
-  };
-
-  const handleSelectPaymentMethod = () => {
-    navigate('paymentmethodmodal' as any, {
-      selectedPaymentMethod: selectedPaymentMethod || '',
-      assetName: assetName,
-      assetId: assetId,
-      selectedNetwork: selectedNetwork || '',
-      selectedCurrency: selectedCurrency || '',
-      returnTo: 'sellcrypto',
-    });
-  };
+  // Sell mutation
+  const { mutate: executeSell, isPending: isSelling } = useMutation({
+    mutationFn: (data: ISellCryptoRequest) => sellCrypto(token, data),
+    onSuccess: (response) => {
+      showTopToast({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Cryptocurrency sold successfully',
+      });
+      // Invalidate wallet and assets queries to refresh balance
+      router.back();
+    },
+    onError: (error: any) => {
+      console.error('Sell error:', error);
+      if (error?.message?.toLowerCase().includes('insufficient') || error?.statusCode === 400) {
+        setInsufficientBalance(true);
+      } else {
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: error?.message || 'Failed to sell cryptocurrency',
+        });
+      }
+    },
+  });
 
   const handleProceed = () => {
-    if (!selectedNetwork || !selectedCurrency || !selectedPaymentMethod || !amountUSD) {
+    if (!selectedNetwork || !selectedCurrency || !quantity || parseFloat(quantity) <= 0) {
+      showTopToast({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter a valid quantity',
+      });
       return;
     }
-    navigate('sellsummary' as any, {
-      assetName: assetName,
-      assetId: assetId,
-      network: selectedNetwork,
-      currency: selectedCurrency,
-      paymentMethod: selectedPaymentMethod,
-      amount: amountUSD,
-      quantity: quantity,
-    });
+
+    // Validate quantity is a valid number
+    const qtyNum = parseFloat(quantity);
+    if (isNaN(qtyNum) || qtyNum <= 0) {
+      showTopToast({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter a valid quantity',
+      });
+      return;
+    }
+
+    // Validate quantity doesn't exceed available balance
+    if (availableBalance > 0 && qtyNum > availableBalance) {
+      showTopToast({
+        type: 'error',
+        text1: 'Insufficient Balance',
+        text2: `You can only sell up to ${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })} ${selectedCurrency}`,
+      });
+      return;
+    }
+
+    // Get preview to show summary modal with balance validation
+    // Preview will handle rate errors and show appropriate messages
+    getPreview();
   };
 
-  // Calculate local currency amount (example: 1 USD = 1650 NGN)
-  useEffect(() => {
-    if (amountUSD && selectedCurrency) {
-      const rate = selectedCurrency === 'NGN' ? 1650 : 1;
-      const localAmount = parseFloat(amountUSD) * rate;
-      setAmountLocal(localAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    } else {
-      setAmountLocal('');
+  const handleComplete = () => {
+    if (!selectedNetwork || !selectedCurrency || !quantity || !previewData) {
+      return;
     }
-  }, [amountUSD, selectedCurrency]);
+
+    const sellRequest: ISellCryptoRequest = {
+      amount: parseFloat(quantity),
+      currency: selectedCurrency,
+      blockchain: selectedNetwork,
+    };
+
+    setShowSummaryModal(false);
+    executeSell(sellRequest);
+  };
 
   return (
     <SafeAreaView
@@ -165,60 +335,66 @@ const SellCrypto = () => {
 
         {/* Select Currency */}
         <View style={[styles.inputSection, { marginBottom: 20 }]}>
-          <TouchableOpacity
-            style={styles.selector}
-            onPress={handleSelectCurrency}
-          >
-            {selectedCurrency ? (
-              <Text style={styles.selectorValue}>
-                {selectedCurrency}
-              </Text>
-            ) : (
-              <Text style={styles.selectorPlaceholder}>
-                Select Currency
-              </Text>
-            )}
-            <Image
-              source={icons.arrowDown}
-              style={styles.arrowIcon}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
+          <Text style={[styles.label, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+            Currency
+          </Text>
+          <View style={[styles.selector, { opacity: 0.7 }]}>
+            <Text style={styles.selectorValue}>
+              {selectedCurrency || 'Not selected'}
+            </Text>
+          </View>
         </View>
 
         {/* Select Network */}
         <View style={[styles.inputSection, { marginBottom: 20 }]}>
-          <TouchableOpacity
-            style={styles.selector}
-            onPress={handleSelectNetwork}
-          >
-            {selectedNetwork ? (
-              <Text style={styles.selectorValue}>
-                {selectedNetwork}
-              </Text>
-            ) : (
-              <Text style={styles.selectorPlaceholder}>
-                Select Network
-              </Text>
-            )}
-            <Image
-              source={icons.arrowDown}
-              style={styles.arrowIcon}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
+          <Text style={[styles.label, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+            Network
+          </Text>
+          <View style={[styles.selector, { opacity: 0.7 }]}>
+            <Text style={styles.selectorValue}>
+              {selectedNetwork || 'Not selected'}
+            </Text>
+          </View>
         </View>
+
+        {/* Available Balance */}
+        {availableBalance > 0 && (
+          <View style={[styles.inputSection, { marginBottom: 12 }]}>
+            <View style={[styles.balanceContainer, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' }]}>
+              <Text style={[styles.balanceLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Available Balance
+              </Text>
+              <Text style={[styles.balanceValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                {availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })} {selectedCurrency}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Quantity */}
         <View style={[styles.inputSection, { marginBottom: 20 }]}>
-          <Text style={[styles.label, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            Quantity
-          </Text>
-          <View style={[styles.quantityContainer, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#FEFEFE' }]}>
-            <Text style={[styles.quantityValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-              {quantity}
+          <Input
+            label="Quantity"
+            keyboardType="decimal-pad"
+            value={quantity}
+            onChangeText={setQuantity}
+            id="quantity"
+            variant="signin"
+            placeholder=""
+          />
+          {isGettingQuote && (
+            <View style={styles.previewLoading}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={[styles.previewLoadingText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Calculating quote...
+              </Text>
+            </View>
+          )}
+          {quantity && parseFloat(quantity) > availableBalance && availableBalance > 0 && (
+            <Text style={[styles.errorText, { color: '#FF0000', marginTop: 4, fontSize: 12 }]}>
+              Quantity exceeds available balance
             </Text>
-          </View>
+          )}
         </View>
 
         {/* Enter amount in USD */}
@@ -227,72 +403,195 @@ const SellCrypto = () => {
             label="Enter amount in USD"
             keyboardType="decimal-pad"
             value={amountUSD}
-            onChangeText={setAmountUSD}
+            onChangeText={() => {}} // Read-only, calculated from preview
             id="amountUSD"
             variant="signin"
             placeholder="Enter amount in USD"
+            isEditable={false}
           />
         </View>
 
         {/* Amount in local currency */}
         <View style={[styles.inputSection, { marginBottom: 0 }]}>
           <Input
-            label="Amount in local currency"
+            label="Amount in NGN"
             keyboardType="decimal-pad"
             value={amountLocal}
-            onChangeText={() => {}} // Read-only, calculated from USD
+            onChangeText={() => {}} // Read-only, calculated from preview
             id="amountLocal"
             variant="signin"
-            placeholder="Amount in local currency"
+            placeholder="Amount in NGN"
             isEditable={false}
           />
         </View>
 
-        {/* Payment Method */}
-        <View style={styles.inputSection}>
-          <TouchableOpacity
-            style={styles.selector}
-            onPress={handleSelectPaymentMethod}
-          >
-            {selectedPaymentMethod ? (
-              <Text style={styles.selectorValue}>
-                {selectedPaymentMethod}
-              </Text>
-            ) : (
-              <Text style={styles.selectorPlaceholder}>
-                Payment Method
-              </Text>
-            )}
-            <Image
-              source={icons.arrowDown}
-              style={styles.arrowIcon}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-        </View>
-
         {/* View Rate Bar */}
-        <View style={[styles.rateBar, dark ? { backgroundColor: '#FFF9E6' } : { backgroundColor: 'transparent' }]}>
-          <Text style={styles.rateLabel}>View rate</Text>
-          <View style={styles.rateValueContainer}>
-            <Text style={styles.rateValue}>$1 = NGN 1,650</Text>
-            <Image
-              source={icons.arrowDown}
-              style={styles.rateArrowIcon}
-              contentFit="contain"
-            />
+        {quoteData && (
+          <View style={[styles.rateBar, dark ? { backgroundColor: '#FFF9E6' } : { backgroundColor: 'transparent' }]}>
+            <Text style={styles.rateLabel}>View rate</Text>
+            <View style={styles.rateValueContainer}>
+              <Text style={styles.rateValue}>
+                $1 = NGN {parseFloat(quoteData.rateUsdToNgn || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
       </ScrollView>
 
       {/* Proceed Button */}
       <TouchableOpacity
-        style={[styles.proceedButton, (!selectedNetwork || !selectedCurrency || !selectedPaymentMethod || !amountUSD) && styles.proceedButtonDisabled]}
+        style={[styles.proceedButton, (!selectedNetwork || !selectedCurrency || !quantity || parseFloat(quantity) <= 0 || isSelling || isGettingPreview) && styles.proceedButtonDisabled]}
         onPress={handleProceed}
-        disabled={!selectedNetwork || !selectedCurrency || !selectedPaymentMethod || !amountUSD}
+        disabled={!selectedNetwork || !selectedCurrency || !quantity || parseFloat(quantity) <= 0 || isSelling || isGettingPreview}
       >
-        <Text style={styles.proceedButtonText}>Proceed</Text>
+        {isSelling || isGettingPreview ? (
+          <ActivityIndicator size="small" color={COLORS.white} />
+        ) : (
+          <Text style={styles.proceedButtonText}>Proceed</Text>
+        )}
       </TouchableOpacity>
+
+      {/* Summary Modal */}
+      <Modal
+        visible={showSummaryModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowSummaryModal(false)}
+      >
+        <Pressable 
+          style={styles.summaryModalOverlay} 
+          onPress={() => setShowSummaryModal(false)}
+        >
+          <Pressable 
+            style={styles.summaryModalContent} 
+            onPress={(e) => e.stopPropagation()}
+          >
+            <SafeAreaView
+              style={[
+                styles.summaryContainer,
+                dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
+              ]}
+              edges={['top']}
+            >
+              {/* Drag Handle */}
+              <View style={styles.dragHandleContainer}>
+                <View style={[styles.dragHandle, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' }]} />
+              </View>
+
+              {/* Header */}
+              <View style={styles.summaryHeader}>
+                <Text style={[styles.summaryHeaderTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Summary
+                </Text>
+              </View>
+
+              {/* Summary Details */}
+              {previewData && (
+                <>
+                  <View style={styles.summaryDetailsContainer}>
+                    <View style={styles.summaryDetailRow}>
+                      <Text style={[styles.summaryDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                        Amount
+                      </Text>
+                      <Text style={[styles.summaryDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        {quantity} {selectedCurrency} ~ ${parseFloat(previewData.amountUsd || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    <View style={[styles.summarySeparator, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' }]} />
+                    
+                    <View style={styles.summaryDetailRow}>
+                      <Text style={[styles.summaryDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                        Token
+                      </Text>
+                      <Text style={[styles.summaryDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        {selectedCurrency}
+                      </Text>
+                    </View>
+                    <View style={[styles.summarySeparator, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' }]} />
+                    
+                    <View style={styles.summaryDetailRow}>
+                      <Text style={[styles.summaryDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                        Network
+                      </Text>
+                      <Text style={[styles.summaryDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        {selectedNetwork}
+                      </Text>
+                    </View>
+                    <View style={[styles.summarySeparator, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' }]} />
+                    
+                    <View style={styles.summaryDetailRow}>
+                      <Text style={[styles.summaryDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                        Transaction gas fee
+                      </Text>
+                      <Text style={[styles.summaryDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        0 {selectedCurrency} ~ $0
+                      </Text>
+                    </View>
+                    <View style={[styles.summarySeparator, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' }]} />
+                    
+                    <View style={styles.summaryDetailRow}>
+                      <Text style={[styles.summaryDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                        Total
+                      </Text>
+                      <Text style={[styles.summaryDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        {quantity} {selectedCurrency} ~ ${parseFloat(previewData.amountUsd || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Total Amount to Receive */}
+                  <View style={[styles.summaryTotalContainer, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.summaryTotalLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                      Total Amount to Receive
+                    </Text>
+                    <Text style={[styles.summaryTotalValue, { color: COLORS.primary }]}>
+                      N{parseFloat(previewData.amountNgn || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+
+                  {/* Complete Button */}
+                  <TouchableOpacity 
+                    style={[styles.completeButton, isSelling && styles.completeButtonDisabled]} 
+                    onPress={handleComplete}
+                    disabled={isSelling}
+                  >
+                    {isSelling ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Text style={styles.completeButtonText}>Complete</Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+            </SafeAreaView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Insufficient Balance Modal */}
+      <Modal
+        visible={insufficientBalance}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setInsufficientBalance(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+            <Text style={[styles.modalTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Insufficient Balance
+            </Text>
+            <Text style={[styles.modalMessage, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              You don't have sufficient {selectedCurrency} balance to complete this sale. Your current balance is {previewData?.cryptoBalanceBefore || '0'} {selectedCurrency}.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setInsufficientBalance(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -447,6 +746,162 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
+  },
+  previewLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  previewLoadingText: {
+    fontSize: isTablet ? 12 : 10,
+    fontWeight: '400',
+  },
+  summaryModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  summaryModalContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  summaryContainer: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 40,
+    maxHeight: '70%',
+  },
+  dragHandleContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E5E5',
+  },
+  summaryHeader: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  summaryHeaderTitle: {
+    fontSize: isTablet ? 18 : 13,
+    fontWeight: '700',
+  },
+  summaryDetailsContainer: {
+    marginBottom: 24,
+  },
+  summaryDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  summaryDetailLabel: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '400',
+  },
+  summaryDetailValue: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
+  },
+  summarySeparator: {
+    height: 1,
+  },
+  summaryTotalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 18,
+    borderRadius: 10,
+    marginBottom: 24,
+    borderWidth: 0.5,
+    borderColor: '#D4D4D4',
+  },
+  summaryTotalLabel: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '400',
+  },
+  summaryTotalValue: {
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  completeButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
+    borderRadius: 100,
+    alignItems: 'center',
+  },
+  completeButtonDisabled: {
+    backgroundColor: '#A2DFC2',
+  },
+  completeButtonText: {
+    color: COLORS.white,
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButton: {
+    width: '100%',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: 100,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: COLORS.white,
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
+  },
+  balanceContainer: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2d9ec',
+  },
+  balanceLabel: {
+    fontSize: isTablet ? 12 : 10,
+    fontWeight: '400',
+    marginBottom: 4,
+  },
+  balanceValue: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
+  },
+  errorText: {
+    fontSize: isTablet ? 12 : 10,
+    fontWeight: '400',
   },
 });
 

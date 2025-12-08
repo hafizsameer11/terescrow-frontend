@@ -404,3 +404,266 @@ export interface IWalletOverviewResponse {
   };
   message: string;
 }
+
+// Payment Queries
+export const getBanks = async (
+  token: string,
+  businessType: number = 0
+): Promise<IBanksResponse> => {
+  const url = `${API_ENDPOINTS.PAYMENTS.GetBanks}?businessType=${businessType}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+export const getPayoutStatus = async (
+  token: string,
+  transactionId: string
+): Promise<IPayoutStatusResponse> => {
+  const url = `${API_ENDPOINTS.PAYMENTS.GetPayoutStatus}/${transactionId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+export interface IBank {
+  bankCode: string;
+  bankName: string;
+  bankUrl: string;
+  bgUrl: string;
+}
+
+export interface IBanksResponse extends ApiResponse {
+  statusCode: number;
+  data: IBank[];
+  message: string;
+}
+
+export interface IPayoutStatusResponse extends ApiResponse {
+  statusCode: number;
+  data: {
+    transactionId: string;
+    status: string;
+    amount: number;
+    currency: string;
+    accountName: string;
+    accountNumber: string;
+    bankCode: string;
+    bankName: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  message: string;
+}
+
+// Crypto Asset Queries
+export const getCryptoAssets = async (
+  token: string
+): Promise<ICryptoAssetsResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetAssets, 'GET', undefined, token);
+};
+
+export const getCryptoAssetById = async (
+  token: string,
+  assetId: number
+): Promise<ICryptoAssetDetailResponse> => {
+  const url = `${API_ENDPOINTS.CRYPTO.GetAssetById}/${assetId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+export interface ICryptoAsset {
+  id: number;
+  currency: string;
+  blockchain: string;
+  symbol: string;
+  name: string;
+  balance: string;
+  balanceUsd: string;
+  balanceNaira: string;
+  price: string;
+  nairaPrice: string;
+  depositAddress: string;
+  active: boolean;
+  frozen: boolean;
+}
+
+export interface ICryptoAssetsResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    assets: ICryptoAsset[];
+    totals: {
+      totalUsd: string;
+      totalNaira: string;
+    };
+    count: number;
+  };
+}
+
+export interface ICryptoAssetDetail {
+  id: number;
+  currency: string;
+  blockchain: string;
+  symbol: string;
+  name: string;
+  accountCode: string;
+  accountId: string;
+  availableBalance: string;
+  accountBalance: string;
+  availableBalanceUsd: string;
+  accountBalanceUsd: string;
+  availableBalanceNaira: string;
+  accountBalanceNaira: string;
+  price: string;
+  nairaPrice: string;
+  active: boolean;
+  frozen: boolean;
+  depositAddresses: any[];
+  primaryDepositAddress: string;
+  walletCurrency: any;
+}
+
+export interface ICryptoAssetDetailResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: ICryptoAssetDetail;
+}
+
+// Crypto Buy/Sell Currency Queries
+export interface ICryptoCurrency {
+  id: number;
+  currency: string;
+  blockchain: string;
+  name: string;
+  symbol: string;
+  price: string;
+  nairaPrice: string;
+  isToken: boolean;
+  tokenType: string | null;
+  blockchainName: string;
+  displayName: string;
+  availableBalance?: string;
+  virtualAccountId?: number;
+}
+
+export interface IBuyCurrenciesResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    currencies: ICryptoCurrency[];
+  };
+}
+
+export interface ISellCurrenciesResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    currencies: ICryptoCurrency[];
+  };
+}
+
+export const getBuyCurrencies = async (
+  token: string
+): Promise<IBuyCurrenciesResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetBuyCurrencies, 'GET', undefined, token);
+};
+
+export const getSellCurrencies = async (
+  token: string
+): Promise<ISellCurrenciesResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetSellCurrencies, 'GET', undefined, token);
+};
+
+// Buy Quote
+export interface IBuyQuoteRequest {
+  amount: number;
+  currency: string;
+  blockchain: string;
+}
+
+export interface IBuyQuoteResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    amountCrypto: string;
+    amountUsd: string;
+    amountNgn: string;
+    rateUsdToCrypto: string;
+    rateNgnToUsd: string;
+    currency: string;
+    blockchain: string;
+    currencyName: string;
+    currencySymbol: string;
+  };
+}
+
+export const getBuyQuote = async (
+  token: string,
+  data: IBuyQuoteRequest
+): Promise<IBuyQuoteResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetBuyQuote, 'POST', data, token);
+};
+
+// Sell Preview
+export interface ISellPreviewRequest {
+  amount: number;
+  currency: string;
+  blockchain: string;
+}
+
+export interface ISellPreviewResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    currency: string;
+    blockchain: string;
+    currencyName: string;
+    currencySymbol: string;
+    amountCrypto: string;
+    amountUsd: string;
+    amountNgn: string;
+    rateCryptoToUsd: string;
+    rateUsdToNgn: string;
+    cryptoBalanceBefore: string;
+    fiatBalanceBefore: string;
+    cryptoBalanceAfter: string;
+    fiatBalanceAfter: string;
+    hasSufficientBalance: boolean;
+    canProceed: boolean;
+    virtualAccountId: number;
+    fiatWalletId: string;
+  };
+}
+
+export const getSellPreview = async (
+  token: string,
+  data: ISellPreviewRequest
+): Promise<ISellPreviewResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetSellPreview, 'POST', data, token);
+};
+
+// Sell Quote
+export interface ISellQuoteRequest {
+  amount: number;
+  currency: string;
+  blockchain: string;
+}
+
+export interface ISellQuoteResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    amountCrypto: string;
+    amountUsd: string;
+    amountNgn: string;
+    rateCryptoToUsd: string;
+    rateUsdToNgn: string;
+    currency: string;
+    blockchain: string;
+    currencyName: string;
+    currencySymbol: string;
+  };
+}
+
+export const getSellQuote = async (
+  token: string,
+  data: ISellQuoteRequest
+): Promise<ISellQuoteResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetSellQuote, 'POST', data, token);
+};
