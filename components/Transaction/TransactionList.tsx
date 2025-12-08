@@ -4,7 +4,7 @@ import TransactionItem from "./TransactionItem";
 import { useTheme } from "@/contexts/themeContext";
 import { useQuery } from "@tanstack/react-query";
 import { transactionHistory } from "@/utils/queries/transactionQueries";
-import { getWalletTransactions } from "@/utils/queries/accountQueries";
+import { getWalletTransactions, getCryptoTransactions } from "@/utils/queries/accountQueries";
 import { useAuth } from "@/contexts/authContext";
 import { useNavigation } from "expo-router";
 
@@ -13,7 +13,7 @@ const TransactionList = () => {
   const { token } = useAuth();
   const { navigate } = useNavigation();
 
-  // Use wallet transactions API (new API)
+  // Use wallet transactions API (new API) - for non-crypto transactions
   const {
     data: walletTransactionsData,
     isLoading: transactionsLoading,
@@ -21,6 +21,17 @@ const TransactionList = () => {
   } = useQuery({
     queryKey: ["walletTransactions", "all"],
     queryFn: () => getWalletTransactions(token, { page: 1, limit: 100 }),
+    enabled: !!token,
+  });
+
+  // Use crypto transactions API
+  const {
+    data: cryptoTransactionsData,
+    isLoading: cryptoTransactionsLoading,
+    isError: cryptoTransactionsIsError,
+  } = useQuery({
+    queryKey: ["cryptoTransactions", "all"],
+    queryFn: () => getCryptoTransactions(token, { limit: 100, offset: 0 }),
     enabled: !!token,
   });
 
@@ -35,8 +46,8 @@ const TransactionList = () => {
     enabled: !!token && transactionsIsError, // Only use if wallet transactions failed
   });
 
-  const isLoading = transactionsLoading || (transactionLoading && transactionsIsError);
-  const isError = transactionsIsError && transactionIsError;
+  const isLoading = transactionsLoading || cryptoTransactionsLoading || (transactionLoading && transactionsIsError);
+  const isError = (transactionsIsError && cryptoTransactionsIsError) && transactionIsError;
 
   // Render loading state
   if (isLoading) {
@@ -61,8 +72,23 @@ const TransactionList = () => {
     );
   }
 
-  // Use wallet transactions if available, otherwise fall back to old transaction data
-  const transactions = walletTransactionsData?.data?.transactions || [];
+  // Combine wallet and crypto transactions
+  const walletTransactions = walletTransactionsData?.data?.transactions || [];
+  const cryptoTransactions = (cryptoTransactionsData?.data?.transactions || []).map((tx: any) => ({
+    id: tx.id,
+    type: tx.type,
+    amount: parseFloat(tx.amount || '0'),
+    currency: tx.currency || 'USD',
+    status: tx.status,
+    createdAt: tx.createdAt,
+    fromCurrency: tx.fromCurrency,
+    toCurrency: tx.toCurrency,
+    fromAmount: tx.fromAmount,
+    toAmount: tx.toAmount,
+    isCrypto: true, // Flag to identify crypto transactions
+  }));
+  
+  const transactions = [...walletTransactions, ...cryptoTransactions];
   const hasTransactions = transactions.length > 0 || (transactionData?.data && transactionData.data.length > 0);
 
   return (
@@ -90,6 +116,18 @@ const TransactionList = () => {
               ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
               : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
 
+            // Determine route based on transaction type
+            const getTransactionRoute = () => {
+              if (item.isCrypto) {
+                // For crypto transactions, route to appropriate detail screen
+                if (item.type === 'BUY') return 'cryptobought';
+                if (item.type === 'SELL') return 'cryptosold';
+                if (item.type === 'SWAP') return 'swapsuccess';
+                return 'cryptobought'; // Default fallback
+              }
+              return 'giftcardsold'; // Default for other transaction types
+            };
+
             return (
               <TransactionItem
                 icon={icons.gift} // Default icon since wallet transactions don't have department info
@@ -98,7 +136,7 @@ const TransactionList = () => {
                 price={formattedAmount}
                 productId={item.id.toString()}
                 id={item.id}
-                route="giftcardsold"
+                route={getTransactionRoute()}
               />
             );
           }}

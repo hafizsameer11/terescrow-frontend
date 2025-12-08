@@ -17,7 +17,7 @@ import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/authContext';
-import { getBuyCurrencies, getSellCurrencies, ICryptoCurrency } from '@/utils/queries/accountQueries';
+import { getBuyCurrencies, getSellCurrencies, getCryptoAssets, getSwapCurrencies, ICryptoCurrency, ICryptoAsset, ISwapCurrency } from '@/utils/queries/accountQueries';
 import { getImageUrl } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
@@ -45,9 +45,9 @@ const SelectAsset = () => {
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
   const { token } = useAuth();
-  const { forReceive, fromTradeCrypto, forBuy, forSell } = useLocalSearchParams<{ forReceive?: string; fromTradeCrypto?: string; forBuy?: string; forSell?: string }>();
+  const { forReceive, fromTradeCrypto, forBuy, forSell, forSwap } = useLocalSearchParams<{ forReceive?: string; fromTradeCrypto?: string; forBuy?: string; forSell?: string; forSwap?: string }>();
 
-  // Fetch currencies based on flow
+  // Fetch currencies/assets based on flow
   const { data: buyCurrenciesData, isLoading: buyLoading, refetch: refetchBuy } = useQuery({
     queryKey: ['buyCurrencies'],
     queryFn: () => getBuyCurrencies(token),
@@ -60,6 +60,18 @@ const SelectAsset = () => {
     enabled: forSell === 'true' && !!token,
   });
 
+  const { data: receiveAssetsData, isLoading: receiveLoading, refetch: refetchReceive } = useQuery({
+    queryKey: ['cryptoAssets'],
+    queryFn: () => getCryptoAssets(token),
+    enabled: forReceive === 'true' && !!token,
+  });
+
+  const { data: swapCurrenciesData, isLoading: swapLoading, refetch: refetchSwap } = useQuery({
+    queryKey: ['swapCurrencies'],
+    queryFn: () => getSwapCurrencies(token),
+    enabled: forSwap === 'true' && !!token,
+  });
+
   const [refreshing, setRefreshing] = React.useState(false);
 
   const onRefresh = React.useCallback(async () => {
@@ -69,48 +81,92 @@ const SelectAsset = () => {
         await refetchBuy();
       } else if (forSell === 'true') {
         await refetchSell();
+      } else if (forReceive === 'true') {
+        await refetchReceive();
+      } else if (forSwap === 'true') {
+        await refetchSwap();
       }
     } catch (error) {
       console.error('Error refreshing currencies:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [forBuy, forSell, refetchBuy, refetchSell]);
+  }, [forBuy, forSell, forReceive, forSwap, refetchBuy, refetchSell, refetchReceive, refetchSwap]);
 
-  // Get currencies based on flow
-  const currencies: ICryptoCurrency[] = React.useMemo(() => {
+  // Get currencies/assets based on flow
+  const currencies: (ICryptoCurrency | ICryptoAsset | ISwapCurrency)[] = React.useMemo(() => {
     if (forBuy === 'true' && buyCurrenciesData?.data?.currencies) {
       return buyCurrenciesData.data.currencies;
     } else if (forSell === 'true' && sellCurrenciesData?.data?.currencies) {
       return sellCurrenciesData.data.currencies;
+    } else if (forReceive === 'true' && receiveAssetsData?.data?.assets) {
+      // Convert assets to currency-like format for rendering
+      return receiveAssetsData.data.assets.map((asset) => ({
+        id: asset.id,
+        currency: asset.currency,
+        blockchain: asset.blockchain,
+        name: asset.name,
+        symbol: asset.symbol,
+        price: asset.price,
+        nairaPrice: asset.nairaPrice,
+        isToken: false, // Assets don't have this field
+        tokenType: null,
+        blockchainName: asset.blockchain,
+        displayName: asset.name,
+        availableBalance: asset.balance,
+      }));
+    } else if (forSwap === 'true' && swapCurrenciesData?.data?.currencies) {
+      // Swap currencies already have the right format
+      return swapCurrenciesData.data.currencies;
     }
     return [];
-  }, [forBuy, forSell, buyCurrenciesData, sellCurrenciesData]);
+  }, [forBuy, forSell, forReceive, forSwap, buyCurrenciesData, sellCurrenciesData, receiveAssetsData, swapCurrenciesData]);
 
-  const isLoading = (forBuy === 'true' && buyLoading) || (forSell === 'true' && sellLoading);
+  const isLoading = (forBuy === 'true' && buyLoading) || (forSell === 'true' && sellLoading) || (forReceive === 'true' && receiveLoading) || (forSwap === 'true' && swapLoading);
 
-  const handleAssetPress = (currency: ICryptoCurrency) => {
-    // If coming from receive flow, navigate to receive crypto screen
+  const handleAssetPress = (currency: ICryptoCurrency | ICryptoAsset | ISwapCurrency) => {
+    // Helper to get display name
+    const getDisplayName = (item: ICryptoCurrency | ICryptoAsset) => {
+      if ('displayName' in item) return item.displayName || item.name;
+      return item.name;
+    };
+
+    // Helper to get available balance
+    const getAvailableBalance = (item: ICryptoCurrency | ICryptoAsset) => {
+      if ('availableBalance' in item) return item.availableBalance || '0';
+      if ('balance' in item) return item.balance || '0';
+      return '0';
+    };
+
+    // Helper to get blockchain name
+    const getBlockchainName = (item: ICryptoCurrency | ICryptoAsset) => {
+      if ('blockchainName' in item) return item.blockchainName || item.blockchain;
+      return item.blockchain;
+    };
+
+    // If coming from receive flow, navigate to receive crypto screen with virtual account ID
     if (forReceive === 'true') {
       navigate('receivecrypto' as any, {
-        assetId: currency.id.toString(),
-        assetName: currency.displayName || currency.name,
+        assetId: currency.id.toString(), // This is the virtualAccountId
+        assetName: getDisplayName(currency),
+        selectedNetwork: currency.blockchain,
+        currencySymbol: currency.symbol,
       });
     } else if (forSell === 'true') {
       // If coming from sell flow, navigate to sell crypto screen
       navigate('sellcrypto' as any, {
         assetId: currency.id.toString(),
-        assetName: currency.displayName || currency.name,
+        assetName: getDisplayName(currency),
         selectedCurrency: currency.currency,
         selectedNetwork: currency.blockchain,
         currencySymbol: currency.symbol,
-        availableBalance: currency.availableBalance || '0',
+        availableBalance: getAvailableBalance(currency),
       });
     } else if (forBuy === 'true') {
       // If coming from buy flow, navigate to buy crypto screen with currency and blockchain
       navigate('buycrypto' as any, {
         assetId: currency.id.toString(),
-        assetName: currency.displayName || currency.name,
+        assetName: getDisplayName(currency),
         selectedCurrency: currency.currency,
         selectedNetwork: currency.blockchain,
         currencySymbol: currency.symbol,
@@ -119,21 +175,31 @@ const SelectAsset = () => {
       // If coming from trade crypto, navigate to asset detail instead of asset network modal
       navigate('assetdetail', {
         assetId: currency.id.toString(),
-        assetName: currency.displayName || currency.name,
+        assetName: getDisplayName(currency),
+      });
+    } else if (forSwap === 'true') {
+      // If coming from swap flow, navigate back to swap screen with selected currency
+      const swapCurrency = currency as ISwapCurrency;
+      navigate('swap' as any, {
+        assetId: currency.id.toString(),
+        assetName: swapCurrency.displayName || swapCurrency.name || currency.name,
+        assetIcon: currency.symbol,
+        wallet: swapCurrency.blockchainName || currency.blockchain,
+        network: currency.blockchain,
       });
     } else {
-      // Open Asset & Network modal (for swap flow)
+      // Open Asset & Network modal (for other flows)
       navigate('assetnetwork', {
         assetId: currency.id.toString(),
-        assetName: currency.displayName || currency.name,
+        assetName: getDisplayName(currency),
         assetIcon: currency.symbol,
-        wallet: currency.blockchainName,
+        wallet: getBlockchainName(currency),
         forReceive: forReceive || 'false',
       });
     }
   };
 
-  const renderAssetItem = ({ item }: { item: ICryptoCurrency }) => {
+  const renderAssetItem = ({ item }: { item: ICryptoCurrency | ICryptoAsset }) => {
     const currencyIcon = getCurrencyIcon(item.symbol, item.currency);
     const iconSource = item.symbol && item.symbol.startsWith('http') 
       ? { uri: item.symbol } 
@@ -141,10 +207,28 @@ const SelectAsset = () => {
         ? { uri: getImageUrl(item.symbol) }
         : currencyIcon;
 
-    // For sell flow, show available balance instead of price
-    const showBalance = forSell === 'true' && item.availableBalance !== undefined;
-    const displayValue = showBalance 
-      ? `${parseFloat(item.availableBalance || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })} ${item.currency}`
+    // Helper functions to safely access properties
+    const getDisplayName = () => {
+      if ('displayName' in item) return item.displayName || item.name;
+      return item.name;
+    };
+
+    const getBlockchainName = () => {
+      if ('blockchainName' in item) return item.blockchainName || item.blockchain;
+      return item.blockchain;
+    };
+
+    const getAvailableBalance = () => {
+      if ('availableBalance' in item) return item.availableBalance;
+      if ('balance' in item) return item.balance;
+      return undefined;
+    };
+
+    // For sell/receive flow, show balance instead of price
+    const showBalance = (forSell === 'true' || forReceive === 'true') && getAvailableBalance() !== undefined;
+    const balanceValue = getAvailableBalance();
+    const displayValue = showBalance && balanceValue
+      ? `${parseFloat(balanceValue || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })} ${item.currency}`
       : `$${parseFloat(item.price || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     return (
@@ -189,7 +273,7 @@ const SelectAsset = () => {
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
-              {item.displayName || item.name}
+              {getDisplayName()}
             </Text>
             <Text
               style={[
@@ -197,7 +281,7 @@ const SelectAsset = () => {
                 dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
               ]}
             >
-              {item.blockchainName || item.blockchain}
+              {getBlockchainName()}
             </Text>
           </View>
         </View>
@@ -225,7 +309,7 @@ const SelectAsset = () => {
           />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-          {forSell === 'true' ? 'Sell Asset' : forBuy === 'true' ? 'Buy Asset' : forReceive === 'true' ? 'Receive Asset' : 'Select Asset'}
+          {forSell === 'true' ? 'Sell Asset' : forBuy === 'true' ? 'Buy Asset' : forReceive === 'true' ? 'Receive Asset' : forSwap === 'true' ? 'Select Asset to Swap' : 'Select Asset'}
         </Text>
         <View style={styles.headerRight} />
       </View>

@@ -530,4 +530,44 @@ export const sellCrypto = async (
   return await apiCall(API_ENDPOINTS.CRYPTO.ExecuteSell, 'POST', data, token);
 };
 
+// Crypto Swap Mutation
+export interface ISwapCryptoRequest {
+  fromAmount: number;
+  fromCurrency: string;
+  fromBlockchain: string;
+  toCurrency: string;
+  toBlockchain: string;
+}
+
+export interface ISwapCryptoResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    transactionId: string;
+    fromAmount: string;
+    fromAmountUsd: string;
+    toAmount: string;
+    toAmountUsd: string;
+    gasFee: string;
+    gasFeeUsd: string;
+    totalAmount: string;
+    totalAmountUsd: string;
+    rateFromToUsd: string;
+    rateToToUsd: string;
+    fromVirtualAccountId: number;
+    toVirtualAccountId: number;
+    fromBalanceBefore: string;
+    fromBalanceAfter: string;
+    toBalanceBefore: string;
+    toBalanceAfter: string;
+  };
+}
+
+export const swapCrypto = async (
+  token: string,
+  data: ISwapCryptoRequest
+): Promise<ISwapCryptoResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.ExecuteSwap, 'POST', data, token);
+};
+
 

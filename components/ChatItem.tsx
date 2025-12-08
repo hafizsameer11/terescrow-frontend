@@ -18,15 +18,25 @@ const ChatItem: React.FC<{
   price: string;
   productId: string;
   status?: string;
+  route?: string; // Optional route for navigation
 }> = (props) => {
   const { dark } = useTheme();
   const { navigate } = useNavigation<NavigationProp<any>>();
   console.log("chat status", props.status)
+  
+  const handlePress = () => {
+    if (props.route) {
+      // If route is provided, navigate to that route with transaction ID
+      navigate(props.route as any, { id: props.id?.toString() || props.productId });
+    } else {
+      // Default behavior: navigate to chat
+      navigate("chatwithagent", { chatId: props.id?.toString() });
+    }
+  };
+
   return (
     <TouchableOpacity
-      onPress={() => {
-        navigate("chatwithagent", { chatId: props.id?.toString() });
-      }}
+      onPress={handlePress}
     >
       <View
         style={[

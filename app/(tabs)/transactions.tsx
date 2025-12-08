@@ -7,7 +7,7 @@ import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
-import { getWalletTransactions } from "@/utils/queries/accountQueries";
+import { getWalletTransactions, getCryptoTransactions } from "@/utils/queries/accountQueries";
 
 const transactions = () => {
   const { dark } = useTheme();
@@ -15,7 +15,7 @@ const transactions = () => {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch wallet transactions
+  // Fetch wallet transactions (non-crypto)
   const {
     data: walletTransactionsData,
     isLoading: transactionsLoading,
@@ -23,7 +23,20 @@ const transactions = () => {
     refetch: refetchTransactions,
   } = useQuery({
     queryKey: ["walletTransactions", "all"],
-    queryFn: () => getWalletTransactions(token, { page: 1, limit: 100 }), // Get more transactions for the full list
+    queryFn: () => getWalletTransactions(token, { page: 1, limit: 100 }),
+    enabled: !!token,
+    staleTime: 10000,
+  });
+
+  // Fetch crypto transactions
+  const {
+    data: cryptoTransactionsData,
+    isLoading: cryptoTransactionsLoading,
+    isError: cryptoTransactionsError,
+    refetch: refetchCryptoTransactions,
+  } = useQuery({
+    queryKey: ["cryptoTransactions", "all"],
+    queryFn: () => getCryptoTransactions(token, { limit: 100, offset: 0 }),
     enabled: !!token,
     staleTime: 10000,
   });
@@ -32,9 +45,10 @@ const transactions = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Refetch wallet transactions and old transaction history (for backward compatibility with DoughnutChart)
+      // Refetch all transaction types
       await Promise.all([
         refetchTransactions(),
+        refetchCryptoTransactions(),
         queryClient.invalidateQueries({ queryKey: ["transactionHistory"] }),
       ]);
     } catch (error) {
@@ -42,7 +56,7 @@ const transactions = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [refetchTransactions, queryClient]);
+  }, [refetchTransactions, refetchCryptoTransactions, queryClient]);
 
   return (
     <SafeAreaView

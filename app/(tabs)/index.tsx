@@ -15,7 +15,7 @@ import {
   getAllBanners,
 } from "@/utils/queries/quickActionQueries";
 import { getAllChats } from "@/utils/queries/chatQueries";
-import { getWalletTransactions } from "@/utils/queries/accountQueries";
+import { getWalletTransactions, getCryptoTransactions } from "@/utils/queries/accountQueries";
 import { router } from "expo-router";
 import React from "react";
 
@@ -32,17 +32,17 @@ export default function HomeScreen() {
   const getTransactionParams = React.useMemo(() => {
     switch (activeTab) {
       case "Gift Cards":
-        return { type: "giftcard" };
+        return { type: "giftcard", useCryptoApi: false };
       case "Crypto":
-        return { type: "crypto" };
+        return { useCryptoApi: true };
       case "Bill Payments":
-        return { type: "bill" };
+        return { type: "bill", useCryptoApi: false };
       default:
-        return {}; // "All" - no filter
+        return { useCryptoApi: false }; // "All" - no filter
     }
   }, [activeTab]);
 
-
+  // Fetch wallet transactions (for non-crypto tabs)
   const {
     data: walletTransactionsData,
     isLoading: transactionsLoading,
@@ -51,31 +51,65 @@ export default function HomeScreen() {
     isFetching: transactionsFetching,
   } = useQuery({
     queryKey: ["walletTransactions", activeTab],
-    queryFn: () => getWalletTransactions(token, { ...getTransactionParams, page: 1, limit: 20 }),
-    enabled: !!token,
-    staleTime: 10000, // Consider data fresh for 10 seconds to prevent unnecessary refetches when switching tabs quickly
-    refetchOnWindowFocus: false, // Prevent refetch when window regains focus
+    queryFn: () => getWalletTransactions(token, { type: getTransactionParams.type, page: 1, limit: 20 }),
+    enabled: !!token && !getTransactionParams.useCryptoApi,
+    staleTime: 10000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch crypto transactions (for crypto tab)
+  const {
+    data: cryptoTransactionsData,
+    isLoading: cryptoTransactionsLoading,
+    isError: cryptoTransactionsError,
+    refetch: refetchCryptoTransactions,
+    isFetching: cryptoTransactionsFetching,
+  } = useQuery({
+    queryKey: ["cryptoTransactions", activeTab],
+    queryFn: () => getCryptoTransactions(token, { limit: 20, offset: 0 }),
+    enabled: !!token && getTransactionParams.useCryptoApi,
+    staleTime: 10000,
+    refetchOnWindowFocus: false,
   });
 
   // Pull to refresh handler
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try {
-      // Refetch all queries
-      await Promise.all([
-        refetchTransactions(),
-      ]);
+      // Refetch all queries based on active tab
+      if (getTransactionParams.useCryptoApi) {
+        await refetchCryptoTransactions();
+      } else {
+        await refetchTransactions();
+      }
     } catch (error) {
       console.log("Error refreshing data:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchTransactions]);
+  }, [refetchTransactions, refetchCryptoTransactions, getTransactionParams.useCryptoApi]);
 
   // Get transactions from API response - memoized to prevent unnecessary recalculations
   const transactions = React.useMemo(() => {
+    if (getTransactionParams.useCryptoApi) {
+      // Map crypto transactions to wallet transaction format for consistency
+      return (cryptoTransactionsData?.data?.transactions || []).map((tx: any) => ({
+        id: tx.id,
+        type: tx.type,
+        amount: parseFloat(tx.amount || '0'),
+        currency: tx.currency || 'USD',
+        status: tx.status,
+        createdAt: tx.createdAt,
+        updatedAt: tx.updatedAt || tx.createdAt,
+        // Add crypto-specific fields
+        fromCurrency: tx.fromCurrency,
+        toCurrency: tx.toCurrency,
+        fromAmount: tx.fromAmount,
+        toAmount: tx.toAmount,
+      })) as any[];
+    }
     return walletTransactionsData?.data?.transactions || [];
-  }, [walletTransactionsData]);
+  }, [walletTransactionsData, cryptoTransactionsData, getTransactionParams.useCryptoApi]);
 
   // Hardcoded quick actions matching the design
   const quickActions = React.useMemo(() => [
@@ -197,6 +231,18 @@ export default function HomeScreen() {
             ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
             : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
 
+          // Determine route based on transaction type
+          const getTransactionRoute = () => {
+            if (getTransactionParams.useCryptoApi) {
+              // For crypto transactions, route to appropriate detail screen
+              if (item.type === 'BUY') return 'cryptobought';
+              if (item.type === 'SELL') return 'cryptosold';
+              if (item.type === 'SWAP') return 'swapsuccess';
+              return 'cryptobought'; // Default fallback
+            }
+            return 'giftcardsold'; // Default for other transaction types
+          };
+
           return (
             <ChatItem
               id={item.id.toString()}
@@ -207,6 +253,7 @@ export default function HomeScreen() {
               productId={item.id.toString()}
               price={formattedAmount}
               status={item.status}
+              route={getTransactionRoute()}
             />
           );
         }}

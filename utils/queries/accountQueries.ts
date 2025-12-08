@@ -667,3 +667,208 @@ export const getSellQuote = async (
 ): Promise<ISellQuoteResponse> => {
   return await apiCall(API_ENDPOINTS.CRYPTO.GetSellQuote, 'POST', data, token);
 };
+
+// Get Deposit Address
+export interface IReceiveAddressResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    address: string;
+    blockchain: string;
+    currency: string;
+    accountCurrency?: string;
+    accountBlockchain?: string;
+    virtualAccountId: number;
+    balance: string;
+    balanceUsd: string;
+    balanceNaira: string;
+    symbol: string;
+    currencyName?: string;
+    addressShared?: boolean;
+  };
+}
+
+export const getReceiveAddress = async (
+  token: string,
+  accountId: number
+): Promise<IReceiveAddressResponse> => {
+  const url = `${API_ENDPOINTS.CRYPTO.GetReceiveAddress}/${accountId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+// Swap Queries
+export interface ISwapCurrency {
+  id: number;
+  currency: string;
+  blockchain: string;
+  name: string;
+  symbol: string;
+  price: string;
+  nairaPrice: string;
+  isToken: boolean;
+  tokenType: string | null;
+  blockchainName: string;
+  availableBalance: string;
+  virtualAccountId: number;
+  displayName: string;
+}
+
+export interface ISwapCurrenciesResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    currencies: ISwapCurrency[];
+  };
+}
+
+export const getSwapCurrencies = async (
+  token: string
+): Promise<ISwapCurrenciesResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetSwapCurrencies, 'GET', undefined, token);
+};
+
+export interface ISwapQuoteRequest {
+  fromAmount: number;
+  fromCurrency: string;
+  fromBlockchain: string;
+  toCurrency: string;
+  toBlockchain: string;
+}
+
+export interface ISwapQuoteResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    fromAmount: string;
+    fromAmountUsd: string;
+    toAmount: string;
+    toAmountUsd: string;
+    gasFee: string;
+    gasFeeUsd: string;
+    totalAmount: string;
+    totalAmountUsd: string;
+    rateFromToUsd: string;
+    rateToToUsd: string;
+    fromCurrency: string;
+    fromBlockchain: string;
+    toCurrency: string;
+    toBlockchain: string;
+    fromCurrencyName: string;
+    fromCurrencySymbol: string;
+    toCurrencyName: string;
+    toCurrencySymbol: string;
+  };
+}
+
+export const getSwapQuote = async (
+  token: string,
+  data: ISwapQuoteRequest
+): Promise<ISwapQuoteResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetSwapQuote, 'POST', data, token);
+};
+
+export interface ISwapPreviewRequest {
+  fromAmount: number;
+  fromCurrency: string;
+  fromBlockchain: string;
+  toCurrency: string;
+  toBlockchain: string;
+}
+
+export interface ISwapPreviewResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    fromAmount: string;
+    fromAmountUsd: string;
+    toAmount: string;
+    toAmountUsd: string;
+    gasFee: string;
+    gasFeeUsd: string;
+    totalAmount: string;
+    totalAmountUsd: string;
+    rateFromToUsd: string;
+    rateToToUsd: string;
+    fromCurrency: string;
+    fromBlockchain: string;
+    toCurrency: string;
+    toBlockchain: string;
+    fromBalanceBefore: string;
+    toBalanceBefore: string;
+    fromBalanceAfter: string;
+    toBalanceAfter: string;
+    hasSufficientBalance: boolean;
+    canProceed: boolean;
+    fromVirtualAccountId: number;
+    toVirtualAccountId: number;
+  };
+}
+
+export const getSwapPreview = async (
+  token: string,
+  data: ISwapPreviewRequest
+): Promise<ISwapPreviewResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetSwapPreview, 'POST', data, token);
+};
+
+// Crypto Transactions Queries
+export interface ICryptoTransaction {
+  id: string;
+  type: string; // BUY, SELL, SWAP, etc.
+  status: string;
+  amount: string;
+  currency: string;
+  fromCurrency?: string;
+  toCurrency?: string;
+  fromAmount?: string;
+  toAmount?: string;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: any; // For additional fields
+}
+
+export interface ICryptoTransactionsResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    transactions: ICryptoTransaction[];
+    total: number;
+    limit: number;
+    offset: number;
+    isMockData?: boolean;
+  };
+}
+
+export interface ICryptoTransactionDetailResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: ICryptoTransaction;
+}
+
+export const getCryptoTransactions = async (
+  token: string,
+  params?: {
+    type?: string; // BUY, SELL, SWAP
+    limit?: number;
+    offset?: number;
+  }
+): Promise<ICryptoTransactionsResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.type) queryParams.append('type', params.type);
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.offset) queryParams.append('offset', params.offset.toString());
+
+  const url = queryParams.toString()
+    ? `${API_ENDPOINTS.CRYPTO.GetTransactions}?${queryParams.toString()}`
+    : API_ENDPOINTS.CRYPTO.GetTransactions;
+
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+export const getCryptoTransactionById = async (
+  token: string,
+  transactionId: string
+): Promise<ICryptoTransactionDetailResponse> => {
+  const url = `${API_ENDPOINTS.CRYPTO.GetTransactionById}/${transactionId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};

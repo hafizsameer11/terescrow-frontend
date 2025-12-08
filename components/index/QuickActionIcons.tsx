@@ -43,7 +43,7 @@ const QuickActionIcons = () => {
             id: 'swap',
             label: 'Swap',
             icon: icons.fourthicon, // Two opposing arrows
-            onPress: () => navigate('selectasset' as any, { forReceive: 'false' }),
+            onPress: () => navigate('swap' as any),
         },
         {
             id: 'assets',

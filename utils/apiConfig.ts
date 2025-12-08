@@ -111,5 +111,13 @@ export const API_ENDPOINTS = {
     GetSellQuote: API_DOMAIN + '/v2/crypto/sell/quote',
     GetSellPreview: API_DOMAIN + '/v2/crypto/sell/preview',
     ExecuteSell: API_DOMAIN + '/v2/crypto/sell',
+    GetDepositAddress: API_DOMAIN + '/v2/crypto/deposit-address', // + /{currency}/{blockchain}
+    GetReceiveAddress: API_DOMAIN + '/v2/crypto/receive', // + /{accountId}
+    GetSwapCurrencies: API_DOMAIN + '/v2/crypto/swap/currencies',
+    GetSwapQuote: API_DOMAIN + '/v2/crypto/swap/quote',
+    GetSwapPreview: API_DOMAIN + '/v2/crypto/swap/preview',
+    ExecuteSwap: API_DOMAIN + '/v2/crypto/swap',
+    GetTransactions: API_DOMAIN + '/v2/crypto/transactions',
+    GetTransactionById: API_DOMAIN + '/v2/crypto/transactions', // + /{transactionId}
   },
 };

@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -15,6 +17,11 @@ import { useRouter, useNavigation, useLocalSearchParams } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getReceiveAddress } from '@/utils/queries/accountQueries';
+import { showTopToast } from '@/utils/helpers';
+import { getImageUrl } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -23,27 +30,59 @@ const ReceiveCrypto = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const params = useLocalSearchParams<{
     assetName?: string;
     assetId?: string;
     selectedNetwork?: string;
   }>();
 
-  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(params.selectedNetwork || 'Bitcoin');
   const assetName = params.assetName || 'BTC';
   const assetId = params.assetId || '1';
+  const accountId = parseInt(assetId, 10);
 
-  // Dummy deposit address (in real app, this would come from API)
-  const depositAddress = '15o4XxFgJ6iaFRKN5JTYB4L318BJiZsfJ';
+  // Fetch deposit address
+  const {
+    data: addressData,
+    isLoading: addressLoading,
+    isError: addressError,
+    refetch: refetchAddress,
+  } = useQuery({
+    queryKey: ['receiveAddress', accountId],
+    queryFn: () => getReceiveAddress(token, accountId),
+    enabled: !!token && !isNaN(accountId) && accountId > 0,
+    retry: 1,
+  });
 
-  useEffect(() => {
-    if (params.selectedNetwork) {
-      setSelectedNetwork(params.selectedNetwork);
+  const depositAddress = addressData?.data?.address || '';
+  const blockchain = addressData?.data?.blockchain || params.selectedNetwork || '';
+  const currency = addressData?.data?.currency || assetName;
+  const currencyName = addressData?.data?.currencyName || addressData?.data?.currency || assetName;
+  const symbol = addressData?.data?.symbol || '';
+  const balance = addressData?.data?.balance || '0';
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchAddress();
+    } catch (error) {
+      console.error('Error refreshing address:', error);
+    } finally {
+      setRefreshing(false);
     }
-  }, [params.selectedNetwork]);
+  }, [refetchAddress]);
 
   // Map asset name to icon
-  const getAssetIcon = (name: string) => {
+  const getAssetIcon = (name: string, symbolPath?: string) => {
+    if (symbolPath) {
+      if (symbolPath.startsWith('http')) {
+        return { uri: symbolPath };
+      } else {
+        return { uri: getImageUrl(symbolPath) };
+      }
+    }
     const nameLower = name.toLowerCase();
     if (nameLower.includes('bitcoin') || nameLower.includes('btc')) return icons.btc;
     if (nameLower.includes('ethereum') || nameLower.includes('eth')) return icons.eth;
@@ -58,25 +97,25 @@ const ReceiveCrypto = () => {
     return icons.btc;
   };
 
-  const assetIcon = getAssetIcon(assetName);
-  const fullAssetName = assetName === 'BTC' ? 'Bitcoin' : assetName === 'ETH' ? 'Ethereum' : assetName;
-
-  const handleSelectNetwork = () => {
-    navigate('blockchainmodal' as any, {
-      selectedNetwork: selectedNetwork || '',
-      returnTo: 'receivecrypto',
-      assetName: assetName,
-      assetId: assetId,
-    });
-  };
+  const assetIcon = getAssetIcon(currency, symbol);
+  const displayNetwork = blockchain || params.selectedNetwork || 'Bitcoin';
 
   const handleCopyAddress = async () => {
+    if (!depositAddress) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Deposit address not available',
+      });
+      return;
+    }
     await Clipboard.setStringAsync(depositAddress);
-    // You could show a toast notification here
+    showTopToast({
+      type: 'success',
+      text1: 'Copied',
+      text2: 'Deposit address copied to clipboard',
+    });
   };
-
-  // Generate QR code data (in real app, this would be the deposit address)
-  const qrCodeData = depositAddress;
 
   return (
     <SafeAreaView
@@ -95,7 +134,7 @@ const ReceiveCrypto = () => {
           />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, dark ? { color: COLORS.black } : { color: COLORS.black }]}>
-          Deposit {assetName}
+          Deposit {addressData?.data?.currencyName || currencyName || assetName}
         </Text>
         <View style={styles.headerRight} />
       </View>
@@ -103,72 +142,102 @@ const ReceiveCrypto = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+          />
+        }
       >
-        {/* QR Code Section */}
-        <View style={styles.qrCodeContainer}>
-          <View style={styles.qrCodeWrapper}>
-            <QRCode
-              value={depositAddress}
-              size={218}
-              color={COLORS.black}
-              backgroundColor={COLORS.white}
-              logo={assetIcon}
-              logoSize={50}
-              logoBackgroundColor={COLORS.white}
-              logoMargin={2}
-              logoBorderRadius={25}
-            />
+        {addressLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[styles.loadingText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Loading deposit address...
+            </Text>
           </View>
-          <Text style={[styles.qrCodeLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            Scan the QR to receive {assetName}
-          </Text>
-        </View>
-
-        {/* Network */}
-        <View style={[styles.inputSection, { marginBottom: 20 }]}>
-          <Text style={[styles.label, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            Network
-          </Text>
-          <TouchableOpacity
-            style={styles.selector}
-            onPress={handleSelectNetwork}
-          >
-            <Text style={styles.selectorValue}>
-              {selectedNetwork || 'Select Network'}
+        ) : addressError || !depositAddress ? (
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Failed to load deposit address
             </Text>
-            <Image
-              source={icons.arrowDown}
-              style={styles.arrowIcon}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Deposit Address */}
-        <View style={styles.inputSection}>
-          <Text style={[styles.label, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            Deposit address
-          </Text>
-          <View style={styles.addressContainer}>
-            <Text style={[styles.addressText, dark ? { color: COLORS.white } : { color: COLORS.black }]} numberOfLines={1}>
-              {depositAddress}
+            <Text style={[styles.errorSubtext, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Please try again or contact support
             </Text>
-            <TouchableOpacity onPress={handleCopyAddress} style={styles.copyButton}>
-              <Image
-                source={images.copy}
-                style={styles.copyIcon}
-                contentFit="contain"
-              />
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => refetchAddress()}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* QR Code Section */}
+            <View style={styles.qrCodeContainer}>
+              <View style={styles.qrCodeWrapper}>
+                <QRCode
+                  value={depositAddress}
+                  size={218}
+                  color={COLORS.black}
+                  backgroundColor={COLORS.white}
+                  logo={assetIcon}
+                  logoSize={50}
+                  logoBackgroundColor={COLORS.white}
+                  logoMargin={2}
+                  logoBorderRadius={25}
+                />
+              </View>
+              <Text style={[styles.qrCodeLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Scan the QR to receive {currencyName}
+              </Text>
+            </View>
 
-        {/* Warning Message */}
-        <View style={styles.warningContainer}>
-          <Text style={[styles.warningText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            Don't send NFTs to this address.
-          </Text>
-        </View>
+            {/* Network */}
+            <View style={[styles.inputSection, { marginBottom: 20 }]}>
+              <Text style={[styles.label, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Network
+              </Text>
+              <View style={[styles.selector, { opacity: 0.7 }]}>
+                <Text style={styles.selectorValue}>
+                  {displayNetwork}
+                </Text>
+              </View>
+            </View>
+
+            {/* Deposit Address */}
+            <View style={styles.inputSection}>
+              <Text style={[styles.label, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Deposit address
+              </Text>
+              <View style={styles.addressContainer}>
+                <Text style={[styles.addressText, dark ? { color: COLORS.white } : { color: COLORS.black }]} numberOfLines={1}>
+                  {depositAddress}
+                </Text>
+                <TouchableOpacity onPress={handleCopyAddress} style={styles.copyButton}>
+                  <Image
+                    source={images.copy}
+                    style={styles.copyIcon}
+                    contentFit="contain"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Warning Message */}
+            <View style={styles.warningContainer}>
+              <Text style={[styles.warningText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                Don't send NFTs to this address.
+              </Text>
+              {addressData?.data?.addressShared && (
+                <Text style={[styles.warningText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }, { marginTop: 4 }]}>
+                  This address is shared for all {blockchain} currencies.
+                </Text>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -300,6 +369,48 @@ const styles = StyleSheet.create({
     fontSize: isTablet ? 12 : 10,
     fontWeight: '400',
     // textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+    minHeight: 300,
+  },
+  loadingText: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+    minHeight: 300,
+  },
+  errorText: {
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 100,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
   },
 });
 
