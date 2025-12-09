@@ -33,7 +33,19 @@ export const QueryClientWrapper: React.FC<QueryClientWrapperProps> = ({ children
               // Retry up to 3 times for other errors
               return failureCount < 3;
             },
-            onError: (error) => {
+            onError: (error, query) => {
+              // Skip logout for public queries (signup/signin related)
+              const queryKey = query?.queryKey?.[0];
+              const isPublicQuery = 
+                queryKey === 'get-countries' || 
+                queryKey === 'waysOfHearing' || 
+                queryKey === 'privacy';
+              
+              if (isPublicQuery) {
+                // Don't logout for public queries - they're expected to work without auth
+                return;
+              }
+              
               // Check for authentication errors
               if (error instanceof ApiError) {
                 const errorMessage = (error.message?.toLowerCase() || '') + 

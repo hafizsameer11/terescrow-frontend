@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,10 @@ import {
   Dimensions,
   ScrollView,
   ImageBackground,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -15,76 +19,130 @@ import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getCryptoAssetById, ICryptoAssetDetail, ICryptoTransaction } from '@/utils/queries/accountQueries';
+import { getImageUrl } from '@/utils/helpers';
+import { showTopToast } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
-
-// Dummy transaction data
-const dummyTransactions = [
-  {
-    id: '1',
-    type: 'Sell',
-    amount: '100 USDT',
-    usdValue: '$100.00',
-    date: 'Aug 26, 2023, 9:26 AM',
-    icon: images.discountCircle,
-  },
-  {
-    id: '2',
-    type: 'Buy',
-    amount: '100 USDT',
-    usdValue: '$100.00',
-    date: 'Aug 26, 2023, 9:26 AM',
-    icon: images.discountCircle,
-  },
-  {
-    id: '3',
-    type: 'Receive',
-    amount: '100 USDT',
-    usdValue: '$100.00',
-    date: 'Aug 26, 2023, 9:26 AM',
-    icon: images.discountCircle,
-  },
-  {
-    id: '4',
-    type: 'Swap',
-    amount: '100 USDT',
-    usdValue: '$100.00',
-    date: 'Aug 26, 2023, 9:26 AM',
-    icon: images.discountCircle,
-  },
-  {
-    id: '5',
-    type: 'Send',
-    amount: '100 USDT',
-    usdValue: '$100.00',
-    date: 'Aug 26, 2023, 9:26 AM',
-    icon: images.discountCircle,
-  },
-];
 
 const AssetDetail = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const { assetId, assetName } = useLocalSearchParams<{ assetId: string; assetName: string }>();
+  const [insufficientBalanceModalVisible, setInsufficientBalanceModalVisible] = useState(false);
 
-  // Map asset name to icon
-  const getAssetIcon = (name: string) => {
-    const nameLower = name.toLowerCase();
-    if (nameLower.includes('bitcoin') || nameLower.includes('btc')) return icons.btc;
-    if (nameLower.includes('ethereum') || nameLower.includes('eth')) return icons.eth;
-    if (nameLower.includes('tether') || nameLower.includes('usdt')) return icons.usdt;
-    if (nameLower.includes('solana') || nameLower.includes('sol')) return icons.solana;
-    if (nameLower.includes('bnb')) return icons.bnb;
+  // Fetch asset details from API
+  const {
+    data: assetData,
+    isLoading: assetLoading,
+    isError: assetError,
+    refetch: refetchAsset,
+    isFetching: assetFetching,
+  } = useQuery({
+    queryKey: ['cryptoAsset', assetId],
+    queryFn: () => getCryptoAssetById(token, parseInt(assetId || '0')),
+    enabled: !!token && !!assetId,
+  });
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    try {
+      await refetchAsset();
+    } catch (error) {
+      console.log('Error refreshing asset:', error);
+    }
+  }, [refetchAsset]);
+
+  const assetDetail: ICryptoAssetDetail | undefined = assetData?.data;
+  const transactions: ICryptoTransaction[] = assetDetail?.transactions || [];
+
+  // Get asset icon from API symbol or fallback
+  const getAssetIcon = (symbol?: string, currency?: string, name?: string) => {
+    if (symbol) {
+      return { uri: getImageUrl(symbol) };
+    }
+    const currencyUpper = (currency || name || '').toUpperCase();
+    if (currencyUpper.includes('BTC') || currencyUpper.includes('BITCOIN')) return icons.btc;
+    if (currencyUpper.includes('ETH') || currencyUpper.includes('ETHEREUM')) return icons.eth;
+    if (currencyUpper.includes('USDT') || currencyUpper.includes('TETHER')) return icons.usdt;
+    if (currencyUpper.includes('SOL') || currencyUpper.includes('SOLANA')) return icons.solana;
+    if (currencyUpper.includes('BNB')) return icons.bnb;
     return icons.usdt; // Default
   };
 
-  // Default to USDT if no asset provided
-  const asset = {
-    id: assetId || '3',
-    name: assetName || 'USDT',
-    icon: getAssetIcon(assetName || 'USDT'),
+  const assetIcon = assetDetail
+    ? getAssetIcon(assetDetail.symbol, assetDetail.currency, assetDetail.name)
+    : getAssetIcon(undefined, undefined, assetName);
+
+  // Check if balance is sufficient
+  const hasBalance = () => {
+    if (!assetDetail) return false;
+    const balance = parseFloat(assetDetail.availableBalance || '0');
+    return balance > 0;
+  };
+
+  // Handle action button press with balance validation
+  const handleActionPress = (actionId: string) => {
+    // Actions that require balance: send, swap, sell
+    const requiresBalance = ['send', 'swap', 'sell'];
+    
+    if (requiresBalance.includes(actionId) && !hasBalance()) {
+      setInsufficientBalanceModalVisible(true);
+      return;
+    }
+
+    const asset = {
+      id: assetDetail?.id?.toString() || assetId || '0',
+      name: assetDetail?.name || assetName || 'USDT',
+      currency: assetDetail?.currency || 'USDT',
+      virtualAccountId: assetDetail?.id || parseInt(assetId || '0'),
+    };
+
+    if (actionId === 'send') {
+      router.push({
+        pathname: '/sendcrypto',
+        params: {
+          assetName: asset.name,
+          assetId: asset.id,
+          currency: asset.currency,
+          virtualAccountId: asset.virtualAccountId.toString(),
+        },
+      });
+    } else if (actionId === 'buy') {
+      navigate('buycrypto' as any, {
+        assetName: asset.name,
+        assetId: asset.id,
+        currency: asset.currency,
+        virtualAccountId: asset.virtualAccountId.toString(),
+      });
+    } else if (actionId === 'sell') {
+      navigate('sellcrypto' as any, {
+        assetName: asset.name,
+        assetId: asset.id,
+        currency: asset.currency,
+        virtualAccountId: asset.virtualAccountId.toString(),
+      });
+    } else if (actionId === 'receive') {
+      navigate('receivecrypto' as any, {
+        assetName: asset.name,
+        assetId: asset.id,
+        accountId: asset.virtualAccountId.toString(),
+      });
+    } else if (actionId === 'swap') {
+      router.push({
+        pathname: '/swap',
+        params: {
+          assetId: asset.id,
+          assetName: asset.name,
+          currency: asset.currency,
+        },
+      });
+    }
   };
 
   const actionButtons = [
@@ -95,17 +153,83 @@ const AssetDetail = () => {
     { id: 'send', label: 'Send', icon: images.assetSend },
   ];
 
-  const renderTransaction = ({ item }: { item: typeof dummyTransactions[0] }) => (
-    <View
+  // Get transaction icon based on type
+  const getTransactionIcon = (type: string) => {
+    switch (type?.toUpperCase()) {
+      case 'BUY':
+        return icons.secondicon;
+      case 'SELL':
+        return images.discountCircle;
+      case 'SWAP':
+        return icons.fourthicon;
+      case 'SEND':
+        return images.assetSend;
+      case 'RECEIVE':
+        return images.assetReceive;
+      default:
+        return images.discountCircle;
+    }
+  };
+
+  // Format transaction amount
+  const formatTransactionAmount = (transaction: ICryptoTransaction) => {
+    if (transaction.type === 'SWAP' && transaction.fromAmount && transaction.toAmount) {
+      return `${transaction.fromAmount} ${transaction.fromCurrency || ''} → ${transaction.toAmount} ${transaction.toCurrency || ''}`;
+    }
+    return `${transaction.amount} ${transaction.currency || ''}`;
+  };
+
+  // Format transaction USD value
+  const formatTransactionUsdValue = (transaction: ICryptoTransaction) => {
+    // For swap transactions, show both amounts in USD if available
+    if (transaction.type === 'SWAP') {
+      return `~$${parseFloat(transaction.amount || '0').toFixed(2)}`;
+    }
+    return `~$${parseFloat(transaction.amount || '0').toFixed(2)}`;
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const renderTransaction = ({ item }: { item: ICryptoTransaction }) => (
+    <TouchableOpacity
       style={[
         styles.transactionItem,
         dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' },
       ]}
+      onPress={() => {
+        // Navigate to transaction detail based on type
+        const routeMap: { [key: string]: string } = {
+          BUY: '/cryptobought',
+          SELL: '/cryptosold',
+          SWAP: '/swapsuccess',
+        };
+        const route = routeMap[item.type?.toUpperCase() || ''];
+        if (route) {
+          router.push({
+            pathname: route as any,
+            params: { id: item.id },
+          });
+        }
+      }}
     >
       <View style={styles.transactionLeft}>
         <View style={styles.transactionIconContainer}>
           <Image
-            source={item.icon}
+            source={getTransactionIcon(item.type)}
             style={styles.transactionIcon}
             contentFit="contain"
           />
@@ -117,7 +241,7 @@ const AssetDetail = () => {
               dark ? { color: COLORS.white } : { color: COLORS.black },
             ]}
           >
-            {item.type}
+            {item.type || 'Transaction'}
           </Text>
           <Text
             style={[
@@ -125,7 +249,7 @@ const AssetDetail = () => {
               dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
             ]}
           >
-            {item.date}
+            {formatDate(item.createdAt)}
           </Text>
         </View>
       </View>
@@ -135,8 +259,9 @@ const AssetDetail = () => {
             styles.transactionAmount,
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
+          numberOfLines={1}
         >
-          {item.amount}
+          {formatTransactionAmount(item)}
         </Text>
         <Text
           style={[
@@ -144,10 +269,10 @@ const AssetDetail = () => {
             dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
           ]}
         >
-          {item.usdValue}
+          {formatTransactionUsdValue(item)}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -173,93 +298,160 @@ const AssetDetail = () => {
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Balance Section */}
-        <ImageBackground
-          source={images.maskGroup2}
-          style={styles.balanceSection}
-          imageStyle={styles.balanceBackgroundImage}
-          resizeMode="cover"
-        >
-          <View style={styles.assetIconLargeContainer}>
-            <Image
-              source={asset.icon}
-              style={styles.assetIconLarge}
-              contentFit="contain"
-            />
-          </View>
-          <Text style={styles.balanceLabel}>Available balance</Text>
-          <Text style={styles.balanceAmount}>0.00 {asset.name}</Text>
-          <Text style={styles.balanceEquivalent}>~$0.00, ~N0.00</Text>
-
-          {/* Action Buttons */}
-          <View style={styles.actionButtonsContainer}>
-            {actionButtons.map((action) => (
-              <TouchableOpacity
-                key={action.id}
-                style={styles.actionButton}
-                onPress={() => {
-                  if (action.id === 'send') {
-                    router.push({
-                      pathname: '/sendcrypto',
-                      params: {
-                        assetName: asset.name,
-                        assetId: asset.id,
-                      },
-                    });
-                  } else if (action.id === 'buy') {
-                    navigate('buycrypto' as any, {
-                      assetName: asset.name,
-                      assetId: asset.id,
-                    });
-                  } else if (action.id === 'sell') {
-                    navigate('sellcrypto' as any, {
-                      assetName: asset.name,
-                      assetId: asset.id,
-                    });
-                  } else if (action.id === 'receive') {
-                    navigate('receivecrypto' as any, {
-                      assetName: asset.name,
-                      assetId: asset.id,
-                    });
-                  }
-                }}
-              >
-                <View style={styles.actionButtonIconContainer}>
-                  <Image
-                    source={action.icon}
-                    style={styles.actionButtonIcon}
-                    contentFit="contain"
-                  />
-                </View>
-                <Text style={styles.actionButtonLabel}>{action.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ImageBackground>
-
-        {/* Transactions Section */}
-        <View style={styles.transactionsSection}>
-          <Text
-            style={[
-              styles.transactionsTitle,
-              dark ? { color: COLORS.white } : { color: COLORS.black },
-            ]}
-          >
-            Transactions
+      {assetLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Loading asset details...
           </Text>
-          <FlatList
-            data={dummyTransactions}
-            renderItem={renderTransaction}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            contentContainerStyle={styles.transactionsList}
-          />
         </View>
-      </ScrollView>
+      ) : assetError ? (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+            Error loading asset details
+          </Text>
+        </View>
+      ) : assetDetail ? (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={assetFetching}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
+            />
+          }
+        >
+          {/* Balance Section */}
+          <ImageBackground
+            source={images.maskGroup2}
+            style={styles.balanceSection}
+            imageStyle={styles.balanceBackgroundImage}
+            resizeMode="cover"
+          >
+            <View style={styles.assetIconLargeContainer}>
+              <Image
+                source={assetIcon}
+                style={styles.assetIconLarge}
+                contentFit="contain"
+              />
+            </View>
+            <Text style={styles.balanceLabel}>Available balance</Text>
+            <Text style={styles.balanceAmount}>
+              {parseFloat(assetDetail.availableBalance || '0').toLocaleString()} {assetDetail.name || assetDetail.currency}
+            </Text>
+            <Text style={styles.balanceEquivalent}>
+              ~${parseFloat(assetDetail.availableBalanceUsd || '0').toLocaleString()}, ~N{parseFloat(assetDetail.availableBalanceNaira || '0').toLocaleString()}
+            </Text>
+
+            {/* Action Buttons */}
+            <View style={styles.actionButtonsContainer}>
+              {actionButtons.map((action) => {
+                const requiresBalance = ['send', 'swap', 'sell'].includes(action.id);
+                const isDisabled = requiresBalance && !hasBalance();
+                
+                return (
+                  <TouchableOpacity
+                    key={action.id}
+                    style={[
+                      styles.actionButton,
+                      isDisabled && styles.actionButtonDisabled,
+                    ]}
+                    onPress={() => handleActionPress(action.id)}
+                    disabled={isDisabled}
+                  >
+                    <View style={[
+                      styles.actionButtonIconContainer,
+                      isDisabled && styles.actionButtonIconContainerDisabled,
+                    ]}>
+                      <Image
+                        source={action.icon}
+                        style={[
+                          styles.actionButtonIcon,
+                          isDisabled && { opacity: 0.5 },
+                        ]}
+                        contentFit="contain"
+                      />
+                    </View>
+                    <Text style={[
+                      styles.actionButtonLabel,
+                      isDisabled && styles.actionButtonLabelDisabled,
+                    ]}>
+                      {action.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ImageBackground>
+
+          {/* Transactions Section */}
+          <View style={[
+            styles.transactionsSection,
+            dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
+          ]}>
+            <Text
+              style={[
+                styles.transactionsTitle,
+                dark ? { color: COLORS.white } : { color: COLORS.black },
+              ]}
+            >
+              Transactions
+            </Text>
+            {transactions.length > 0 ? (
+              <FlatList
+                data={transactions}
+                renderItem={renderTransaction}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                contentContainerStyle={styles.transactionsList}
+              />
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  No transactions found
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      ) : null}
+
+      {/* Insufficient Balance Modal */}
+      <Modal
+        visible={insufficientBalanceModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setInsufficientBalanceModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setInsufficientBalanceModalVisible(false)}
+        >
+          <Pressable
+            style={[
+              styles.modalContent,
+              dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.modalTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Insufficient Balance
+            </Text>
+            <Text style={[styles.modalMessage, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              You don't have enough balance to perform this action. Please add funds to your wallet first.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setInsufficientBalanceModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -429,6 +621,81 @@ const styles = StyleSheet.create({
   },
   transactionValue: {
     fontSize: isTablet ? 14 : 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 14,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  actionButtonIconContainerDisabled: {
+    opacity: 0.5,
+  },
+  actionButtonLabelDisabled: {
+    opacity: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: isTablet ? 16 : 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 100,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: COLORS.white,
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
   },
 });
 

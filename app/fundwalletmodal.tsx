@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,9 @@ import {
   Pressable,
   Dimensions,
   TextInput,
+  ActivityIndicator,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -15,34 +18,177 @@ import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter } from 'expo-router';
 import Input from '@/components/CustomInput';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { initiateDeposit, getDepositStatus, IInitiateDepositRequest } from '@/utils/mutations/authMutations';
+import { useAuth } from '@/contexts/authContext';
+import { showTopToast } from '@/utils/helpers';
+import { ApiError } from '@/utils/customApiCalls';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 
 const paymentMethods = [
   {
-    id: '1',
-    name: 'Bank Transfer',
-    description: 'Make payment through bank transfer.',
-    icon: images.vector50,
+    id: 'palmpay',
+    name: 'PalmPay',
+    description: 'Pay securely with PalmPay.',
+    icon: images.vector50, // You can update this icon later
   },
   {
-    id: '2',
-    name: 'Mobile Money',
-    description: 'Transfer from your mobile money account.',
-    icon: images.vector49,
+    id: 'card',
+    name: 'Card',
+    description: 'Pay with your debit or credit card.',
+    icon: images.vector49, // You can update this icon later
   },
 ];
 
 const FundWalletModal = () => {
   const { dark } = useTheme();
   const router = useRouter();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('1');
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('palmpay');
   const [topupAmount, setTopupAmount] = useState('');
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initiate deposit mutation
+  const { mutate: handleInitiateDeposit, isPending: isInitiating } = useMutation({
+    mutationFn: (data: IInitiateDepositRequest) => initiateDeposit(data, token),
+    onSuccess: async (response) => {
+      if (response?.data) {
+        setTransactionId(response.data.transactionId);
+        
+        // Open checkout URL in browser
+        if (response.data.checkoutUrl) {
+          const supported = await Linking.canOpenURL(response.data.checkoutUrl);
+          if (supported) {
+            await Linking.openURL(response.data.checkoutUrl);
+            // Start polling for deposit status
+            setIsPolling(true);
+            startPollingDepositStatus(response.data.transactionId);
+          } else {
+            showTopToast({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Cannot open payment link',
+            });
+          }
+        }
+      }
+    },
+    onError: (error: ApiError) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to initiate deposit',
+      });
+    },
+  });
+
+  // Poll deposit status
+  const startPollingDepositStatus = (txId: string) => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const statusResponse = await getDepositStatus(txId, token);
+        if (statusResponse?.data) {
+          const status = statusResponse.data.status?.toLowerCase();
+          
+          if (status === 'completed' || status === 'successful') {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            setIsPolling(false);
+            showTopToast({
+              type: 'success',
+              text1: 'Success',
+              text2: 'Deposit completed successfully',
+            });
+            // Invalidate wallet queries to refresh balance
+            queryClient.invalidateQueries({ queryKey: ['walletOverview'] });
+            setTimeout(() => {
+              router.back();
+            }, 2000);
+          } else if (status === 'failed' || status === 'cancelled') {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            setIsPolling(false);
+            showTopToast({
+              type: 'error',
+              text1: 'Deposit Failed',
+              text2: 'Your deposit was not completed',
+            });
+          }
+          // Continue polling if status is 'pending' or 'processing'
+        }
+      } catch (error) {
+        console.error('Error checking deposit status:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Stop polling after 5 minutes
+    setTimeout(() => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      setIsPolling(false);
+    }, 300000);
+  };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleProceed = () => {
-    // TODO: Handle proceed action
-    router.back();
+    if (!topupAmount || parseFloat(topupAmount) <= 0) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid amount',
+      });
+      return;
+    }
+
+    const amount = parseFloat(topupAmount);
+    if (isNaN(amount) || amount <= 0) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid amount',
+      });
+      return;
+    }
+
+    if (selectedPaymentMethod === 'palmpay') {
+      // Initiate PalmPay deposit
+      handleInitiateDeposit({
+        amount: amount,
+        currency: 'NGN',
+      });
+    } else if (selectedPaymentMethod === 'card') {
+      // TODO: Handle card payment
+      // For now, show a message that card payment is coming soon
+      showTopToast({
+        type: 'info',
+        text1: 'Coming Soon',
+        text2: 'Card payment will be available soon',
+      });
+    }
   };
 
   return (
@@ -142,12 +288,29 @@ const FundWalletModal = () => {
 
             {/* Proceed Button */}
             <TouchableOpacity
-              style={[styles.proceedButton, !topupAmount && styles.proceedButtonDisabled]}
+              style={[
+                styles.proceedButton, 
+                (!topupAmount || isInitiating || isPolling) && styles.proceedButtonDisabled
+              ]}
               onPress={handleProceed}
-              disabled={!topupAmount}
+              disabled={!topupAmount || isInitiating || isPolling}
             >
-              <Text style={styles.proceedButtonText}>Proceed</Text>
+              {isInitiating || isPolling ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <Text style={styles.proceedButtonText}>Proceed</Text>
+              )}
             </TouchableOpacity>
+            
+            {/* Polling Status */}
+            {isPolling && (
+              <View style={styles.pollingContainer}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={[styles.pollingText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  Waiting for payment confirmation...
+                </Text>
+              </View>
+            )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -279,6 +442,17 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
+  },
+  pollingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    gap: 8,
+  },
+  pollingText: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: '400',
   },
 });
 

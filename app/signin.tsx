@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -39,6 +39,7 @@ const Signin = () => {
   const router = useRouter();
   const { setToken, setUserData } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const isNavigatingRef = useRef(false);
 
   const handleBiometricAuth = async () => {
     try {
@@ -124,6 +125,11 @@ const Signin = () => {
     });
   useEffect(() => {
     const checkAutoLogin = async () => {
+      // Skip auto-login if user is navigating away
+      if (isNavigatingRef.current) {
+        return;
+      }
+
       try {
         const token = await SecureStore.getItemAsync(TOKEN_KEY);
         const userDataStr = await SecureStore.getItemAsync(USER_DATA_KEY);
@@ -134,6 +140,10 @@ const Signin = () => {
           const now = Date.now();
           const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
           if (now - loginTime < THIRTY_DAYS) {
+            // Check again if user started navigating
+            if (isNavigatingRef.current) {
+              return;
+            }
             setToken(token);
             console.log("token",token)
             console.log("use data",JSON.parse(userDataStr))
@@ -142,6 +152,7 @@ const Signin = () => {
               index: 0,
               routes: [{ name: "(tabs)" }],
             });
+            return; // Exit early if auto-login succeeds
           } else {
             await SecureStore.deleteItemAsync(TOKEN_KEY);
             await SecureStore.deleteItemAsync(USER_DATA_KEY);
@@ -154,7 +165,12 @@ const Signin = () => {
       }
     };
 
-    checkAutoLogin();
+    // Only run auto-login check if we're not already navigating away
+    const timeoutId = setTimeout(() => {
+      checkAutoLogin();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
 
@@ -210,7 +226,11 @@ const Signin = () => {
                       Don't have an account?{" "}
                       <Text
                         style={styles.createAccountText}
-                        onPress={() => navigate("signup")}
+                        onPress={() => {
+                          console.log("Navigating to signup");
+                          isNavigatingRef.current = true;
+                          router.replace("/signup");
+                        }}
                       >
                         Create account
                       </Text>

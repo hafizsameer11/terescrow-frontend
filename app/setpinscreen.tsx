@@ -33,7 +33,7 @@ const SetPinScreen: React.FC = () => {
   const [pin, setPin] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const { dark } = useTheme();
-  const { token: authToken, userData } = useAuth();
+  const { token: authToken, userData, logout } = useAuth();
 
   const handlePress = (digit: string) => {
     console.log('reached');
@@ -61,28 +61,46 @@ const SetPinScreen: React.FC = () => {
       return result;
     },
     mutationKey: ['set-pin'],
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log('PIN set successfully:', data);
-      showTopToast({
-        type: 'success',
-        text1: 'Success',
-        text2: 'PIN set successfully. Please log in to continue.',
-      });
-      // Navigate to signin screen after successful PIN setup
-      // Small delay to ensure toast is visible
-      setTimeout(() => {
-        try {
-          reset({
-            index: 0,
-            routes: [{ name: 'signin' as any }],
-          });
-          console.log('Navigation to signin completed');
-        } catch (navError) {
-          console.log('Navigation error, using router:', navError);
-          // Fallback: use router.replace
-          router.replace('/signin');
-        }
-      }, 1000);
+      
+      // Only navigate to signin if this is part of the signup flow
+      if (context === 'signup') {
+        showTopToast({
+          type: 'success',
+          text1: 'Success',
+          text2: 'PIN set successfully. Please log in to continue.',
+        });
+        
+        // Logout user and navigate to signin (logout already handles navigation)
+        // Small delay to ensure toast is visible
+        setTimeout(async () => {
+          try {
+            await logout();
+            console.log('User logged out after PIN setup - navigation handled by logout');
+          } catch (logoutError) {
+            console.log('Error during logout:', logoutError);
+            // If logout fails, manually navigate to signin
+            try {
+              reset({
+                index: 0,
+                routes: [{ name: 'signin' as any }],
+              });
+              console.log('Navigation to signin completed (fallback)');
+            } catch (navError) {
+              console.log('Navigation error, using router:', navError);
+              router.replace('/signin');
+            }
+          }
+        }, 1500);
+      } else {
+        // For other contexts (like transactionPin), show success but don't navigate
+        showTopToast({
+          type: 'success',
+          text1: 'Success',
+          text2: 'PIN set successfully.',
+        });
+      }
     },
     onError: (error: ApiError) => {
       showTopToast({
@@ -154,9 +172,26 @@ const SetPinScreen: React.FC = () => {
       .validate({ setYourPin: pinValue, confirmYourPin: pinValue })
       .then(() => {
         if (title === 'Set your Pin' && context === 'signup') {
+          // Get email from params or userData
+          const userEmail = email || userData?.email;
+          if (!userEmail) {
+            showTopToast({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Email not found. Please try again.',
+            });
+            setPin([]);
+            return;
+          }
+          // Navigate to confirm PIN screen with email and entered PIN
           push({
             pathname: '/setpinscreen',
-            params: { title: 'Confirm your Pin', enteredPin: pinValue },
+            params: { 
+              title: 'Confirm your Pin', 
+              enteredPin: pinValue,
+              context: 'signup',
+              email: userEmail,
+            },
           });
           setPin([]);
         }

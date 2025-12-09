@@ -13,6 +13,42 @@ const TransactionList = () => {
   const { token } = useAuth();
   const { navigate } = useNavigation();
 
+  // Wrapper function to safely handle errors for wallet transactions
+  const fetchWalletTransactions = async () => {
+    try {
+      return await getWalletTransactions(token, { page: 1, limit: 100 });
+    } catch (error: any) {
+      // Only re-throw if it's a genuine auth error
+      const isAuthError = error?.statusCode === 401 || 
+        (error?.message?.toLowerCase() || '').includes('you are not logged in') ||
+        (error?.message?.toLowerCase() || '').includes('unauthorized');
+      if (isAuthError) {
+        throw error; // Let auth errors propagate to global handler
+      }
+      // For other errors, return empty data instead of throwing
+      console.log("Error fetching wallet transactions (non-auth):", error);
+      return { data: { transactions: [] }, status: 'error', message: error?.message || 'Failed to fetch transactions' };
+    }
+  };
+
+  // Wrapper function to safely handle errors for crypto transactions
+  const fetchCryptoTransactions = async () => {
+    try {
+      return await getCryptoTransactions(token, { limit: 100, offset: 0 });
+    } catch (error: any) {
+      // Only re-throw if it's a genuine auth error
+      const isAuthError = error?.statusCode === 401 || 
+        (error?.message?.toLowerCase() || '').includes('you are not logged in') ||
+        (error?.message?.toLowerCase() || '').includes('unauthorized');
+      if (isAuthError) {
+        throw error; // Let auth errors propagate to global handler
+      }
+      // For other errors, return empty data instead of throwing
+      console.log("Error fetching crypto transactions (non-auth):", error);
+      return { data: { transactions: [], total: 0, limit: 100, offset: 0 }, status: 'error', message: error?.message || 'Failed to fetch transactions' };
+    }
+  };
+
   // Use wallet transactions API (new API) - for non-crypto transactions
   const {
     data: walletTransactionsData,
@@ -20,8 +56,9 @@ const TransactionList = () => {
     isError: transactionsIsError,
   } = useQuery({
     queryKey: ["walletTransactions", "all"],
-    queryFn: () => getWalletTransactions(token, { page: 1, limit: 100 }),
+    queryFn: fetchWalletTransactions,
     enabled: !!token,
+    retry: false,
   });
 
   // Use crypto transactions API
@@ -31,8 +68,9 @@ const TransactionList = () => {
     isError: cryptoTransactionsIsError,
   } = useQuery({
     queryKey: ["cryptoTransactions", "all"],
-    queryFn: () => getCryptoTransactions(token, { limit: 100, offset: 0 }),
+    queryFn: fetchCryptoTransactions,
     enabled: !!token,
+    retry: false,
   });
 
   // Fallback to old API if wallet transactions fail (for backward compatibility)

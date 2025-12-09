@@ -119,25 +119,18 @@ const Swap = () => {
 
   // Note: Receive asset selection is now handled via modal, not navigation
 
-  // Get quote when payAmount, payAsset, or receiveAsset changes
-  useEffect(() => {
+  // Get quote function - memoized with useCallback
+  const getQuote = useCallback(async () => {
     if (!payAsset || !receiveAsset || !payAmount || parseFloat(payAmount) <= 0) {
       setReceiveAmount('0');
       return;
     }
 
-    const timeoutId = setTimeout(() => {
-      getQuote();
-    }, 500); // Debounce 500ms
-
-    return () => clearTimeout(timeoutId);
-  }, [payAmount, payAsset, receiveAsset]);
-
-  const getQuote = async () => {
-    if (!payAsset || !receiveAsset || !payAmount || parseFloat(payAmount) <= 0) return;
-
     const amount = parseFloat(payAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    if (isNaN(amount) || amount <= 0) {
+      setReceiveAmount('0');
+      return;
+    }
 
     setIsGettingQuote(true);
     try {
@@ -149,8 +142,10 @@ const Swap = () => {
         toBlockchain: receiveAsset.blockchain,
       };
 
+      console.log('Getting swap quote with request:', quoteRequest);
       const response = await getSwapQuote(token, quoteRequest);
       if (response?.data) {
+        console.log('Swap quote response:', response.data);
         setReceiveAmount(response.data.toAmount || '0');
       }
     } catch (error: any) {
@@ -167,7 +162,21 @@ const Swap = () => {
     } finally {
       setIsGettingQuote(false);
     }
-  };
+  }, [payAsset, receiveAsset, payAmount, token]);
+
+  // Get quote when payAmount, payAsset, or receiveAsset changes
+  useEffect(() => {
+    if (!payAsset || !receiveAsset || !payAmount || parseFloat(payAmount) <= 0) {
+      setReceiveAmount('0');
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      getQuote();
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [payAmount, payAsset, receiveAsset, getQuote]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -213,10 +222,19 @@ const Swap = () => {
   };
 
   const handleSelectReceiveAsset = (currency: ICryptoCurrency) => {
+    console.log('Selecting receive asset:', {
+      currency: currency.currency,
+      name: currency.name,
+      blockchain: currency.blockchain,
+      currentPayAsset: payAsset?.currency,
+      currentPayAmount: payAmount,
+    });
     setReceiveAsset(currency);
     setReceiveAssetModalVisible(false);
-    // Reset receive amount when asset changes
+    // Reset receive amount when asset changes - will be recalculated by useEffect
     setReceiveAmount('0');
+    // The useEffect will automatically trigger quote calculation when receiveAsset changes
+    // No need to manually call getQuote here as useEffect handles it
   };
 
   // Preview mutation
@@ -257,8 +275,12 @@ const Swap = () => {
 
   // Swap mutation
   const swapMutation = useMutation({
-    mutationFn: (data: ISwapCryptoRequest) => swapCrypto(token, data),
+    mutationFn: (data: ISwapCryptoRequest) => {
+      console.log('Calling swap API with data:', data);
+      return swapCrypto(token, data);
+    },
     onSuccess: (response) => {
+      console.log('Swap API response:', response);
       setReviewModalVisible(false);
       // Reset form
       setPayAmount('');
@@ -269,6 +291,7 @@ const Swap = () => {
       queryClient.invalidateQueries({ queryKey: ['buyCurrencies'] });
       queryClient.invalidateQueries({ queryKey: ['cryptoAssets'] });
       queryClient.invalidateQueries({ queryKey: ['walletOverview'] });
+      queryClient.invalidateQueries({ queryKey: ['cryptoTransactions'] });
       showTopToast({
         type: 'success',
         text1: 'Success',
@@ -279,16 +302,38 @@ const Swap = () => {
         params: {
           payAsset: payAsset?.displayName || payAsset?.name || '',
           receiveAsset: receiveAsset?.displayName || receiveAsset?.name || '',
+          transactionId: response?.data?.transactionId || '',
         },
       });
     },
     onError: (error: any) => {
       console.error('Error executing swap:', error);
-      showTopToast({
-        type: 'error',
-        text1: 'Error',
-        text2: error?.message || 'Failed to execute swap',
-      });
+      // Check for specific error types
+      if (error?.statusCode === 400) {
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: error?.message || 'Invalid request. Please check your inputs and balance.',
+        });
+      } else if (error?.statusCode === 401) {
+        showTopToast({
+          type: 'error',
+          text1: 'Authentication Error',
+          text2: 'Please log in again',
+        });
+      } else if (error?.statusCode === 404) {
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Virtual account not found. Please try again.',
+        });
+      } else {
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: error?.message || 'Failed to execute swap. Please try again.',
+        });
+      }
     },
   });
 
@@ -327,10 +372,34 @@ const Swap = () => {
   };
 
   const handleComplete = () => {
-    if (!receiveAsset || !payAsset || !payAmount || !previewData) return;
+    if (!receiveAsset || !payAsset || !payAmount || !previewData) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please complete all required fields',
+      });
+      return;
+    }
 
     const amount = parseFloat(payAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    if (isNaN(amount) || amount <= 0) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid amount',
+      });
+      return;
+    }
+
+    // Validate that we have all required fields
+    if (!payAsset.currency || !payAsset.blockchain || !receiveAsset.currency || !receiveAsset.blockchain) {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please select both assets and networks',
+      });
+      return;
+    }
 
     const swapRequest: ISwapCryptoRequest = {
       fromAmount: amount,
@@ -340,6 +409,7 @@ const Swap = () => {
       toBlockchain: receiveAsset.blockchain,
     };
 
+    console.log('Executing swap with request:', swapRequest);
     swapMutation.mutate(swapRequest);
   };
 
@@ -382,6 +452,34 @@ const Swap = () => {
 
   const payAssetIcon = payAsset ? getAssetIcon(payAsset.symbol, payAsset.currency, payAsset.name) : icons.eth;
   const receiveAssetIcon = receiveAsset ? getAssetIcon(receiveAsset.symbol, receiveAsset.currency, receiveAsset.name) : icons.usdt;
+
+  // Check if proceed button should be enabled
+  const isProceedButtonEnabled = useMemo(() => {
+    const hasPayAsset = !!payAsset;
+    const hasReceiveAsset = !!receiveAsset;
+    // Trim and validate payAmount - handle empty strings and whitespace
+    const trimmedAmount = payAmount?.trim() || '';
+    const parsedAmount = parseFloat(trimmedAmount);
+    const hasValidAmount = trimmedAmount !== '' && !isNaN(parsedAmount) && parsedAmount > 0 && isFinite(parsedAmount);
+    const isNotLoading = !previewMutation.isPending;
+    
+    const enabled = hasPayAsset && hasReceiveAsset && hasValidAmount && isNotLoading;
+    
+    // Debug logging to help identify issues
+    console.log('Button enable check:', {
+      hasPayAsset,
+      hasReceiveAsset,
+      payAmount: trimmedAmount,
+      parsedAmount,
+      hasValidAmount,
+      isNotLoading,
+      enabled,
+      payAssetCurrency: payAsset?.currency,
+      receiveAssetCurrency: receiveAsset?.currency,
+    });
+    
+    return enabled;
+  }, [payAsset, receiveAsset, payAmount, previewMutation.isPending]);
 
   return (
     <SafeAreaView
@@ -535,12 +633,13 @@ const Swap = () => {
                     </TouchableOpacity>
                   </View>
                   <TextInput
-                    style={[styles.amountValue, dark ? { color: COLORS.black } : { color: COLORS.black }]}
+                    style={[styles.amountValue, styles.amountInput, dark ? { color: COLORS.black } : { color: COLORS.black }]}
                     value={payAmount}
                     onChangeText={setPayAmount}
                     placeholder="0"
                     placeholderTextColor={dark ? COLORS.greyscale500 : COLORS.greyscale600}
                     keyboardType="decimal-pad"
+                    maxLength={20}
                   />
                 </View>
               </View>
@@ -620,7 +719,12 @@ const Swap = () => {
                       />
                     </TouchableOpacity>
                   </View>
-                  <Text style={[styles.amountValue, dark ? { color: COLORS.black } : { color: COLORS.black }]}>
+                  <Text 
+                    style={[styles.amountValue, dark ? { color: COLORS.black } : { color: COLORS.black }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.7}
+                  >
                     {isGettingQuote ? '...' : receiveAmount}
                   </Text>
                 </View>
@@ -632,9 +736,12 @@ const Swap = () => {
 
       {/* Proceed to Swap Button */}
       <TouchableOpacity
-        style={[styles.proceedButton, (!receiveAsset || !payAsset || !payAmount || parseFloat(payAmount) <= 0) && styles.proceedButtonDisabled]}
+        style={[
+          styles.proceedButton, 
+          !isProceedButtonEnabled && styles.proceedButtonDisabled
+        ]}
         onPress={handleSwap}
-        disabled={!receiveAsset || !payAsset || !payAmount || parseFloat(payAmount) <= 0 || previewMutation.isPending}
+        disabled={!isProceedButtonEnabled}
       >
         {previewMutation.isPending ? (
           <ActivityIndicator color={COLORS.white} />
@@ -657,7 +764,7 @@ const Swap = () => {
                 styles.modalContainer,
                 dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
               ]}
-              edges={['top']}
+              edges={['top', 'bottom']}
             >
               {/* Drag Handle */}
               <View style={styles.dragHandleContainer}>
@@ -671,8 +778,12 @@ const Swap = () => {
                 </Text>
               </View>
 
-              {/* Transaction Details */}
-              <View style={styles.detailsContainer}>
+              {/* Transaction Details - Scrollable */}
+              <ScrollView 
+                style={styles.detailsScrollView}
+                contentContainerStyle={styles.detailsContainer}
+                showsVerticalScrollIndicator={false}
+              >
                 {transactionRows.map((row, index) => (
                   <View key={index}>
                     <View style={styles.detailRow}>
@@ -693,20 +804,25 @@ const Swap = () => {
                     )}
                   </View>
                 ))}
-              </View>
+              </ScrollView>
 
-              {/* Complete Button */}
-              <TouchableOpacity
-                style={styles.completeButton}
-                onPress={handleComplete}
-                disabled={swapMutation.isPending}
-              >
-                {swapMutation.isPending ? (
-                  <ActivityIndicator color={COLORS.white} />
-                ) : (
-                  <Text style={styles.completeButtonText}>Complete</Text>
-                )}
-              </TouchableOpacity>
+              {/* Complete Button - Fixed at bottom */}
+              <View style={[
+                styles.buttonContainer,
+                dark ? { borderTopColor: COLORS.greyScale800 } : { borderTopColor: '#E5E5E5' }
+              ]}>
+                <TouchableOpacity
+                  style={styles.completeButton}
+                  onPress={handleComplete}
+                  disabled={swapMutation.isPending}
+                >
+                  {swapMutation.isPending ? (
+                    <ActivityIndicator color={COLORS.white} />
+                  ) : (
+                    <Text style={styles.completeButtonText}>Complete</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </SafeAreaView>
           </Pressable>
         </Pressable>
@@ -1014,6 +1130,8 @@ const styles = StyleSheet.create({
   },
   amountSection: {
     alignItems: 'flex-end',
+    flex: 1,
+    minWidth: 0, // Allows flex items to shrink below their content size
   },
   amountTop: {
     alignItems: 'center',
@@ -1038,6 +1156,13 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: isTablet ? 24 : 20,
     fontWeight: '700',
+    textAlign: 'right',
+    flexShrink: 1,
+    maxWidth: '100%',
+  },
+  amountInput: {
+    width: '100%',
+    textAlign: 'right',
   },
   swapIconContainer: {
     alignItems: 'center',
@@ -1098,8 +1223,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '65%',
+    paddingBottom: 0,
+    maxHeight: '85%',
   },
   dragHandleContainer: {
     alignItems: 'center',
@@ -1123,8 +1248,11 @@ const styles = StyleSheet.create({
     color: '#8A8A8A',
     textTransform: 'uppercase',
   },
-  detailsContainer: {
+  detailsScrollView: {
     flex: 1,
+  },
+  detailsContainer: {
+    paddingBottom: 16,
   },
   detailRow: {
     flexDirection: 'row',
@@ -1144,12 +1272,18 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E5E5E5',
   },
+  buttonContainer: {
+    paddingTop: 16,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+  },
   completeButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: 16,
     borderRadius: 100,
     alignItems: 'center',
-    marginTop: 24,
+    justifyContent: 'center',
+    minHeight: 52,
   },
   completeButtonText: {
     color: COLORS.white,

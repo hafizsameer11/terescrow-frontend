@@ -48,20 +48,57 @@ const SignUp = () => {
     error,
   } = useQuery({
     queryKey: ["get-countries"],
-    queryFn: () => getAllCountries(),
-    enabled: true
+    queryFn: async () => {
+      try {
+        return await getAllCountries();
+      } catch (error: any) {
+        // Handle error locally without triggering global logout
+        console.log("Error fetching countries:", error);
+        // Return empty data structure to prevent error propagation
+        return { data: [], status: "error", message: error?.message || "Failed to fetch countries" };
+      }
+    },
+    enabled: true,
+    retry: false,
+    throwOnError: false, // Prevent error from propagating to global handler
   });
 
   const { data: wayofHearings, isLoading: wayOfHearingLoading } = useQuery<WaysOfHearingResponse>({
     queryKey: ['waysOfHearing'],
-    queryFn: getWaysOfHearing,
-    enabled: true
+    queryFn: async () => {
+      try {
+        return await getWaysOfHearing();
+      } catch (error: any) {
+        // Handle error locally without triggering global logout
+        console.log("Error fetching ways of hearing:", error);
+        // Return empty data structure matching WaysOfHearingResponse format
+        return { 
+          data: { list: [], grouped: [] }, 
+          status: "error", 
+          message: error?.message || "Failed to fetch ways of hearing" 
+        } as WaysOfHearingResponse;
+      }
+    },
+    enabled: true,
+    retry: false,
+    throwOnError: false, // Prevent error from propagating to global handler
   });
 
   const { data: privacyData } = useQuery({
     queryKey: ['privacy'],
-    queryFn: () => getPrivacyPageLinks(),
-    enabled: true
+    queryFn: async () => {
+      try {
+        return await getPrivacyPageLinks();
+      } catch (error: any) {
+        // Handle error locally without triggering global logout
+        console.log("Error fetching privacy links:", error);
+        // Return empty data structure to prevent error propagation
+        return { data: null, status: "error", message: error?.message || "Failed to fetch privacy links" };
+      }
+    },
+    enabled: true,
+    retry: false,
+    throwOnError: false, // Prevent error from propagating to global handler
   })
   console.log("countries",CountriesData?.data," wayOfHearing",wayofHearings?.data)
   const handlePress = async (url: string) => {
@@ -76,10 +113,16 @@ const SignUp = () => {
       Alert.alert(`Don't know how to open this URL: ${url}`);
     }
   };
+  const [signupEmail, setSignupEmail] = useState<string>("");
+
   const { mutate: signUp, isPending } = useMutation({
     mutationKey: ["signup"],
     mutationFn: registerUser,
     onSuccess: async (data) => {
+      // Get email from stored signupEmail state (set before calling signUp)
+      const userEmail = signupEmail || data.data?.email || data.data?.user?.email;
+      console.log("Signup success - email:", userEmail, "signupEmail state:", signupEmail, "data:", data);
+      
       setToken(data.token)
         .then(() => {
           reset({
@@ -88,7 +131,7 @@ const SignUp = () => {
           });
           navigate("otpverification", {
             context: "signup",
-            email: null,
+            email: userEmail, // Pass the email from registration
           });
         })
         .catch((error) => {
@@ -158,6 +201,8 @@ const SignUp = () => {
       } as unknown as Blob);
     }
 
+    // Store email before calling signUp so we can use it in onSuccess
+    setSignupEmail(values.email);
     signUp(formData as any);
   };
 

@@ -570,4 +570,47 @@ export const swapCrypto = async (
   return await apiCall(API_ENDPOINTS.CRYPTO.ExecuteSwap, 'POST', data, token);
 };
 
+// Deposit Mutations
+export interface IInitiateDepositRequest {
+  amount: number;
+  currency: string;
+}
+
+export interface IInitiateDepositResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    transactionId: string;
+    checkoutUrl: string;
+    amount: number;
+    currency: string;
+    status: string;
+  };
+}
+
+export interface IGetDepositStatusResponse extends ApiResponse {
+  status: number;
+  message: string;
+  data: {
+    transactionId: string;
+    amount: number;
+    currency: string;
+    status: string;
+  };
+}
+
+export const initiateDeposit = async (
+  data: IInitiateDepositRequest,
+  token: string
+): Promise<IInitiateDepositResponse> => {
+  return await apiCall(API_ENDPOINTS.PAYMENTS.InitiateDeposit, 'POST', data, token);
+};
+
+export const getDepositStatus = async (
+  transactionId: string,
+  token: string
+): Promise<IGetDepositStatusResponse> => {
+  return await apiCall(`${API_ENDPOINTS.PAYMENTS.GetDepositStatus}/${transactionId}`, 'GET', undefined, token);
+};
+
 

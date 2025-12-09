@@ -516,6 +516,8 @@ export interface ICryptoAssetDetail {
   frozen: boolean;
   depositAddresses: any[];
   primaryDepositAddress: string;
+  transactions?: ICryptoTransaction[];
+  transactionCount?: number;
   walletCurrency: any;
 }
 

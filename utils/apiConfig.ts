@@ -100,6 +100,8 @@ export const API_ENDPOINTS = {
     VerifyAccount: API_DOMAIN + '/v2/payments/palmpay/verify-account',
     InitiatePayout: API_DOMAIN + '/v2/payments/palmpay/payout/initiate',
     GetPayoutStatus: API_DOMAIN + '/v2/payments/palmpay/payout', // + /{transactionId}
+    InitiateDeposit: API_DOMAIN + '/v2/payments/palmpay/deposit/initiate',
+    GetDepositStatus: API_DOMAIN + '/v2/payments/palmpay/deposit', // + /{transactionId}
   },
   CRYPTO: {
     GetAssets: API_DOMAIN + '/v2/crypto/assets',
