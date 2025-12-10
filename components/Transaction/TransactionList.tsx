@@ -1,94 +1,73 @@
-import { Text, View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import React from "react";
+import { Text, View, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { COLORS, icons } from "@/constants";
 import TransactionItem from "./TransactionItem";
 import { useTheme } from "@/contexts/themeContext";
-import { useQuery } from "@tanstack/react-query";
-import { transactionHistory } from "@/utils/queries/transactionQueries";
-import { getWalletTransactions, getCryptoTransactions } from "@/utils/queries/accountQueries";
-import { useAuth } from "@/contexts/authContext";
-import { useNavigation } from "expo-router";
+import { ITransactionOverviewType } from "@/utils/queries/accountQueries";
+import { useRouter } from "expo-router";
 
-const TransactionList = () => {
+interface TransactionListProps {
+  overviewData?: {
+    chart: any;
+    history: ITransactionOverviewType[];
+  };
+  isLoading?: boolean;
+}
+
+const TransactionList: React.FC<TransactionListProps> = ({ overviewData, isLoading: overviewLoading }) => {
   const { dark } = useTheme();
-  const { token } = useAuth();
-  const { navigate } = useNavigation();
+  const router = useRouter();
 
-  // Wrapper function to safely handle errors for wallet transactions
-  const fetchWalletTransactions = async () => {
+  // Get icon for transaction type
+  const getIconForType = (type: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'Crypto': icons.crypto || icons.gift,
+      'Gift Card': icons.gift,
+      'Bill Payments': icons.bill || icons.gift,
+      'Naira Transactions': icons.wallet || icons.gift,
+    };
+    return iconMap[type] || icons.gift;
+  };
+
+  // Map transaction type to transaction detail route
+  const getRouteForType = (type: string): string => {
+    const routeMap: { [key: string]: string } = {
+      'Crypto': '/(tabs)/transactions',
+      'Gift Card': '/(tabs)/transactions',
+      'Bill Payments': '/(tabs)/transactions',
+      'Naira Transactions': '/(tabs)/transactions',
+    };
+    return routeMap[type] || '/(tabs)/transactions';
+  };
+
+  // Format date
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return 'N/A';
     try {
-      return await getWalletTransactions(token, { page: 1, limit: 100 });
-    } catch (error: any) {
-      // Only re-throw if it's a genuine auth error
-      const isAuthError = error?.statusCode === 401 || 
-        (error?.message?.toLowerCase() || '').includes('you are not logged in') ||
-        (error?.message?.toLowerCase() || '').includes('unauthorized');
-      if (isAuthError) {
-        throw error; // Let auth errors propagate to global handler
-      }
-      // For other errors, return empty data instead of throwing
-      console.log("Error fetching wallet transactions (non-auth):", error);
-      return { data: { transactions: [] }, status: 'error', message: error?.message || 'Failed to fetch transactions' };
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch {
+      return 'N/A';
     }
   };
 
-  // Wrapper function to safely handle errors for crypto transactions
-  const fetchCryptoTransactions = async () => {
-    try {
-      return await getCryptoTransactions(token, { limit: 100, offset: 0 });
-    } catch (error: any) {
-      // Only re-throw if it's a genuine auth error
-      const isAuthError = error?.statusCode === 401 || 
-        (error?.message?.toLowerCase() || '').includes('you are not logged in') ||
-        (error?.message?.toLowerCase() || '').includes('unauthorized');
-      if (isAuthError) {
-        throw error; // Let auth errors propagate to global handler
-      }
-      // For other errors, return empty data instead of throwing
-      console.log("Error fetching crypto transactions (non-auth):", error);
-      return { data: { transactions: [], total: 0, limit: 100, offset: 0 }, status: 'error', message: error?.message || 'Failed to fetch transactions' };
+  // Format amount - show both USD and NGN if available
+  const formatAmount = (type: ITransactionOverviewType): string => {
+    const usd = parseFloat(type.totalUsd || '0');
+    const ngn = parseFloat(type.totalNgn || '0');
+    
+    if (usd > 0 && ngn > 0) {
+      return `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ₦${ngn.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    } else if (usd > 0) {
+      return `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    } else if (ngn > 0) {
+      return `₦${ngn.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
+    return '$0.00';
   };
-
-  // Use wallet transactions API (new API) - for non-crypto transactions
-  const {
-    data: walletTransactionsData,
-    isLoading: transactionsLoading,
-    isError: transactionsIsError,
-  } = useQuery({
-    queryKey: ["walletTransactions", "all"],
-    queryFn: fetchWalletTransactions,
-    enabled: !!token,
-    retry: false,
-  });
-
-  // Use crypto transactions API
-  const {
-    data: cryptoTransactionsData,
-    isLoading: cryptoTransactionsLoading,
-    isError: cryptoTransactionsIsError,
-  } = useQuery({
-    queryKey: ["cryptoTransactions", "all"],
-    queryFn: fetchCryptoTransactions,
-    enabled: !!token,
-    retry: false,
-  });
-
-  // Fallback to old API if wallet transactions fail (for backward compatibility)
-  const {
-    data: transactionData,
-    isLoading: transactionLoading,
-    isError: transactionIsError,
-  } = useQuery({
-    queryKey: ["transactionHistory"],
-    queryFn: () => transactionHistory(token),
-    enabled: !!token && transactionsIsError, // Only use if wallet transactions failed
-  });
-
-  const isLoading = transactionsLoading || cryptoTransactionsLoading || (transactionLoading && transactionsIsError);
-  const isError = (transactionsIsError && cryptoTransactionsIsError) && transactionIsError;
 
   // Render loading state
-  if (isLoading) {
+  if (overviewLoading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={COLORS.green} />
@@ -99,35 +78,9 @@ const TransactionList = () => {
     );
   }
 
-  // Render error state
-  if (isError) {
-    return (
-      <View style={styles.center}>
-        <Text style={[styles.errorText, { color: dark ? COLORS.white : COLORS.black }]}>
-          Failed to load transactions
-        </Text>
-      </View>
-    );
-  }
-
-  // Combine wallet and crypto transactions
-  const walletTransactions = walletTransactionsData?.data?.transactions || [];
-  const cryptoTransactions = (cryptoTransactionsData?.data?.transactions || []).map((tx: any) => ({
-    id: tx.id,
-    type: tx.type,
-    amount: parseFloat(tx.amount || '0'),
-    currency: tx.currency || 'USD',
-    status: tx.status,
-    createdAt: tx.createdAt,
-    fromCurrency: tx.fromCurrency,
-    toCurrency: tx.toCurrency,
-    fromAmount: tx.fromAmount,
-    toAmount: tx.toAmount,
-    isCrypto: true, // Flag to identify crypto transactions
-  }));
-  
-  const transactions = [...walletTransactions, ...cryptoTransactions];
-  const hasTransactions = transactions.length > 0 || (transactionData?.data && transactionData.data.length > 0);
+  // Get history data from overview
+  const history = overviewData?.history || [];
+  const hasTransactions = history.length > 0 && history.some((item) => item.count > 0);
 
   return (
     <View>
@@ -138,79 +91,81 @@ const TransactionList = () => {
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
         >
-          Transaction History
+          Transaction Historyss
         </Text>
       </View>
-      {transactions.length > 0 ? (
+      {hasTransactions ? (
         <FlatList
-          data={transactions}
+          data={history.filter((item) => item.count > 0)}
           renderItem={({ item }) => {
-            // Format date
-            const transactionDate = new Date(item.createdAt);
-            const formattedDate = transactionDate.toLocaleDateString();
-            
-            // Format amount based on currency
-            const formattedAmount = item.currency === 'NGN' 
-              ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
-              : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
-
-            // Determine route based on transaction type
-            const getTransactionRoute = () => {
-              if (item.isCrypto) {
-                // For crypto transactions, route to appropriate detail screen
-                if (item.type === 'BUY') return 'cryptobought';
-                if (item.type === 'SELL') return 'cryptosold';
-                if (item.type === 'SWAP') return 'swapsuccess';
-                return 'cryptobought'; // Default fallback
-              }
-              return 'giftcardsold'; // Default for other transaction types
-            };
-
             return (
-              <TransactionItem
-                icon={icons.gift} // Default icon since wallet transactions don't have department info
-                heading={item.type || 'Transaction'}
-                date={formattedDate}
-                price={formattedAmount}
-                productId={item.id.toString()}
-                id={item.id}
-                route={getTransactionRoute()}
-              />
+              <TouchableOpacity
+                onPress={() => {
+                  // Navigate to transactions overview page
+                  router.push({
+                    pathname: '/(tabs)/transactions' as any,
+                  });
+                }}
+              >
+                <View
+                  style={[
+                    styles.transactionTypeItem,
+                    dark
+                      ? { backgroundColor: COLORS.dark2 }
+                      : { backgroundColor: COLORS.grayscale100 },
+                  ]}
+                >
+                  <View style={styles.transactionTypeLeft}>
+                    <View style={styles.iconContainer}>
+                      <Text style={styles.iconText}>
+                        {item.icon === 'crypto' ? '₿' : 
+                         item.icon === 'gift-card' ? '🎁' :
+                         item.icon === 'bill-payment' ? '💳' :
+                         item.icon === 'naira' ? '₦' : '📊'}
+                      </Text>
+                    </View>
+                    <View style={styles.transactionTypeInfo}>
+                      <Text
+                        style={[
+                          styles.transactionTypeName,
+                          { color: dark ? COLORS.white : COLORS.black },
+                        ]}
+                      >
+                        {item.type}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.transactionTypeMeta,
+                          { color: dark ? COLORS.greyscale500 : COLORS.greyscale600 },
+                        ]}
+                      >
+                        {item.count} transaction{item.count !== 1 ? 's' : ''} • Last: {formatDate(item.latestDate)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.transactionTypeRight}>
+                    <Text
+                      style={[
+                        styles.transactionTypeAmount,
+                        { color: dark ? COLORS.white : COLORS.black },
+                      ]}
+                    >
+                      {formatAmount(item)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.transactionTypePercentage,
+                        { color: dark ? COLORS.greyscale500 : COLORS.greyscale600 },
+                      ]}
+                    >
+                      {item.percentage.toFixed(1)}%
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             );
           }}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={1}
-          scrollEnabled={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          ListEmptyComponent={
-            !isLoading && transactions.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: dark ? COLORS.white : COLORS.black }]}>
-                  No transactions found
-                </Text>
-                <Text style={[styles.emptySubtext, { color: dark ? COLORS.white : COLORS.black }]}>
-                  You don't have any transactions yet
-                </Text>
-              </View>
-            ) : null
-          }
-        />
-      ) : transactionData?.data && transactionData.data.length > 0 ? (
-        // Fallback to old transaction data format
-        <FlatList
-          data={transactionData.data}
-          renderItem={({ item }) => (
-            <TransactionItem
-              icon={item.department.icon || icons.gift}
-              heading={item.department.title}
-              date={new Date(item.createdAt).toLocaleDateString()}
-              price={`₦${item.amountNaira.toLocaleString()}`}
-              productId={item.id.toString()}
-              id={item.department.id}
-              route="giftcardsold"
-            />
-          )}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.type}
           numColumns={1}
           scrollEnabled={false}
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -263,6 +218,53 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     opacity: 0.7,
+  },
+  transactionTypeItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  transactionTypeLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary + '20',
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  iconText: {
+    fontSize: 24,
+  },
+  transactionTypeInfo: {
+    flex: 1,
+  },
+  transactionTypeName: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  transactionTypeMeta: {
+    fontSize: 12,
+  },
+  transactionTypeRight: {
+    alignItems: "flex-end",
+  },
+  transactionTypeAmount: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  transactionTypePercentage: {
+    fontSize: 12,
   },
 });
 

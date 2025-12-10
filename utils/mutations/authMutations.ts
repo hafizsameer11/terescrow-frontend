@@ -102,6 +102,27 @@ export const setPin = async (
 ): Promise<ISetPinResponse> => {
   return await apiCall(API_ENDPOINTS.AUTH.SetPin, 'POST', data, token);
 };
+
+export interface IUpdatePinReq {
+  email: string;
+  pin: string;
+}
+
+export interface IUpdatePinResponse extends ApiResponse {
+  status: 'success' | 'error';
+  message: string;
+  data: {
+    email: string;
+    pinUpdated: boolean;
+  };
+}
+
+export const updatePin = async (
+  data: IUpdatePinReq,
+  token: string
+): Promise<IUpdatePinResponse> => {
+  return await apiCall(API_ENDPOINTS.AUTH.UpdatePin, 'POST', data, token);
+};
 interface Notification {
   id: number;
   title: string;

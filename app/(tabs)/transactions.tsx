@@ -15,8 +15,7 @@ import { COLORS } from "@/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import {
-  getWalletTransactions,
-  getCryptoTransactions,
+  getTransactionOverview,
 } from "@/utils/queries/accountQueries";
 
 const transactions = () => {
@@ -25,10 +24,10 @@ const transactions = () => {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Wrapper function to safely handle errors for wallet transactions
-  const fetchWalletTransactions = async () => {
+  // Wrapper function to safely handle errors for transaction overview
+  const fetchTransactionOverview = async () => {
     try {
-      return await getWalletTransactions(token, { page: 1, limit: 100 });
+      return await getTransactionOverview(token);
     } catch (error: any) {
       // Only re-throw if it's a genuine auth error
       const isAuthError =
@@ -41,63 +40,31 @@ const transactions = () => {
         throw error; // Let auth errors propagate to global handler
       }
       // For other errors, return empty data instead of throwing
-      console.log("Error fetching wallet transactions (non-auth):", error);
+      console.log("Error fetching transaction overview (non-auth):", error);
       return {
-        data: { transactions: [] },
         status: "error",
-        message: error?.message || "Failed to fetch transactions",
+        message: error?.message || "Failed to fetch transaction overview",
+        data: {
+          chart: {
+            totalUsd: "0",
+            totalNgn: "0",
+            types: [],
+          },
+          history: [],
+        },
       };
     }
   };
 
-  // Wrapper function to safely handle errors for crypto transactions
-  const fetchCryptoTransactions = async () => {
-    try {
-      return await getCryptoTransactions(token, { limit: 100, offset: 0 });
-    } catch (error: any) {
-      // Only re-throw if it's a genuine auth error
-      const isAuthError =
-        error?.statusCode === 401 ||
-        (error?.message?.toLowerCase() || "").includes(
-          "you are not logged in"
-        ) ||
-        (error?.message?.toLowerCase() || "").includes("unauthorized");
-      if (isAuthError) {
-        throw error; // Let auth errors propagate to global handler
-      }
-      // For other errors, return empty data instead of throwing
-      console.log("Error fetching crypto transactions (non-auth):", error);
-      return {
-        data: { transactions: [], total: 0, limit: 100, offset: 0 },
-        status: "error",
-        message: error?.message || "Failed to fetch transactions",
-      };
-    }
-  };
-
-  // Fetch wallet transactions (non-crypto)
+  // Fetch transaction overview (includes chart data and history)
   const {
-    data: walletTransactionsData,
-    isLoading: transactionsLoading,
-    isError: transactionsError,
-    refetch: refetchTransactions,
+    data: overviewData,
+    isLoading: overviewLoading,
+    isError: overviewError,
+    refetch: refetchOverview,
   } = useQuery({
-    queryKey: ["walletTransactions", "all"],
-    queryFn: fetchWalletTransactions,
-    enabled: !!token,
-    staleTime: 10000,
-    retry: false, // Don't retry to prevent triggering global error handler multiple times
-  });
-
-  // Fetch crypto transactions
-  const {
-    data: cryptoTransactionsData,
-    isLoading: cryptoTransactionsLoading,
-    isError: cryptoTransactionsError,
-    refetch: refetchCryptoTransactions,
-  } = useQuery({
-    queryKey: ["cryptoTransactions", "all"],
-    queryFn: fetchCryptoTransactions,
+    queryKey: ["transactionOverview"],
+    queryFn: fetchTransactionOverview,
     enabled: !!token,
     staleTime: 10000,
     retry: false, // Don't retry to prevent triggering global error handler multiple times
@@ -107,10 +74,10 @@ const transactions = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Refetch all transaction types
+      // Refetch transaction overview
       await Promise.all([
-        refetchTransactions(),
-        refetchCryptoTransactions(),
+        refetchOverview(),
+        queryClient.invalidateQueries({ queryKey: ["transactionOverview"] }),
         queryClient.invalidateQueries({ queryKey: ["transactionHistory"] }),
       ]);
     } catch (error) {
@@ -118,7 +85,7 @@ const transactions = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [refetchTransactions, refetchCryptoTransactions, queryClient]);
+  }, [refetchOverview, queryClient]);
 
   return (
     <SafeAreaView
@@ -153,10 +120,10 @@ const transactions = () => {
           </Text>
         </View>
         <View style={{ flex: 1 }}>
-          <DoughnutChart />
+          <DoughnutChart overviewData={overviewData?.data} isLoading={overviewLoading} />
         </View>
         <View style={styles.transList}>
-          <TransactionList />
+          <TransactionList overviewData={overviewData?.data} isLoading={overviewLoading} />
         </View>
       </ScrollView>
     </SafeAreaView>

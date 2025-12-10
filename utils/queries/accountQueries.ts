@@ -905,3 +905,36 @@ export const getAllCryptoRates = async (
 ): Promise<ICryptoRatesResponse> => {
   return await apiCall(API_ENDPOINTS.CRYPTO.GetAllCryptoRates, 'GET', undefined, token);
 };
+
+// Transaction Overview Interfaces
+export interface ITransactionOverviewType {
+  type: string;
+  totalUsd: string;
+  totalNgn: string;
+  percentage: number;
+  count: number;
+  latestDate: string | null;
+  icon: string;
+}
+
+export interface ITransactionOverviewChart {
+  totalUsd: string;
+  totalNgn: string;
+  types: ITransactionOverviewType[];
+}
+
+export interface ITransactionOverviewResponse {
+  status: 'success' | 'error';
+  message: string;
+  data: {
+    chart: ITransactionOverviewChart;
+    history: ITransactionOverviewType[];
+  };
+}
+
+// Get transaction overview
+export const getTransactionOverview = async (
+  token: string
+): Promise<ITransactionOverviewResponse> => {
+  return await apiCall(API_ENDPOINTS.TRANSACTIONS.GetTransactionOverview, 'GET', undefined, token);
+};

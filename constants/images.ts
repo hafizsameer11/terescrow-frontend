@@ -88,6 +88,10 @@ const vector50 = require('../assets/images/Vector (50).png')
 const notification = require('../assets/images/notification.png')
 const bitcoinTransaction = require('../assets/images/bitcoin-transaction.png')
 
+const trade_crypto = require('../assets/images/trade_crypto.png')
+const bill_pay = require('../assets/images/bill_pay.png')
+const earn = require('../assets/images/earn.png')
+
 const images = {
   maskGroup,
   connectingAgentBg,
@@ -177,6 +181,9 @@ const images = {
   vector50,
   notification,
   bitcoinTransaction,
+  trade_crypto,
+  bill_pay,
+  earn,
 };
 
 export default images;

@@ -17,7 +17,7 @@ import { COLORS } from '@/constants';
 import SuccessModal from './successmodal';
 import { showTopToast } from '@/utils/helpers';
 import { useMutation } from '@tanstack/react-query';
-import { setPin as setPinApi } from '@/utils/mutations/authMutations';
+import { setPin as setPinApi, updatePin as updatePinApi, IUpdatePinReq } from '@/utils/mutations/authMutations';
 import { useAuth } from '@/contexts/authContext';
 import { ApiError } from '@/utils/customApiCalls';
 import { useNavigation } from 'expo-router';
@@ -48,7 +48,7 @@ const SetPinScreen: React.FC = () => {
     setPin(pin.slice(0, -1));
   };
 
-  // Mutation for setting PIN
+  // Mutation for setting PIN (for signup)
   const { mutate: handleSetPin, isPending: isSettingPin } = useMutation({
     mutationFn: async (data: { email: string; pin: string }) => {
       if (!authToken) {
@@ -93,13 +93,6 @@ const SetPinScreen: React.FC = () => {
             }
           }
         }, 1500);
-      } else {
-        // For other contexts (like transactionPin), show success but don't navigate
-        showTopToast({
-          type: 'success',
-          text1: 'Success',
-          text2: 'PIN set successfully.',
-        });
       }
     },
     onError: (error: ApiError) => {
@@ -107,6 +100,40 @@ const SetPinScreen: React.FC = () => {
         type: 'error',
         text1: 'Error',
         text2: error.message || 'Failed to set PIN. Please try again.',
+      });
+      setPin([]);
+    },
+  });
+
+  // Mutation for updating PIN (for transactionPin context)
+  const { mutate: handleUpdatePin, isPending: isUpdatingPin } = useMutation({
+    mutationFn: async (data: IUpdatePinReq) => {
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+      const result = await updatePinApi(data, authToken);
+      return result;
+    },
+    mutationKey: ['update-pin'],
+    onSuccess: async (data) => {
+      console.log('PIN updated successfully:', data);
+      
+      showTopToast({
+        type: 'success',
+        text1: 'Success',
+        text2: 'PIN updated successfully.',
+      });
+      
+      // Navigate back to previous screen
+      setTimeout(() => {
+        router.back();
+      }, 1000);
+    },
+    onError: (error: ApiError) => {
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to update PIN. Please try again.',
       });
       setPin([]);
     },
@@ -158,12 +185,29 @@ const SetPinScreen: React.FC = () => {
       }
 
       if (context === 'transactionPin') {
-        push({
-          pathname: '/setpinscreen',
-          params: { title: 'Pin confirmed', context: 'transactionPin' },
-        });
-        setModalVisible(false);
-        setPin([]);
+        // Call update PIN API
+        const userEmail = userData?.email;
+        if (!userEmail) {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Email not found. Please try again.',
+          });
+          setPin([]);
+          return;
+        }
+        if (!authToken) {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Authentication token not found. Please try again.',
+          });
+          setPin([]);
+          return;
+        }
+        // Call API to update PIN
+        handleUpdatePin({ email: userEmail, pin: pinValue });
+        return;
       }
       return;
     }

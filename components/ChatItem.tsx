@@ -37,7 +37,19 @@ const ChatItem: React.FC<{
       }
 
       // Ensure route starts with / for proper navigation
-      const routePath = props.route.startsWith('/') ? props.route : `/${props.route}`;
+      let routePath = props.route.startsWith('/') ? props.route : `/${props.route}`;
+
+      // Prevent navigation to transaction history pages - only allow detail pages
+      const historyRoutes = ['/transactions', '/transactionhistory', '/(tabs)/transactions'];
+      const isHistoryRoute = historyRoutes.some(historyRoute => 
+        routePath.toLowerCase().includes(historyRoute.toLowerCase())
+      );
+      
+      if (isHistoryRoute) {
+        console.error('ChatItem: Blocked navigation to transaction history page. Route:', routePath);
+        Alert.alert('Error', 'Cannot navigate to transaction history. Please contact support.');
+        return;
+      }
 
       // Log navigation for debugging
       console.log('ChatItem: Navigating to transaction detail:', { route: routePath, id: transactionId, originalRoute: props.route });

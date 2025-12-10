@@ -8,6 +8,7 @@ import {
   Pressable,
   FlatList,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -34,6 +35,11 @@ const BillerTypeModal = () => {
   }>();
 
   const [selectedBiller, setSelectedBiller] = useState<string | null>(params.selectedBiller || null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredBillers = billers.filter(biller =>
+    biller.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleSelect = (billerName: string) => {
     setSelectedBiller(billerName);
@@ -72,55 +78,83 @@ const BillerTypeModal = () => {
 
             {/* Header */}
             <View style={styles.header}>
+              <View style={styles.headerLeft} />
               <Text style={[styles.headerTitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
                 BILLER TYPE
               </Text>
+              <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+                <Text style={[styles.closeButtonText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>x</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Bar */}
+            <View style={[styles.searchContainer, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' }]}>
+              <Image
+                source={icons.search}
+                style={[styles.searchIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
+                contentFit="contain"
+              />
+              <TextInput
+                style={[styles.searchInput, dark ? { color: COLORS.white } : { color: COLORS.black }]}
+                placeholder="Search"
+                placeholderTextColor={dark ? COLORS.greyscale500 : COLORS.greyscale600}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
             </View>
 
             {/* Biller List */}
-            <FlatList
-              data={billers}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.billerItem,
-                    dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-                  ]}
-                  onPress={() => handleSelect(item.name)}
-                >
-                  <View style={styles.billerLogoContainer}>
+            {filteredBillers.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  {searchQuery ? 'No billers found matching your search' : 'No billers available'}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredBillers}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.billerItem,
+                      dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
+                    ]}
+                    onPress={() => handleSelect(item.name)}
+                  >
+                    <View style={styles.billerLogoContainer}>
+                      <Image
+                        source={item.logo}
+                        style={styles.billerLogo}
+                        contentFit="contain"
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.billerName,
+                        dark ? { color: COLORS.white } : { color: COLORS.black },
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
                     <Image
-                      source={item.logo}
-                      style={styles.billerLogo}
+                      source={icons.arrowRight}
+                      style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
                       contentFit="contain"
                     />
-                  </View>
-                  <Text
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => (
+                  <View
                     style={[
-                      styles.billerName,
-                      dark ? { color: COLORS.white } : { color: COLORS.black },
+                      styles.separator,
+                      dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
                     ]}
-                  >
-                    {item.name}
-                  </Text>
-                  <Image
-                    source={icons.arrowRight}
-                    style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
-                    contentFit="contain"
                   />
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => (
-                <View
-                  style={[
-                    styles.separator,
-                    dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
-                  ]}
-                />
-              )}
-              contentContainerStyle={styles.listContent}
-            />
+                )}
+                contentContainerStyle={styles.listContent}
+              />
+            )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -159,11 +193,57 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
+  },
+  headerLeft: {
+    width: 40,
   },
   headerTitle: {
     fontSize: isTablet ? 18 : 13,
     fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: isTablet ? 28 : 24,
+    fontWeight: '300',
+    lineHeight: isTablet ? 28 : 24,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    backgroundColor: '#F7F7F7',
+  },
+  searchIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '400',
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: isTablet ? 16 : 14,
     textAlign: 'center',
   },
   listContent: {

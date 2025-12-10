@@ -88,9 +88,13 @@ const BillPlanModal = () => {
 
             {/* Header */}
             <View style={styles.header}>
+              <View style={styles.headerLeft} />
               <Text style={[styles.headerTitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
                 SELECT BILL PLAN
               </Text>
+              <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+                <Text style={[styles.closeButtonText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>x</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Search Bar */}
@@ -110,52 +114,60 @@ const BillPlanModal = () => {
             </View>
 
             {/* Plans List */}
-            <FlatList
-              data={filteredPlans}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.planItem,
-                    dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-                  ]}
-                  onPress={() => handleSelect(item.name)}
-                >
-                  <View style={styles.planInfo}>
-                    <Text
-                      style={[
-                        styles.planName,
-                        dark ? { color: COLORS.white } : { color: COLORS.black },
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.planPrice,
-                        dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
-                      ]}
-                    >
-                      {item.price}
-                    </Text>
-                  </View>
-                  <Image
-                    source={icons.arrowRight}
-                    style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
-                    contentFit="contain"
+            {filteredPlans.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                  {searchQuery ? 'No plans found matching your search' : 'No plans available'}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredPlans}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.planItem,
+                      dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
+                    ]}
+                    onPress={() => handleSelect(item.name)}
+                  >
+                    <View style={styles.planInfo}>
+                      <Text
+                        style={[
+                          styles.planName,
+                          dark ? { color: COLORS.white } : { color: COLORS.black },
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.planPrice,
+                          dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
+                        ]}
+                      >
+                        {item.price}
+                      </Text>
+                    </View>
+                    <Image
+                      source={icons.arrowRight}
+                      style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
+                      contentFit="contain"
+                    />
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => (
+                  <View
+                    style={[
+                      styles.separator,
+                      dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
+                    ]}
                   />
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => (
-                <View
-                  style={[
-                    styles.separator,
-                    dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' },
-                  ]}
-                />
-              )}
-              contentContainerStyle={styles.listContent}
-            />
+                )}
+                contentContainerStyle={styles.listContent}
+              />
+            )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -194,11 +206,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
+  },
+  headerLeft: {
+    width: 40,
   },
   headerTitle: {
     fontSize: isTablet ? 18 : 13,
     fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: isTablet ? 28 : 24,
+    fontWeight: '300',
+    lineHeight: isTablet ? 28 : 24,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: isTablet ? 16 : 14,
     textAlign: 'center',
   },
   searchContainer: {

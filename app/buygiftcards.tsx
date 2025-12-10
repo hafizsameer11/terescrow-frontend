@@ -319,7 +319,7 @@ const BuyGiftCards = () => {
             >
               <Text style={[
                 styles.optionText,
-                selectedCategory === null ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+                selectedCategory === null ? { color: COLORS.black, fontWeight: '700' } : { color: dark ? COLORS.black : COLORS.black }
               ]}>
                 General (All Categories)
               </Text>
@@ -336,7 +336,7 @@ const BuyGiftCards = () => {
               >
                 <Text style={[
                   styles.optionText,
-                  selectedCategory === category.value ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+                  selectedCategory === category.value ? { color: COLORS.black, fontWeight: '700' } : { color: dark ? COLORS.black : COLORS.black }
                 ]}>
                   {category.name}
                 </Text>
@@ -371,7 +371,7 @@ const BuyGiftCards = () => {
             >
               <Text style={[
                 styles.optionText,
-                selectedCountry === null ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+                selectedCountry === null ? { color: COLORS.black, fontWeight: '700' } : { color: dark ? COLORS.black : COLORS.black }
               ]}>
                 General (All Countries)
               </Text>
@@ -388,7 +388,7 @@ const BuyGiftCards = () => {
               >
                 <Text style={[
                   styles.optionText,
-                  selectedCountry === country.isoName ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+                  selectedCountry === country.isoName ? { color: COLORS.black, fontWeight: '700' } : { color: dark ? COLORS.black : COLORS.black }
                 ]}>
                   {country.name}
                 </Text>

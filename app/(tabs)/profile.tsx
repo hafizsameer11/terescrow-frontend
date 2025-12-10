@@ -228,7 +228,7 @@ const Profile = () => {
             icon={icons.graph}
             onPress={() => {
               router.push({
-                pathname: "/selectasset",
+                pathname: "/allassets",
                 params: { fromTradeCrypto: 'true' }
               });
             }}

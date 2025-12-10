@@ -1,40 +1,70 @@
 import React from "react";
 import { StyleSheet, Text, View, Dimensions, ActivityIndicator } from "react-native";
 import PieChart from "react-native-pie-chart";
-import { useAuth } from "@/contexts/authContext";
-import { transactionHistory } from "@/utils/queries/transactionQueries";
-import { useQuery } from "@tanstack/react-query";
+import { ITransactionOverviewChart } from "@/utils/queries/accountQueries";
+import { useTheme } from "@/contexts/themeContext";
+import { COLORS } from "@/constants";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-const TestChart = () => {
-  const widthAndHeight = screenWidth * 0.6;
-  const { token } = useAuth();
+interface DoughnutChartProps {
+  overviewData?: {
+    chart: ITransactionOverviewChart;
+    history: any[];
+  };
+  isLoading?: boolean;
+}
 
-  const {
-    data: transactionData,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ["transactionHistory"],
-    queryFn: () => transactionHistory(token),
-    enabled: !!token,
-  });
+const TestChart: React.FC<DoughnutChartProps> = ({ overviewData, isLoading }) => {
+  const { dark } = useTheme();
+  const widthAndHeight = screenWidth * 0.6;
 
   if (isLoading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
   }
 
-  if (isError) {
-    return <Text style={{textAlign: 'center'}}>No recent transactions</Text>;
+  if (!overviewData?.chart?.types || overviewData.chart.types.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={[styles.emptyText, { color: dark ? COLORS.white : COLORS.black }]}>
+          No transaction data available
+        </Text>
+      </View>
+    );
   }
 
-  const data = transactionData?.data || [];
+  // Filter out types with 0 percentage and sort by percentage (descending)
+  const chartTypes = overviewData.chart.types
+    .filter((type) => type.percentage > 0)
+    .sort((a, b) => b.percentage - a.percentage);
 
-  const series = data.map((item) => item.amount);
-  const labels = data.map((item) => item.department.title);
-  const colors = ["#147341", "#048096", "#191473", "#CA3900", "#FF5733", "#C70039"];
+  if (chartTypes.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={[styles.emptyText, { color: dark ? COLORS.white : COLORS.black }]}>
+          No transactions to display
+        </Text>
+      </View>
+    );
+  }
+
+  // Map transaction types to colors
+  const getColorForType = (type: string): string => {
+    const colorMap: { [key: string]: string } = {
+      'Crypto': '#147341',
+      'Gift Card': '#048096',
+      'Bill Payments': '#191473',
+      'Naira Transactions': '#CA3900',
+    };
+    return colorMap[type] || '#FF5733';
+  };
+
+  const series = chartTypes.map((type) => parseFloat(type.totalUsd) || 0);
+  const colors = chartTypes.map((type) => getColorForType(type.type));
 
   return (
     <View style={{ flex: 1 }}>
@@ -43,7 +73,7 @@ const TestChart = () => {
           <PieChart
             widthAndHeight={widthAndHeight}
             series={series}
-            sliceColor={colors.slice(0, series.length)}
+            sliceColor={colors}
             coverRadius={0.7}
             coverFill={"#FFF"}
           />
@@ -51,11 +81,11 @@ const TestChart = () => {
 
         {/* Legends */}
         <View style={styles.legendContainer}>
-          {data.map((item, index) => (
-            <View key={item.id} style={styles.legendItem}>
+          {chartTypes.map((type, index) => (
+            <View key={type.type} style={styles.legendItem}>
               <View style={[styles.colorBox, { backgroundColor: colors[index] }]} />
-              <Text style={[styles.legendText, { color: colors[index] }]}>
-                {item.department.title}
+              <Text style={[styles.legendText, { color: dark ? COLORS.white : COLORS.black }]}>
+                {type.type} ({type.percentage.toFixed(1)}%)
               </Text>
             </View>
           ))}
@@ -99,5 +129,21 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 50,
     marginRight: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
   },
 });

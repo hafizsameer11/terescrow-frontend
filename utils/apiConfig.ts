@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
     DeleteAccount: API_DOMAIN + '/auth/delete-customer',
     SetPin: API_DOMAIN + '/auth/set-pin',
     VerifyPin: API_DOMAIN + '/auth/verify-pin',
+    UpdatePin: API_DOMAIN + '/auth/update-pin',
   },
 
   ACCOUNT_MANAGEMENT: {
@@ -74,7 +75,7 @@ export const API_ENDPOINTS = {
     GetRecentTransactionsItems: API_DOMAIN + '/transactions/get-recent-items',
     GetTransactionHistory: API_DOMAIN + '/customer/utilities/get-transaction-group',
     GetTransactionByDepartment: API_DOMAIN + '/customer/utilities/get-transaction-by-department',
-
+    GetTransactionOverview: API_DOMAIN + '/v2/transactions/overview',
   },
   BILL_PAYMENTS: {
     GetBillers: API_DOMAIN + '/v2/bill-payments/billers',

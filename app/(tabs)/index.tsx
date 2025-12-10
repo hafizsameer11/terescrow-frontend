@@ -16,8 +16,9 @@ import {
 } from "@/utils/queries/quickActionQueries";
 import { getAllChats } from "@/utils/queries/chatQueries";
 import { getWalletTransactions, getCryptoTransactions } from "@/utils/queries/accountQueries";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
+import { images } from "@/constants";
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -25,8 +26,16 @@ const isTablet = width >= 768;
 export default function HomeScreen() {
   const { dark } = useTheme();
   const { token } = useAuth();
-  const [activeTab, setActiveTab] = React.useState("All");
+  const params = useLocalSearchParams<{ activeTab?: string }>();
+  const [activeTab, setActiveTab] = React.useState(params.activeTab || "All");
   const [refreshing, setRefreshing] = React.useState(false);
+
+  // Update activeTab if params change
+  React.useEffect(() => {
+    if (params.activeTab) {
+      setActiveTab(params.activeTab);
+    }
+  }, [params.activeTab]);
 
   // Map tab to API parameters - memoized to prevent recreation
   const getTransactionParams = React.useMemo(() => {
@@ -197,7 +206,7 @@ export default function HomeScreen() {
       id: '2',
       title: 'Trade Crypto',
       description: 'Buy, sell and send any crypto asset with ease',
-      icon: icons.graph,
+      icon: images.trade_crypto,
       onPress: () => {
         router.push('/allassets');
       },
@@ -206,7 +215,7 @@ export default function HomeScreen() {
       id: '3',
       title: 'Bill Payments',
       description: 'Buy airtimes, mobile date, Subscriptions and more',
-      icon: icons.payment,
+      icon: images.bill_pay,
       onPress: () => {
         router.push('/billpayments');
       },
@@ -215,7 +224,7 @@ export default function HomeScreen() {
       id: '4',
       title: 'Earn',
       description: 'Earn for life from our crowd Ambassador program',
-      icon: icons.people,
+      icon: images.earn,
       onPress: () => {
         router.push('/referrals');
       },
@@ -353,7 +362,8 @@ export default function HomeScreen() {
               : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
           }
 
-          // Determine route based on transaction type - always return a valid route
+          // Determine route based on transaction type - always return a valid detail page route
+          // NEVER return transaction history routes - only detail pages
           const getTransactionRoute = (): string => {
             if (item.isCrypto) {
               // For crypto transactions, route to appropriate detail screen
@@ -367,6 +377,7 @@ export default function HomeScreen() {
             if (item.type === 'giftcard') return '/giftcardsold';
             if (item.type === 'bill') return '/billpayments';
             return '/giftcardsold'; // Default for other transaction types
+            // Note: Never return '/transactions' or any history page route
           };
 
           const transactionRoute = getTransactionRoute();

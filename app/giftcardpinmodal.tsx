@@ -169,10 +169,24 @@ const GiftCardPinModal = () => {
       setPin([]);
       let errorMessage = 'Failed to purchase gift card. Please try again.';
       
+      // Check error message to determine if it's a PIN error or auth error
+      const errorMsg = (error.message?.toLowerCase() || '') + 
+        (error.data?.message?.toLowerCase() || '');
+      
       if (error.statusCode === 401) {
-        errorMessage = 'Invalid PIN. Please try again.';
+        // 401 for purchase might mean wrong PIN or unauthorized
+        if (errorMsg.includes('pin') || errorMsg.includes('invalid') || errorMsg.includes('incorrect')) {
+          errorMessage = 'Invalid PIN. Please try again.';
+        } else if (errorMsg.includes('not logged in') || errorMsg.includes('not authenticated') || errorMsg.includes('unauthorized')) {
+          errorMessage = 'Session expired. Please login again.';
+          // Don't logout here - let the global handler do it if it's a real auth error
+        } else {
+          errorMessage = 'Invalid PIN. Please try again.';
+        }
       } else if (error.statusCode === 400) {
         errorMessage = error.message || 'Invalid request. Please check your details.';
+      } else if (error.statusCode === 403) {
+        errorMessage = 'Insufficient balance or permission denied.';
       }
       
       showTopToast({
