@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/authContext';
 import { getSwapCurrencies, getSwapQuote, getSwapPreview, ISwapCurrency, ISwapQuoteRequest } from '@/utils/queries/accountQueries';
 import { getBuyCurrencies, ICryptoCurrency } from '@/utils/queries/accountQueries';
 import { swapCrypto, ISwapCryptoRequest } from '@/utils/mutations/authMutations';
+import { getKycLimits } from '@/utils/queries/quickActionQueries';
 import { showTopToast } from '@/utils/helpers';
 import { getImageUrl } from '@/utils/helpers';
 
@@ -72,6 +73,16 @@ const Swap = () => {
     queryKey: ['buyCurrencies'],
     queryFn: () => getBuyCurrencies(token),
     enabled: !!token,
+  });
+
+  // Fetch KYC limits for remaining crypto limit
+  const {
+    data: kycLimitsData,
+  } = useQuery({
+    queryKey: ['kycLimits'],
+    queryFn: () => getKycLimits(token),
+    enabled: !!token,
+    staleTime: 60000, // Cache for 1 minute
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -219,6 +230,58 @@ const Swap = () => {
 
   const handleReceiveAssetPress = () => {
     setReceiveAssetModalVisible(true);
+  };
+
+  // Handle swap icon click - reverse pay and receive assets
+  const handleSwapAssets = () => {
+    if (!payAsset || !receiveAsset) {
+      showTopToast({
+        type: 'error',
+        text1: 'Cannot Swap',
+        text2: 'Please select both assets first',
+      });
+      return;
+    }
+    
+    // Store current values
+    const currentPayAsset = payAsset;
+    const currentReceiveAsset = receiveAsset;
+    const currentPayAmount = payAmount;
+    const currentReceiveAmount = receiveAmount;
+    
+    // Check if current receiveAsset is in swapCurrencies (has balance > 0) - needed for new payAsset
+    const receiveInSwapCurrencies = swapCurrenciesData?.data?.currencies.find(
+      (c) => c.currency === currentReceiveAsset.currency && c.blockchain === currentReceiveAsset.blockchain
+    );
+    
+    // Check if current payAsset is in buyCurrencies (can be received) - needed for new receiveAsset
+    const payInBuyCurrencies = buyCurrenciesData?.data?.currencies.find(
+      (c) => c.currency === currentPayAsset.currency && c.blockchain === currentPayAsset.blockchain
+    );
+    
+    // Only swap if both assets are valid for their new positions
+    if (receiveInSwapCurrencies && payInBuyCurrencies) {
+      // Swap assets
+      setPayAsset(receiveInSwapCurrencies);
+      setReceiveAsset(payInBuyCurrencies);
+      
+      // Swap amounts
+      setPayAmount(currentReceiveAmount);
+      setReceiveAmount(currentPayAmount);
+      
+      // Clear preview data since swap changes everything
+      setPreviewData(null);
+      
+      // The useEffect will automatically trigger quote calculation when payAsset/receiveAsset/payAmount changes
+    } else {
+      showTopToast({
+        type: 'error',
+        text1: 'Cannot Swap',
+        text2: receiveInSwapCurrencies 
+          ? 'The receive asset cannot be used to pay (insufficient balance)'
+          : 'The pay asset cannot be received',
+      });
+    }
   };
 
   const handleSelectReceiveAsset = (currency: ICryptoCurrency) => {
@@ -413,6 +476,30 @@ const Swap = () => {
     swapMutation.mutate(swapRequest);
   };
 
+  // Calculate USD value from payAmount
+  const payAmountUsd = useMemo(() => {
+    if (!payAmount || !payAsset || parseFloat(payAmount) <= 0) {
+      return '0';
+    }
+    const amount = parseFloat(payAmount);
+    const price = parseFloat(payAsset.price || '0');
+    if (isNaN(amount) || isNaN(price) || price <= 0) {
+      return '0';
+    }
+    const usdValue = amount * price;
+    return usdValue.toFixed(2);
+  }, [payAmount, payAsset]);
+
+  // Get remaining crypto limit
+  const remainingCryptoLimit = useMemo(() => {
+    if (kycLimitsData?.data?.cryptoBuyLimit) {
+      // For now, show the total limit. If API provides remaining limit, use that instead
+      const limit = parseFloat(kycLimitsData.data.cryptoBuyLimit);
+      return `NGN${limit.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return 'NGN500,000'; // Fallback
+  }, [kycLimitsData]);
+
   // Calculate transaction details from preview data
   const transactionData = useMemo(() => {
     if (previewData) {
@@ -539,7 +626,7 @@ const Swap = () => {
             <View style={styles.infoSection}>
               <View style={styles.limitSection}>
                 <Text style={styles.limitLabel}>Remaining crypto limit for today:</Text>
-                <Text style={styles.limitValue}>NGN500,000</Text>
+                <Text style={styles.limitValue}>{remainingCryptoLimit}</Text>
               </View>
               {payAsset && (
                 <View style={styles.balanceSection}>
@@ -622,7 +709,7 @@ const Swap = () => {
                 <View style={styles.amountSection}>
                   <View style={styles.amountTop}>
                     <Text style={[styles.amountLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                      {previewData ? `$${previewData.fromAmountUsd}` : '$0'}
+                      ${payAmountUsd}
                     </Text>
                     <TouchableOpacity style={styles.refreshButton}>
                       <Image
@@ -646,10 +733,17 @@ const Swap = () => {
             </View>
 
             <View style={styles.swapIconContainer}>
-              <TouchableOpacity style={styles.swapIconButton}>
+              <TouchableOpacity 
+                style={styles.swapIconButton}
+                onPress={handleSwapAssets}
+                disabled={!payAsset || !receiveAsset}
+              >
                 <Image
                   source={icons.fourthicon}
-                  style={styles.swapIcon}
+                  style={[
+                    styles.swapIcon,
+                    (!payAsset || !receiveAsset) && { opacity: 0.5 }
+                  ]}
                   contentFit="contain"
                 />
               </TouchableOpacity>

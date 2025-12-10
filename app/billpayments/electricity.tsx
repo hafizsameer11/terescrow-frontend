@@ -170,7 +170,10 @@ const Electricity = () => {
           <Text style={[styles.balanceText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
             Balance: {balance}
           </Text>
-          <TouchableOpacity style={styles.topupButton}>
+          <TouchableOpacity 
+            style={styles.topupButton}
+            onPress={() => navigate('fundwalletmodal' as any)}
+          >
             <Text style={styles.topupButtonText}>Topup</Text>
           </TouchableOpacity>
         </View>

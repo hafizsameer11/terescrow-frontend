@@ -57,14 +57,44 @@ export const getWaysOfHearing = async (): Promise<WaysOfHearingResponse> => {
   return await apiCall(`${API_ENDPOINTS.QUICK_ACTIONS.GetAllWaysOfHearing}`, 'GET', undefined)
 }
 
+// Gift Card Categories and Countries APIs
+export const getGiftCardCategories = async (
+  token: string
+): Promise<IGiftCardCategoriesResponse> => {
+  return await apiCall(API_ENDPOINTS.GIFT_CARDS.GetCategories, 'GET', undefined, token);
+};
+
+export const getGiftCardCountries = async (
+  token: string
+): Promise<IGiftCardCountriesResponse> => {
+  return await apiCall(API_ENDPOINTS.GIFT_CARDS.GetCountries, 'GET', undefined, token);
+};
+
 // Gift Card Products APIs
 export const getGiftCardProducts = async (
   token: string,
   page: number = 1,
-  limit: number = 50
+  limit: number = 50,
+  category?: string,
+  countryCode?: string,
+  search?: string
 ): Promise<IGiftCardProductsResponse> => {
-  const query = new URLSearchParams({ page: page.toString(), limit: limit.toString() }).toString();
-  const url = `${API_ENDPOINTS.GIFT_CARDS.GetProducts}?${query}`;
+  const params = new URLSearchParams({ 
+    page: page.toString(), 
+    limit: limit.toString() 
+  });
+  
+  if (category) {
+    params.append('category', category);
+  }
+  if (countryCode) {
+    params.append('countryCode', countryCode);
+  }
+  if (search) {
+    params.append('search', search);
+  }
+  
+  const url = `${API_ENDPOINTS.GIFT_CARDS.GetProducts}?${params.toString()}`;
   return await apiCall(url, 'GET', undefined, token);
 };
 
@@ -179,6 +209,35 @@ export interface BannersResponse extends ApiResponse {
     image: string;
     createdAt: Date;
   }[]
+}
+
+// Gift Card Categories and Countries Interfaces
+export interface IGiftCardCategory {
+  id: number;
+  name: string;
+  value: string;
+}
+
+export interface IGiftCardCategoriesResponse extends ApiResponse {
+  data: {
+    categories: IGiftCardCategory[];
+    total: number;
+  };
+}
+
+export interface IGiftCardCountry {
+  isoName: string;
+  name: string;
+  currencyCode: string;
+  currencyName: string;
+  flag: string | null;
+}
+
+export interface IGiftCardCountriesResponse extends ApiResponse {
+  data: {
+    countries: IGiftCardCountry[];
+    total: number;
+  };
 }
 
 // Gift Card Products Interfaces

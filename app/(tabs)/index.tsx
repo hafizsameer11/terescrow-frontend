@@ -32,17 +32,19 @@ export default function HomeScreen() {
   const getTransactionParams = React.useMemo(() => {
     switch (activeTab) {
       case "Gift Cards":
-        return { type: "giftcard", useCryptoApi: false };
+        return { type: "giftcard", useCryptoApi: false, showAll: false, excludeTypes: [] };
       case "Crypto":
-        return { useCryptoApi: true };
+        return { useCryptoApi: true, showAll: false, excludeTypes: [] };
       case "Bill Payments":
-        return { type: "bill", useCryptoApi: false };
+        return { type: "bill", useCryptoApi: false, showAll: false, excludeTypes: [] };
+      case "Wallet":
+        return { type: undefined, useCryptoApi: false, showAll: false, excludeTypes: ['giftcard', 'bill'] }; // Wallet tab excludes giftcard and bill
       default:
-        return { useCryptoApi: false }; // "All" - no filter
+        return { useCryptoApi: false, showAll: true, excludeTypes: [] }; // "All" - show both wallet and crypto
     }
   }, [activeTab]);
 
-  // Fetch wallet transactions (for non-crypto tabs)
+  // Fetch wallet transactions (for non-crypto tabs, "All" tab, and "Wallet" tab)
   const {
     data: walletTransactionsData,
     isLoading: transactionsLoading,
@@ -52,12 +54,12 @@ export default function HomeScreen() {
   } = useQuery({
     queryKey: ["walletTransactions", activeTab],
     queryFn: () => getWalletTransactions(token, { type: getTransactionParams.type, page: 1, limit: 20 }),
-    enabled: !!token && !getTransactionParams.useCryptoApi,
+    enabled: !!token && (!getTransactionParams.useCryptoApi || getTransactionParams.showAll || activeTab === 'Wallet'),
     staleTime: 10000,
     refetchOnWindowFocus: false,
   });
 
-  // Fetch crypto transactions (for crypto tab)
+  // Fetch crypto transactions (for crypto tab and "All" tab)
   const {
     data: cryptoTransactionsData,
     isLoading: cryptoTransactionsLoading,
@@ -67,7 +69,7 @@ export default function HomeScreen() {
   } = useQuery({
     queryKey: ["cryptoTransactions", activeTab],
     queryFn: () => getCryptoTransactions(token, { limit: 20, offset: 0 }),
-    enabled: !!token && getTransactionParams.useCryptoApi,
+    enabled: !!token && (getTransactionParams.useCryptoApi || getTransactionParams.showAll),
     staleTime: 10000,
     refetchOnWindowFocus: false,
   });
@@ -77,7 +79,12 @@ export default function HomeScreen() {
     setRefreshing(true);
     try {
       // Refetch all queries based on active tab
-      if (getTransactionParams.useCryptoApi) {
+      if (activeTab === 'Wallet') {
+        // Wallet tab - only wallet transactions (excluding giftcard and bill)
+        await refetchTransactions();
+      } else if (getTransactionParams.showAll) {
+        await Promise.all([refetchTransactions(), refetchCryptoTransactions()]);
+      } else if (getTransactionParams.useCryptoApi) {
         await refetchCryptoTransactions();
       } else {
         await refetchTransactions();
@@ -87,29 +94,93 @@ export default function HomeScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [refetchTransactions, refetchCryptoTransactions, getTransactionParams.useCryptoApi]);
+  }, [activeTab, refetchTransactions, refetchCryptoTransactions, getTransactionParams.useCryptoApi, getTransactionParams.showAll]);
 
   // Get transactions from API response - memoized to prevent unnecessary recalculations
   const transactions = React.useMemo(() => {
-    if (getTransactionParams.useCryptoApi) {
-      // Map crypto transactions to wallet transaction format for consistency
-      return (cryptoTransactionsData?.data?.transactions || []).map((tx: any) => ({
-        id: tx.id,
-        type: tx.type,
-        amount: parseFloat(tx.amount || '0'),
-        currency: tx.currency || 'USD',
-        status: tx.status,
-        createdAt: tx.createdAt,
-        updatedAt: tx.updatedAt || tx.createdAt,
-        // Add crypto-specific fields
-        fromCurrency: tx.fromCurrency,
-        toCurrency: tx.toCurrency,
-        fromAmount: tx.fromAmount,
-        toAmount: tx.toAmount,
-      })) as any[];
+    let allTransactions: any[] = [];
+
+    // Add wallet transactions (for non-crypto tabs and "All" tab)
+    if (!getTransactionParams.useCryptoApi || getTransactionParams.showAll) {
+      const walletTxs = (walletTransactionsData?.data?.transactions || [])
+        .map((tx: any) => ({
+          ...tx,
+          isCrypto: false,
+        }))
+        // Filter out excluded types (for Wallet tab)
+        .filter((tx: any) => {
+          if (getTransactionParams.excludeTypes && getTransactionParams.excludeTypes.length > 0) {
+            const txType = (tx.type || '').toLowerCase();
+            return !getTransactionParams.excludeTypes.some(excludedType => 
+              txType === excludedType.toLowerCase()
+            );
+          }
+          return true;
+        });
+      allTransactions = [...allTransactions, ...walletTxs];
     }
-    return walletTransactionsData?.data?.transactions || [];
-  }, [walletTransactionsData, cryptoTransactionsData, getTransactionParams.useCryptoApi]);
+
+    // Add crypto transactions (for crypto tab and "All" tab)
+    // Wallet tab should NOT show crypto transactions
+    if ((getTransactionParams.useCryptoApi || getTransactionParams.showAll) && activeTab !== 'Wallet') {
+      const cryptoTxs = (cryptoTransactionsData?.data?.transactions || []).map((tx: any) => {
+        // Map API response fields to consistent format
+        // API returns transactionType, but we use type for consistency
+        const transactionType = tx.transactionType || tx.type || 'UNKNOWN';
+        
+        // Parse amount - API returns string like "25ETH" or "$64717.25"
+        let amount = 0;
+        let currency = tx.currency || 'USD';
+        
+        if (tx.amount) {
+          // Try to parse amount (remove currency symbols)
+          const amountStr = tx.amount.toString().replace(/[^0-9.]/g, '');
+          amount = parseFloat(amountStr) || 0;
+        } else if (tx.amountUsd) {
+          // Use USD amount if available
+          const usdStr = tx.amountUsd.toString().replace(/[^0-9.]/g, '');
+          amount = parseFloat(usdStr) || 0;
+          currency = 'USD';
+        }
+
+        return {
+          id: tx.id?.toString() || '', // Ensure ID is always a string
+          type: transactionType, // Map transactionType to type
+          transactionType: transactionType, // Keep original for reference
+          amount: amount,
+          currency: currency,
+          status: tx.status || 'pending',
+          createdAt: tx.createdAt,
+          updatedAt: tx.updatedAt || tx.createdAt,
+          // Crypto-specific fields
+          fromCurrency: tx.fromCurrency,
+          toCurrency: tx.toCurrency,
+          fromAmount: tx.fromAmount,
+          toAmount: tx.toAmount,
+          fromAmountUsd: tx.fromAmountUsd,
+          toAmountUsd: tx.toAmountUsd,
+          amountUsd: tx.amountUsd,
+          amountNaira: tx.amountNaira,
+          youReceived: tx.youReceived,
+          tradeType: tx.tradeType,
+          cryptocurrencyType: tx.cryptocurrencyType,
+          blockchain: tx.blockchain,
+          isCrypto: true,
+        };
+      });
+      allTransactions = [...allTransactions, ...cryptoTxs];
+    }
+
+    // Sort by createdAt (newest first) and limit to 6 for recent transactions
+    const sorted = allTransactions.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // Descending order (newest first)
+    });
+
+    // Limit to 6 transactions for recent section
+    return sorted.slice(0, 6);
+  }, [walletTransactionsData, cryptoTransactionsData, getTransactionParams.useCryptoApi, getTransactionParams.showAll]);
 
   // Hardcoded quick actions matching the design
   const quickActions = React.useMemo(() => [
@@ -128,10 +199,7 @@ export default function HomeScreen() {
       description: 'Buy, sell and send any crypto asset with ease',
       icon: icons.graph,
       onPress: () => {
-        router.push({
-          pathname: '/selectasset',
-          params: { fromTradeCrypto: 'true' }
-        });
+        router.push('/allassets');
       },
     },
     {
@@ -216,9 +284,15 @@ export default function HomeScreen() {
     >
       <FlatList
         data={transactions}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => (item.id?.toString() || item.productId?.toString() || Math.random().toString())}
         style={{ paddingHorizontal: 16 }}
         renderItem={({ item }) => {
+          // Ensure we have a valid transaction ID
+          const itemId = item.id?.toString() || item.productId?.toString() || '';
+          if (!itemId) {
+            console.warn('Transaction item missing ID:', item);
+            return null;
+          }
           // Format date
           const transactionDate = new Date(item.createdAt);
           const formattedDate = transactionDate.toLocaleTimeString([], {
@@ -226,34 +300,114 @@ export default function HomeScreen() {
             minute: "2-digit",
           });
           
-          // Format amount based on currency
-          const formattedAmount = item.currency === 'NGN' 
-            ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
-            : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+          // Format amount and heading based on transaction type
+          let formattedAmount = '';
+          let heading = item.type || 'Transaction';
+          let description = `${item.type || 'Transaction'} transaction`;
 
-          // Determine route based on transaction type
-          const getTransactionRoute = () => {
-            if (getTransactionParams.useCryptoApi) {
-              // For crypto transactions, route to appropriate detail screen
-              if (item.type === 'BUY') return 'cryptobought';
-              if (item.type === 'SELL') return 'cryptosold';
-              if (item.type === 'SWAP') return 'swapsuccess';
-              return 'cryptobought'; // Default fallback
+          if (item.isCrypto) {
+            // For crypto transactions, use the API response format
+            if (item.type === 'BUY') {
+              heading = item.tradeType || 'Crypto Buy';
+              description = `${item.cryptocurrencyType || item.currency || 'Crypto'} purchase`;
+              // Use amountUsd if available, otherwise format the amount
+              if (item.amountUsd) {
+                formattedAmount = item.amountUsd; // Already formatted as "$64717.25"
+              } else {
+                formattedAmount = `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+              }
+            } else if (item.type === 'SELL') {
+              heading = item.tradeType || 'Crypto Sell';
+              description = `${item.cryptocurrencyType || item.currency || 'Crypto'} sale`;
+              // Use youReceived if available, otherwise amountNaira
+              if (item.youReceived) {
+                formattedAmount = item.youReceived; // Already formatted as "NGN1"
+              } else if (item.amountNaira) {
+                formattedAmount = item.amountNaira; // Already formatted as "NGN647172.5"
+              } else {
+                formattedAmount = `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+              }
+            } else if (item.type === 'SWAP') {
+              heading = item.tradeType || 'Crypto Swap';
+              description = `${item.fromCurrency || 'Crypto'} → ${item.toCurrency || 'Crypto'}`;
+              // Use fromAmountUsd and toAmountUsd if available
+              if (item.fromAmountUsd && item.toAmountUsd) {
+                formattedAmount = `${item.fromAmountUsd} → ${item.toAmountUsd}`;
+              } else if (item.fromAmount && item.toAmount) {
+                formattedAmount = `${item.fromAmount} → ${item.toAmount}`;
+              } else {
+                formattedAmount = `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+              }
+            } else {
+              // Fallback for other crypto transaction types
+              if (item.amountUsd) {
+                formattedAmount = item.amountUsd;
+              } else {
+                formattedAmount = `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+              }
             }
-            return 'giftcardsold'; // Default for other transaction types
+          } else {
+            // For wallet transactions (non-crypto)
+            formattedAmount = item.currency === 'NGN' 
+              ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
+              : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+          }
+
+          // Determine route based on transaction type - always return a valid route
+          const getTransactionRoute = (): string => {
+            if (item.isCrypto) {
+              // For crypto transactions, route to appropriate detail screen
+              const transactionType = item.type || item.transactionType;
+              if (transactionType === 'BUY') return '/cryptobought';
+              if (transactionType === 'SELL') return '/cryptosold';
+              if (transactionType === 'SWAP') return '/swapsuccess';
+              return '/cryptobought'; // Default fallback for crypto
+            }
+            // For non-crypto transactions, determine route based on type
+            if (item.type === 'giftcard') return '/giftcardsold';
+            if (item.type === 'bill') return '/billpayments';
+            return '/giftcardsold'; // Default for other transaction types
           };
+
+          const transactionRoute = getTransactionRoute();
+          const transactionId = itemId; // Use the validated itemId from above
+
+          // Ensure we always have a valid route and transaction ID
+          if (!transactionRoute) {
+            console.error('Missing route for transaction:', { item, transactionType: item.type || item.transactionType });
+            return null;
+          }
+
+          if (!transactionId) {
+            console.error('Missing transaction ID:', { item });
+            return null;
+          }
+
+          // Log navigation for debugging
+          console.log('Navigating to transaction detail:', { route: transactionRoute, id: transactionId, type: item.type });
+
+          // Double-check that route and ID are valid before rendering
+          if (!transactionRoute || transactionRoute.trim() === '') {
+            console.error('Invalid route for transaction:', { route: transactionRoute, item });
+            return null;
+          }
+
+          if (!transactionId || transactionId.trim() === '') {
+            console.error('Invalid transaction ID:', { id: transactionId, item });
+            return null;
+          }
 
           return (
             <ChatItem
-              id={item.id.toString()}
+              id={transactionId}
               icon={icons.chat}
-              heading={item.type || 'Transaction'}
-              text={`${item.type} transaction`}
+              heading={heading}
+              text={description}
               date={formattedDate}
-              productId={item.id.toString()}
+              productId={transactionId}
               price={formattedAmount}
               status={item.status}
-              route={getTransactionRoute()}
+              route={transactionRoute}
             />
           );
         }}
@@ -268,7 +422,7 @@ export default function HomeScreen() {
           />
         }
         ListEmptyComponent={
-          transactionsLoading ? (
+          (transactionsLoading || cryptoTransactionsLoading) ? (
             <View style={styles.emptyLoadingContainer}>
               <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={[styles.loadingText, { color: dark ? COLORS.white : COLORS.black }]}>

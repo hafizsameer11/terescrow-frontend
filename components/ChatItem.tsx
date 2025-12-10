@@ -1,9 +1,8 @@
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Alert } from "react-native";
 import { Image } from "expo-image";
 import { COLORS, icons } from "@/constants";
 import { useTheme } from "@/contexts/themeContext";
-import { useNavigation } from "expo-router";
-import { NavigationProp } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { getImageUrl } from "@/utils/helpers";
 
 const { width } = Dimensions.get('window');
@@ -21,16 +20,46 @@ const ChatItem: React.FC<{
   route?: string; // Optional route for navigation
 }> = (props) => {
   const { dark } = useTheme();
-  const { navigate } = useNavigation<NavigationProp<any>>();
+  const router = useRouter();
   console.log("chat status", props.status)
   
   const handlePress = () => {
-    if (props.route) {
+    // Always prioritize transaction route if provided
+    if (props.route && props.route.trim() !== '') {
       // If route is provided, navigate to that route with transaction ID
-      navigate(props.route as any, { id: props.id?.toString() || props.productId });
+      const transactionId = props.id?.toString() || props.productId?.toString();
+      
+      // Ensure we have a valid transaction ID
+      if (!transactionId || transactionId.trim() === '') {
+        console.error('ChatItem: Missing or invalid transaction ID for route:', { route: props.route, id: transactionId, props });
+        Alert.alert('Error', 'Transaction ID is missing. Please try again.');
+        return;
+      }
+
+      // Ensure route starts with / for proper navigation
+      const routePath = props.route.startsWith('/') ? props.route : `/${props.route}`;
+
+      // Log navigation for debugging
+      console.log('ChatItem: Navigating to transaction detail:', { route: routePath, id: transactionId, originalRoute: props.route });
+
+      // Navigate to transaction detail page with ID
+      // Using push ensures we can navigate back, but the detail page will show details when ID is present
+      try {
+        router.push({
+          pathname: routePath as any,
+          params: { id: transactionId }
+        });
+      } catch (error) {
+        console.error('ChatItem: Navigation error:', error);
+        Alert.alert('Navigation Error', 'Failed to navigate to transaction details. Please try again.');
+      }
     } else {
-      // Default behavior: navigate to chat
-      navigate("chatwithagent", { chatId: props.id?.toString() });
+      // Default behavior: navigate to chat (only if no route provided)
+      console.log('ChatItem: No route provided, navigating to chat');
+      router.push({
+        pathname: "chatwithagent" as any,
+        params: { chatId: props.id?.toString() }
+      });
     }
   };
 

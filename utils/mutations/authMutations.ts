@@ -360,6 +360,25 @@ export const markSupportMessagesRead = async (
   return await apiCall(`${API_ENDPOINTS.SUPPORT.MarkMessagesRead}/${chatId}/messages/read`, 'PUT', undefined, token);
 }
 
+// Verify PIN Mutation
+export interface IVerifyPinReq {
+  pin: string;
+}
+
+export interface IVerifyPinResponse extends ApiResponse {
+  data: {
+    verified: boolean;
+    email: string;
+  };
+}
+
+export const verifyPin = async (
+  data: IVerifyPinReq,
+  token: string
+): Promise<IVerifyPinResponse> => {
+  return await apiCall(API_ENDPOINTS.AUTH.VerifyPin, 'POST', data, token);
+};
+
 // Gift Card Purchase Mutation
 export interface IPurchaseGiftCardReq {
   productId: number;

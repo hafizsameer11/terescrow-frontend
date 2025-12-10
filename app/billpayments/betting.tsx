@@ -265,7 +265,10 @@ const Betting = () => {
               Balance: {balance}
             </Text>
           )}
-          <TouchableOpacity style={styles.topupButton}>
+          <TouchableOpacity 
+            style={styles.topupButton}
+            onPress={() => navigate('fundwalletmodal' as any)}
+          >
             <Text style={styles.topupButtonText}>Topup</Text>
           </TouchableOpacity>
         </View>

@@ -1,4 +1,11 @@
-import { StyleSheet, ScrollView, Text, View, RefreshControl, ActivityIndicator } from "react-native";
+import {
+  StyleSheet,
+  ScrollView,
+  Text,
+  View,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
 import React, { useCallback, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DoughnutChart from "@/components/DoughnutChart";
@@ -7,7 +14,10 @@ import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
-import { getWalletTransactions, getCryptoTransactions } from "@/utils/queries/accountQueries";
+import {
+  getWalletTransactions,
+  getCryptoTransactions,
+} from "@/utils/queries/accountQueries";
 
 const transactions = () => {
   const { dark } = useTheme();
@@ -21,15 +31,22 @@ const transactions = () => {
       return await getWalletTransactions(token, { page: 1, limit: 100 });
     } catch (error: any) {
       // Only re-throw if it's a genuine auth error
-      const isAuthError = error?.statusCode === 401 || 
-        (error?.message?.toLowerCase() || '').includes('you are not logged in') ||
-        (error?.message?.toLowerCase() || '').includes('unauthorized');
+      const isAuthError =
+        error?.statusCode === 401 ||
+        (error?.message?.toLowerCase() || "").includes(
+          "you are not logged in"
+        ) ||
+        (error?.message?.toLowerCase() || "").includes("unauthorized");
       if (isAuthError) {
         throw error; // Let auth errors propagate to global handler
       }
       // For other errors, return empty data instead of throwing
       console.log("Error fetching wallet transactions (non-auth):", error);
-      return { data: { transactions: [] }, status: 'error', message: error?.message || 'Failed to fetch transactions' };
+      return {
+        data: { transactions: [] },
+        status: "error",
+        message: error?.message || "Failed to fetch transactions",
+      };
     }
   };
 
@@ -39,15 +56,22 @@ const transactions = () => {
       return await getCryptoTransactions(token, { limit: 100, offset: 0 });
     } catch (error: any) {
       // Only re-throw if it's a genuine auth error
-      const isAuthError = error?.statusCode === 401 || 
-        (error?.message?.toLowerCase() || '').includes('you are not logged in') ||
-        (error?.message?.toLowerCase() || '').includes('unauthorized');
+      const isAuthError =
+        error?.statusCode === 401 ||
+        (error?.message?.toLowerCase() || "").includes(
+          "you are not logged in"
+        ) ||
+        (error?.message?.toLowerCase() || "").includes("unauthorized");
       if (isAuthError) {
         throw error; // Let auth errors propagate to global handler
       }
       // For other errors, return empty data instead of throwing
       console.log("Error fetching crypto transactions (non-auth):", error);
-      return { data: { transactions: [], total: 0, limit: 100, offset: 0 }, status: 'error', message: error?.message || 'Failed to fetch transactions' };
+      return {
+        data: { transactions: [], total: 0, limit: 100, offset: 0 },
+        status: "error",
+        message: error?.message || "Failed to fetch transactions",
+      };
     }
   };
 

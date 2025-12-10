@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { COLORS } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 
@@ -14,49 +14,61 @@ interface TransactionTabsProps {
 const TransactionTabs: React.FC<TransactionTabsProps> = ({ activeTab, onTabChange }) => {
   const { dark } = useTheme();
 
-  const tabs = ['All', 'Gift Cards', 'Crypto', 'Bill Payments'];
+  const tabs = ['All', 'Gift Cards', 'Crypto', 'Bill Payments', 'Wallet'];
 
   return (
-    <View style={styles.container}>
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab;
-        return (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab,
-              isActive && styles.activeTab,
-            ]}
-            onPress={() => onTabChange(tab)}
-          >
-            <Text
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+      style={styles.scrollView}
+    >
+      <View style={styles.container}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
               style={[
-                styles.tabText,
-                isActive && styles.activeTabText,
-                !isActive && { color: dark ? COLORS.white : COLORS.black },
+                styles.tab,
+                isActive && styles.activeTab,
               ]}
+              onPress={() => onTabChange(tab)}
             >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+              <Text
+                style={[
+                  styles.tabText,
+                  isActive && styles.activeTabText,
+                  !isActive && { color: dark ? COLORS.white : COLORS.black },
+                ]}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 };
 
 export default TransactionTabs;
 
 const styles = StyleSheet.create({
+  scrollView: {
+    marginBottom: 16,
+  },
+  scrollContent: {
+    paddingHorizontal: 0,
+    flexGrow: 1,
+  },
   container: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 3,
-    gap: 26,
+    gap: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
     overflow: 'hidden',
   },
   tab: {

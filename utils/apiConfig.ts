@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
     GetKycDetails: API_DOMAIN + '/auth/get-kyc-details',
     DeleteAccount: API_DOMAIN + '/auth/delete-customer',
     SetPin: API_DOMAIN + '/auth/set-pin',
+    VerifyPin: API_DOMAIN + '/auth/verify-pin',
   },
 
   ACCOUNT_MANAGEMENT: {
@@ -89,6 +90,8 @@ export const API_ENDPOINTS = {
     MarkMessagesRead: API_DOMAIN + '/v2/support/chats',
   },
   GIFT_CARDS: {
+    GetCategories: API_DOMAIN + '/v2/giftcards/categories',
+    GetCountries: API_DOMAIN + '/v2/giftcards/countries',
     GetProducts: API_DOMAIN + '/v2/giftcards/products',
     GetProductById: API_DOMAIN + '/v2/giftcards/products', // + /{productId}
     GetProductCountries: API_DOMAIN + '/v2/giftcards/products', // + /{productId}/countries
@@ -121,5 +124,6 @@ export const API_ENDPOINTS = {
     ExecuteSwap: API_DOMAIN + '/v2/crypto/swap',
     GetTransactions: API_DOMAIN + '/v2/crypto/transactions',
     GetTransactionById: API_DOMAIN + '/v2/crypto/transactions', // + /{transactionId}
+    GetAllCryptoRates: API_DOMAIN + '/admin/crypto/rates',
   },
 };

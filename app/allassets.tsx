@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,7 +18,7 @@ import { useRouter, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/authContext';
-import { getCryptoAssets, ICryptoAsset } from '@/utils/queries/accountQueries';
+import { getCryptoAssets, ICryptoAsset, getAllCryptoRates, getBuyCurrencies, getSellCurrencies, ICryptoCurrency } from '@/utils/queries/accountQueries';
 import { getImageUrl } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
@@ -29,42 +29,136 @@ const AllAssets = () => {
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
   const { token } = useAuth();
+  const [activeTab, setActiveTab] = useState<'Buy' | 'Sell'>('Buy');
 
-  // Fetch crypto assets from API
+  // Fetch buy currencies - enabled immediately so data is ready
+  const {
+    data: buyCurrenciesData,
+    isLoading: buyLoading,
+    isError: buyError,
+    refetch: refetchBuy,
+    isFetching: buyFetching,
+  } = useQuery({
+    queryKey: ['buyCurrencies'],
+    queryFn: () => getBuyCurrencies(token),
+    enabled: !!token, // Always enabled so data loads immediately
+  });
+
+  // Fetch sell currencies - enabled immediately so data is ready when switching tabs
+  const {
+    data: sellCurrenciesData,
+    isLoading: sellLoading,
+    isError: sellError,
+    refetch: refetchSell,
+    isFetching: sellFetching,
+  } = useQuery({
+    queryKey: ['sellCurrencies'],
+    queryFn: () => getSellCurrencies(token),
+    enabled: !!token, // Always enabled so data is ready when switching tabs
+  });
+
+  // Fetch crypto assets for balance display
   const {
     data: assetsData,
     isLoading: assetsLoading,
-    isError: assetsError,
-    refetch: refetchAssets,
-    isFetching: assetsFetching,
   } = useQuery({
     queryKey: ['cryptoAssets'],
     queryFn: () => getCryptoAssets(token),
     enabled: !!token,
   });
 
-  const assets: ICryptoAsset[] = assetsData?.data?.assets || [];
+  // Fetch crypto rates for USD to NGN conversion
+  const {
+    data: ratesData,
+    isLoading: ratesLoading,
+  } = useQuery({
+    queryKey: ['cryptoRates'],
+    queryFn: () => getAllCryptoRates(token),
+    enabled: !!token,
+    staleTime: 60000, // Cache for 1 minute
+  });
+
   const totals = assetsData?.data?.totals || { totalUsd: '0', totalNaira: '0' };
+
+  // Get currencies based on active tab
+  const currencies: ICryptoCurrency[] = useMemo(() => {
+    if (activeTab === 'Buy' && buyCurrenciesData?.data?.currencies) {
+      return buyCurrenciesData.data.currencies;
+    } else if (activeTab === 'Sell' && sellCurrenciesData?.data?.currencies) {
+      return sellCurrenciesData.data.currencies;
+    }
+    return [];
+  }, [activeTab, buyCurrenciesData, sellCurrenciesData]);
+
+  const isLoading = (activeTab === 'Buy' && buyLoading) || (activeTab === 'Sell' && sellLoading);
+  const isError = (activeTab === 'Buy' && buyError) || (activeTab === 'Sell' && sellError);
+  const isFetching = (activeTab === 'Buy' && buyFetching) || (activeTab === 'Sell' && sellFetching);
+
+  // Get USD to NGN rate from BUY rates (use first active rate) - same logic as BalanceCard
+  const buyRates = ratesData?.data?.BUY || [];
+  const activeBuyRate = buyRates.find(rate => rate.isActive);
+  const usdToNgnRate = activeBuyRate ? parseFloat(activeBuyRate.rate) : 1500; // Fallback to 1500 if no rate found
+
+  // Calculate NGN from USD using the rate - same as BalanceCard
+  const calculateNgnFromUsd = (usdAmount: number) => {
+    return usdAmount * usdToNgnRate;
+  };
+
+  // Format balance - same as BalanceCard
+  const formatBalance = (amount: number) => {
+    return new Intl.NumberFormat('en-NG', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
 
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     try {
-      await refetchAssets();
+      if (activeTab === 'Buy') {
+        await refetchBuy();
+      } else {
+        await refetchSell();
+      }
     } catch (error) {
-      console.log('Error refreshing assets:', error);
+      console.log('Error refreshing currencies:', error);
     }
-  }, [refetchAssets]);
+  }, [activeTab, refetchBuy, refetchSell]);
 
-  const handleAssetPress = (asset: ICryptoAsset) => {
-    navigate('assetdetail', {
-      assetId: asset.id.toString(),
-      assetName: asset.name,
-    });
+  const handleAssetPress = (currency: ICryptoCurrency) => {
+    if (activeTab === 'Buy') {
+      // Navigate directly to buy crypto screen
+      navigate('buycrypto' as any, {
+        assetId: currency.id.toString(),
+        assetName: currency.displayName || currency.name,
+        selectedCurrency: currency.currency,
+        selectedNetwork: currency.blockchain,
+        currencySymbol: currency.symbol,
+      });
+    } else {
+      // Navigate directly to sell crypto screen
+      navigate('sellcrypto' as any, {
+        assetId: currency.id.toString(),
+        assetName: currency.displayName || currency.name,
+        selectedCurrency: currency.currency,
+        selectedNetwork: currency.blockchain,
+        currencySymbol: currency.symbol,
+        availableBalance: currency.availableBalance || '0',
+      });
+    }
   };
 
-  // Get icon for asset based on currency
-  const getAssetIcon = (currency: string, symbol?: string) => {
-    const currencyUpper = currency.toUpperCase();
+  // Get icon for currency based on currency name/symbol
+  const getCurrencyIcon = (currency: ICryptoCurrency) => {
+    const symbol = currency.symbol;
+    const currencyUpper = currency.currency.toUpperCase();
+    
+    // If symbol is provided, try to use it as image URL
+    if (symbol) {
+      return { uri: getImageUrl(symbol) };
+    }
+    
+    // Fallback to local icons
     switch (currencyUpper) {
       case 'BTC':
         return icons.btc;
@@ -73,14 +167,11 @@ const AllAssets = () => {
       case 'USDT':
         return icons.usdt;
       case 'BNB':
+      case 'BSC':
         return icons.bnb;
       case 'SOL':
         return icons.solana;
       default:
-        // If symbol is provided, try to use it as image URL
-        if (symbol) {
-          return { uri: getImageUrl(symbol) };
-        }
         return icons.btc; // Default fallback
     }
   };
@@ -90,9 +181,9 @@ const AllAssets = () => {
     return { change: '+0.00%', changeType: 'positive' as const };
   };
 
-  const renderAssetItem = ({ item }: { item: ICryptoAsset }) => {
+  const renderAssetItem = ({ item }: { item: ICryptoCurrency }) => {
     const priceChange = getPriceChange();
-    const assetIcon = getAssetIcon(item.currency, item.symbol);
+    const currencyIcon = getCurrencyIcon(item);
 
     return (
       <TouchableOpacity
@@ -105,7 +196,7 @@ const AllAssets = () => {
         <View style={styles.assetLeft}>
           <View style={styles.assetIconContainer}>
             <Image
-              source={assetIcon}
+              source={currencyIcon}
               style={styles.assetIcon}
               contentFit="contain"
             />
@@ -117,7 +208,7 @@ const AllAssets = () => {
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
-              {item.name}
+              {item.displayName || item.name}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Text
@@ -140,22 +231,35 @@ const AllAssets = () => {
           </View>
         </View>
         <View style={styles.assetRight}>
-          <Text
-            style={[
-              styles.assetQuantity,
-              dark ? { color: COLORS.white } : { color: COLORS.black },
-            ]}
-          >
-            {parseFloat(item.balance || '0').toLocaleString()}
-          </Text>
-          <Text
-            style={[
-              styles.assetValue,
-              dark ? { color: COLORS.white } : { color: COLORS.black },
-            ]}
-          >
-            ${parseFloat(item.balanceUsd || '0').toLocaleString()} ≈ N{parseFloat(item.balanceNaira || '0').toLocaleString()}
-          </Text>
+          {activeTab === 'Sell' && item.availableBalance ? (
+            <>
+              <Text
+                style={[
+                  styles.assetQuantity,
+                  dark ? { color: COLORS.white } : { color: COLORS.black },
+                ]}
+              >
+                {parseFloat(item.availableBalance || '0').toLocaleString()} {item.currency}
+              </Text>
+              <Text
+                style={[
+                  styles.assetValue,
+                  dark ? { color: COLORS.white } : { color: COLORS.black },
+                ]}
+              >
+                Available
+              </Text>
+            </>
+          ) : (
+            <Text
+              style={[
+                styles.assetValue,
+                dark ? { color: COLORS.white } : { color: COLORS.black },
+              ]}
+            >
+              {item.blockchainName || item.blockchain}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -200,42 +304,86 @@ const AllAssets = () => {
         </View>
         <Text style={styles.balanceLabel}>Available balance</Text>
         <Text style={styles.balanceAmount}>
-          ${parseFloat(totals.totalUsd || '0').toLocaleString()} ≈ N{parseFloat(totals.totalNaira || '0').toLocaleString()}
+          ${formatBalance(parseFloat(totals.totalUsd || '0'))} ≈ N{formatBalance(calculateNgnFromUsd(parseFloat(totals.totalUsd || '0')))}
         </Text>
       </ImageBackground>
 
+      {/* Buy/Sell Tabs */}
+      <View style={styles.tabsContainer}>
+        <View style={styles.segmentedControl}>
+          <TouchableOpacity
+            style={[
+              styles.segment,
+              activeTab === 'Buy' && styles.segmentActive,
+              activeTab === 'Buy' && { borderTopLeftRadius: 100, borderBottomLeftRadius: 100 },
+            ]}
+            onPress={() => setActiveTab('Buy')}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                activeTab === 'Buy'
+                  ? { color: COLORS.black }
+                  : { color: COLORS.white },
+              ]}
+            >
+              Buy
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.segment,
+              activeTab === 'Sell' && styles.segmentActive,
+              activeTab === 'Sell' && { borderTopRightRadius: 100, borderBottomRightRadius: 100 },
+            ]}
+            onPress={() => setActiveTab('Sell')}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                activeTab === 'Sell'
+                  ? { color: COLORS.black }
+                  : { color: COLORS.white },
+              ]}
+            >
+              Sell
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Assets List */}
-      <View style={styles.contentSection}>
+      <View style={[styles.contentSection, { marginTop: 0 }]}>
         <Text
           style={[
             styles.sectionTitle,
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
         >
-          Crypto Assets
+          {activeTab === 'Buy' ? 'Buy Crypto' : 'Sell Crypto'}
         </Text>
-        {assetsLoading ? (
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-              Loading assets...
+              Loading {activeTab === 'Buy' ? 'buy' : 'sell'} currencies...
             </Text>
           </View>
-        ) : assetsError ? (
+        ) : isError ? (
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-              Error loading assets
+              Error loading currencies
             </Text>
           </View>
         ) : (
           <FlatList
-            data={assets}
+            data={currencies}
             renderItem={renderAssetItem}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.listContainer}
             refreshControl={
               <RefreshControl
-                refreshing={assetsFetching}
+                refreshing={isFetching}
                 onRefresh={onRefresh}
                 tintColor={COLORS.primary}
                 colors={[COLORS.primary]}
@@ -244,7 +392,7 @@ const AllAssets = () => {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-                  No assets found
+                  No {activeTab === 'Buy' ? 'buy' : 'sell'} currencies available
                 </Text>
               </View>
             }
@@ -409,5 +557,31 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+  },
+  tabsContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: COLORS.primary,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 100,
+    padding: 4,
+    height: 44,
+  },
+  segment: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 100,
+  },
+  segmentActive: {
+    backgroundColor: COLORS.white,
+  },
+  segmentText: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '600',
   },
 });

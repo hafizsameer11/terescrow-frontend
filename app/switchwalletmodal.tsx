@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     View,
@@ -7,12 +7,17 @@ import {
     TouchableOpacity,
     Pressable,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getWalletOverview, getCryptoAssets } from '@/utils/queries/accountQueries';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -32,14 +37,65 @@ const walletOptions = [
     },
 ];
 
+const WALLET_STORAGE_KEY = 'selectedWallet';
+
 const SwitchWalletModal = () => {
     const { dark } = useTheme();
     const router = useRouter();
+    const { token } = useAuth();
     const [selectedWallet, setSelectedWallet] = useState<string>('naira');
 
-    const handleSelect = (walletId: string) => {
+    // Load saved wallet selection
+    useEffect(() => {
+        const loadWalletSelection = async () => {
+            try {
+                const saved = await AsyncStorage.getItem(WALLET_STORAGE_KEY);
+                if (saved) {
+                    setSelectedWallet(saved);
+                }
+            } catch (error) {
+                console.log('Error loading wallet selection:', error);
+            }
+        };
+        loadWalletSelection();
+    }, []);
+
+    // Fetch wallet overview (fiat balance)
+    const { data: walletData, isLoading: walletLoading } = useQuery({
+        queryKey: ['walletOverview'],
+        queryFn: () => getWalletOverview(token),
+        enabled: !!token,
+    });
+
+    // Fetch crypto assets
+    const { data: cryptoAssetsData, isLoading: cryptoLoading } = useQuery({
+        queryKey: ['cryptoAssets'],
+        queryFn: () => getCryptoAssets(token),
+        enabled: !!token,
+    });
+
+    const nairaBalance = walletData?.data?.totalBalance || 0;
+    const currency = walletData?.data?.currency || 'NGN';
+    const cryptoTotalUsd = parseFloat(cryptoAssetsData?.data?.totals?.totalUsd || '0');
+    const cryptoTotalNairaRaw = parseFloat(cryptoAssetsData?.data?.totals?.totalNaira || '0');
+    // If cryptoTotalNaira is 0 or not available, calculate from USD (assuming 1 USD = 1500 NGN)
+    const cryptoTotalNaira = cryptoTotalNairaRaw > 0 ? cryptoTotalNairaRaw : (cryptoTotalUsd * 1500);
+
+    const formatBalance = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(amount);
+    };
+
+    const handleSelect = async (walletId: string) => {
         setSelectedWallet(walletId);
-        // TODO: Handle wallet switch logic
+        // Save wallet selection
+        try {
+            await AsyncStorage.setItem(WALLET_STORAGE_KEY, walletId);
+        } catch (error) {
+            console.log('Error saving wallet selection:', error);
+        }
         // Close modal after a short delay
         setTimeout(() => {
             router.back();
@@ -60,7 +116,7 @@ const SwitchWalletModal = () => {
                             styles.container,
                             dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
                         ]}
-                        edges={['top']}
+                        edges={['top', 'bottom']}
                     >
                         {/* Drag Handle */}
                         <View style={styles.dragHandleContainer}>
@@ -69,9 +125,25 @@ const SwitchWalletModal = () => {
 
                         {/* Header */}
                         <View style={styles.header}>
-                            <Text style={[styles.headerTitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                                Switch Wallet
-                            </Text>
+                            <View style={styles.headerContent}>
+                                <Text style={[styles.headerTitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                                    Switch Wallet
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => router.back()}
+                                    style={[
+                                        styles.closeButton,
+                                        dark ? { backgroundColor: 'rgba(255, 255, 255, 0.1)' } : { backgroundColor: 'rgba(0, 0, 0, 0.05)' }
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.closeIconText,
+                                        { color: dark ? COLORS.white : COLORS.black }
+                                    ]}>
+                                        ×
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {/* Wallet Options */}
@@ -99,9 +171,31 @@ const SwitchWalletModal = () => {
                                         <Text style={[styles.walletName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
                                             {wallet.name}
                                         </Text>
-                                        <Text style={[styles.walletDescription, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                                            {wallet.description}
-                                        </Text>
+                                        {walletLoading || cryptoLoading ? (
+                                            <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 4 }} />
+                                        ) : (
+                                            <View style={styles.balanceContainer}>
+                                                {wallet.id === 'crypto' ? (
+                                                    <>
+                                                        <Text style={[styles.balanceMain, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                                                            ${formatBalance(cryptoTotalUsd)}
+                                                        </Text>
+                                                        <Text style={[styles.balanceSecondary, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                                                            ≈ N{formatBalance(cryptoTotalNaira)}
+                                                        </Text>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Text style={[styles.balanceMain, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                                                            {currency} {formatBalance(nairaBalance)}
+                                                        </Text>
+                                                        <Text style={[styles.balanceSecondary, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                                                            ≈ ${formatBalance(nairaBalance / 1500)}
+                                                        </Text>
+                                                    </>
+                                                )}
+                                            </View>
+                                        )}
                                     </View>
 
                                     {/* Radio Button */}
@@ -142,13 +236,13 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     container: {
-        flex: 1,
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         paddingHorizontal: 16,
         paddingTop: 20,
-        paddingBottom: 40,
-        maxHeight: '34%',
+        paddingBottom: 20,
+        maxHeight: '60%',
+        minHeight: 200,
     },
     dragHandleContainer: {
         alignItems: 'center',
@@ -162,12 +256,34 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: 24,
+    },
+    headerContent: {
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
     },
     headerTitle: {
         fontSize: isTablet ? 18 : 13,
         fontWeight: '700',
-        color: COLORS.black,
+        flex: 1,
+        textAlign: 'center',
+    },
+    closeButton: {
+        marginLeft: 'auto',
+        borderRadius: 20,
+        width: isTablet ? 40 : 36,
+        height: isTablet ? 40 : 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+    },
+    closeIconText: {
+        fontSize: isTablet ? 32 : 28,
+        fontWeight: '300',
+        lineHeight: isTablet ? 40 : 36,
+        textAlign: 'center',
+        includeFontPadding: false,
+        height: isTablet ? 40 : 36,
     },
     walletOptionsSection: {
         gap: 12,
@@ -207,6 +323,18 @@ const styles = StyleSheet.create({
         fontSize: isTablet ? 12 : 10,
         fontWeight: '400',
         color: COLORS.greyscale600,
+    },
+    balanceContainer: {
+        marginTop: 4,
+    },
+    balanceMain: {
+        fontSize: isTablet ? 16 : 14,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    balanceSecondary: {
+        fontSize: isTablet ? 12 : 10,
+        fontWeight: '400',
     },
     radioButtonContainer: {
         marginLeft: 12,

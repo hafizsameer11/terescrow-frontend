@@ -180,6 +180,7 @@ const TransactionList = () => {
           }}
           keyExtractor={(item) => item.id.toString()}
           numColumns={1}
+          scrollEnabled={false}
           contentContainerStyle={{ paddingBottom: 40 }}
           ListEmptyComponent={
             !isLoading && transactions.length === 0 ? (
@@ -211,6 +212,7 @@ const TransactionList = () => {
           )}
           keyExtractor={(item) => item.id.toString()}
           numColumns={1}
+          scrollEnabled={false}
           contentContainerStyle={{ paddingBottom: 40 }}
         />
       ) : (

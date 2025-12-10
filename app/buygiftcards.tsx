@@ -23,11 +23,17 @@ import {
   IDepartmentResponse,
   getGiftCardProducts,
   IGiftCardProduct,
+  getGiftCardCategories,
+  IGiftCardCategory,
+  getGiftCardCountries,
+  IGiftCardCountry,
 } from '@/utils/queries/quickActionQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
 const cardWidth = (width - 48) / 2; // 2 columns with padding
+
+type FlowStep = 'categories' | 'countries' | 'products';
 
 const BuyGiftCards = () => {
   const { dark } = useTheme();
@@ -36,6 +42,11 @@ const BuyGiftCards = () => {
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<'Sell giftcards' | 'Buy giftcards'>('Buy giftcards');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentStep, setCurrentStep] = useState<FlowStep>('categories');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null);
 
   // Fetch departments to get Gift Card department info
   const {
@@ -47,15 +58,42 @@ const BuyGiftCards = () => {
     enabled: !!token,
   });
 
-  // Fetch gift card products when Buy giftcards tab is active
+  // Fetch gift card categories
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+  } = useQuery({
+    queryKey: ['giftCardCategories'],
+    queryFn: () => getGiftCardCategories(token),
+    enabled: !!token && activeTab === 'Buy giftcards' && currentStep === 'categories',
+  });
+
+  // Fetch gift card countries
+  const {
+    data: countriesData,
+    isLoading: countriesLoading,
+  } = useQuery({
+    queryKey: ['giftCardCountries'],
+    queryFn: () => getGiftCardCountries(token),
+    enabled: !!token && activeTab === 'Buy giftcards' && currentStep === 'countries',
+  });
+
+  // Fetch gift card products when on products step
   const {
     data: productsData,
     isLoading: productsLoading,
     isError: productsError,
   } = useQuery({
-    queryKey: ['giftCardProducts', activeTab],
-    queryFn: () => getGiftCardProducts(token, 1, 50),
-    enabled: !!token && activeTab === 'Buy giftcards',
+    queryKey: ['giftCardProducts', selectedCategory, selectedCountry, searchQuery],
+    queryFn: () => getGiftCardProducts(
+      token, 
+      1, 
+      50, 
+      selectedCategory || undefined, 
+      selectedCountry || undefined,
+      searchQuery || undefined
+    ),
+    enabled: !!token && activeTab === 'Buy giftcards' && currentStep === 'products',
   });
 
   const handleCardPress = (product: IGiftCardProduct) => {
@@ -63,10 +101,20 @@ const BuyGiftCards = () => {
       console.warn('Product ID is missing');
       return;
     }
+    const priceInfo = getProductPriceInfo(product);
     navigate('giftcarddetails' as any, {
       productId: product.productId.toString(),
       productName: product.productName,
       imageUrl: product.imageUrl,
+      selectedCountry: selectedCountry || undefined,
+      selectedCountryName: selectedCountryName || undefined,
+      selectedCategory: selectedCategory || undefined,
+      selectedCategoryName: selectedCategoryName || undefined,
+      fixedValue: priceInfo.fixedValue?.toString(),
+      minValue: priceInfo.minValue?.toString(),
+      maxValue: priceInfo.maxValue?.toString(),
+      isVariableDenomination: priceInfo.isVariableDenomination.toString(),
+      priceRange: priceInfo.priceRange,
     });
   };
 
@@ -90,21 +138,46 @@ const BuyGiftCards = () => {
       }
     } else {
       setActiveTab(tab);
+      // Reset flow when switching to Buy giftcards
+      setCurrentStep('categories');
+      setSelectedCategory(null);
+      setSelectedCategoryName(null);
+      setSelectedCountry(null);
+      setSelectedCountryName(null);
+      setSearchQuery('');
     }
   };
 
-  // Filter products based on search query
+  const handleCategorySelect = (category: IGiftCardCategory | null) => {
+    setSelectedCategory(category?.value || null);
+    setSelectedCategoryName(category?.name || null);
+    setCurrentStep('countries');
+  };
+
+  const handleCountrySelect = (country: IGiftCardCountry | null) => {
+    setSelectedCountry(country?.isoName || null);
+    setSelectedCountryName(country?.name || null);
+    setCurrentStep('products');
+  };
+
+  const handleBackFromCountries = () => {
+    setCurrentStep('categories');
+    setSelectedCountry(null);
+    setSelectedCountryName(null);
+  };
+
+  const handleBackFromProducts = () => {
+    setCurrentStep('countries');
+    setSearchQuery('');
+  };
+
+  // Products are already filtered by API, so use them directly
   const filteredProducts = useMemo(() => {
     if (activeTab !== 'Buy giftcards' || !productsData?.data?.products) {
       return [];
     }
-    if (!searchQuery.trim()) {
-      return productsData.data.products;
-    }
-    return productsData.data.products.filter((product) =>
-      product.productName.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [productsData, searchQuery, activeTab]);
+    return productsData.data.products;
+  }, [productsData, activeTab]);
 
   // Format product value range for display
   const getProductValueRange = (product: IGiftCardProduct): string => {
@@ -118,6 +191,17 @@ const BuyGiftCards = () => {
       return `From $${product.minValue}`;
     }
     return 'Variable';
+  };
+
+  // Get product price info for passing to details page
+  const getProductPriceInfo = (product: IGiftCardProduct) => {
+    return {
+      fixedValue: product.fixedValue,
+      minValue: product.minValue,
+      maxValue: product.maxValue,
+      isVariableDenomination: product.isVariableDenomination,
+      priceRange: getProductValueRange(product),
+    };
   };
 
   return (
@@ -184,16 +268,138 @@ const BuyGiftCards = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <SearchInputField
-          searchTerm={searchQuery}
-          setSearchTerm={setSearchQuery}
-        />
-      </View>
+      {/* Back Button for Countries and Products steps */}
+      {activeTab === 'Buy giftcards' && currentStep !== 'categories' && (
+        <TouchableOpacity 
+          onPress={currentStep === 'countries' ? handleBackFromCountries : handleBackFromProducts}
+          style={styles.backStepButton}
+        >
+          <Image
+            source={icons.arrowBack}
+            style={[styles.backIcon, dark ? { tintColor: COLORS.black } : { tintColor: COLORS.black }]}
+          />
+          <Text style={[styles.backStepText, dark ? { color: COLORS.black } : { color: COLORS.black }]}>
+            Back
+          </Text>
+        </TouchableOpacity>
+      )}
 
-      {/* Gift Cards Grid */}
-      {activeTab === 'Buy giftcards' ? (
+      {/* Search Bar - Only show on products step */}
+      {activeTab === 'Buy giftcards' && currentStep === 'products' && (
+        <View style={styles.searchContainer}>
+          <SearchInputField
+            searchTerm={searchQuery}
+            setSearchTerm={setSearchQuery}
+          />
+        </View>
+      )}
+
+      {/* Categories Step */}
+      {activeTab === 'Buy giftcards' && currentStep === 'categories' && (
+        categoriesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Loading categories...
+            </Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.stepContainer} contentContainerStyle={styles.stepContent}>
+            <Text style={[styles.stepTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Select a Category
+            </Text>
+            {/* General option to skip */}
+            <TouchableOpacity
+              style={[
+                styles.optionCard,
+                selectedCategory === null && styles.optionCardSelected,
+                dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: COLORS.grayscale100 }
+              ]}
+              onPress={() => handleCategorySelect(null)}
+            >
+              <Text style={[
+                styles.optionText,
+                selectedCategory === null ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+              ]}>
+                General (All Categories)
+              </Text>
+            </TouchableOpacity>
+            {categoriesData?.data?.categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.optionCard,
+                  selectedCategory === category.value && styles.optionCardSelected,
+                  dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: COLORS.grayscale100 }
+                ]}
+                onPress={() => handleCategorySelect(category)}
+              >
+                <Text style={[
+                  styles.optionText,
+                  selectedCategory === category.value ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )
+      )}
+
+      {/* Countries Step */}
+      {activeTab === 'Buy giftcards' && currentStep === 'countries' && (
+        countriesLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Loading countries...
+            </Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.stepContainer} contentContainerStyle={styles.stepContent}>
+            <Text style={[styles.stepTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              Select a Country
+            </Text>
+            {/* General option to skip */}
+            <TouchableOpacity
+              style={[
+                styles.optionCard,
+                selectedCountry === null && styles.optionCardSelected,
+                dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: COLORS.grayscale100 }
+              ]}
+              onPress={() => handleCountrySelect(null)}
+            >
+              <Text style={[
+                styles.optionText,
+                selectedCountry === null ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+              ]}>
+                General (All Countries)
+              </Text>
+            </TouchableOpacity>
+            {countriesData?.data?.countries.map((country) => (
+              <TouchableOpacity
+                key={country.isoName}
+                style={[
+                  styles.optionCard,
+                  selectedCountry === country.isoName && styles.optionCardSelected,
+                  dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: COLORS.grayscale100 }
+                ]}
+                onPress={() => handleCountrySelect(country)}
+              >
+                <Text style={[
+                  styles.optionText,
+                  selectedCountry === country.isoName ? { color: COLORS.white, fontWeight: '700' } : { color: dark ? COLORS.white : COLORS.black }
+                ]}>
+                  {country.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )
+      )}
+
+      {/* Products Step */}
+      {activeTab === 'Buy giftcards' && currentStep === 'products' && (
         productsLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
@@ -240,7 +446,7 @@ const BuyGiftCards = () => {
             )}
           />
         )
-      ) : null}
+      )}
     </SafeAreaView>
   );
 };
@@ -358,6 +564,45 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+    fontWeight: '500',
+  },
+  backStepButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  backStepText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  stepContainer: {
+    flex: 1,
+  },
+  stepContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  stepTitle: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  optionCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  optionCardSelected: {
+    backgroundColor: COLORS.black,
+    borderColor: COLORS.black,
+  },
+  optionText: {
+    fontSize: isTablet ? 16 : 14,
     fontWeight: '500',
   },
 });

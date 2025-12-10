@@ -73,15 +73,32 @@ export const QueryClientWrapper: React.FC<QueryClientWrapperProps> = ({ children
             },
           },
           mutations: {
-            retry: (failureCount, error) => {
+            retry: (failureCount, error, mutation) => {
               // Don't retry on authentication errors
               if (error instanceof ApiError) {
+                const mutationKey = mutation?.options?.mutationKey?.[0];
+                const isPinVerification = mutationKey === 'verifyPin';
+                
+                // Skip logout for PIN verification - 401 here means wrong PIN
+                if (isPinVerification) {
+                  return false; // Don't retry PIN verification
+                }
+                
                 const errorMessage = (error.message?.toLowerCase() || '') + 
                   (error.data?.message?.toLowerCase() || '');
+                
+                // Don't logout if error is about PIN
+                const isPinError = errorMessage.includes('pin') && 
+                  (errorMessage.includes('invalid') || errorMessage.includes('wrong') || errorMessage.includes('incorrect'));
+                
+                if (isPinError) {
+                  return false; // Don't retry, but don't logout
+                }
+                
                 if (
                   errorMessage.includes('you are not logged in') ||
-                  errorMessage.includes('unauthorized') ||
-                  error.statusCode === 401
+                  (errorMessage.includes('unauthorized') && !isPinError) ||
+                  (error.statusCode === 401 && !isPinError)
                 ) {
                   // Logout and redirect to login
                   logout();
@@ -91,15 +108,34 @@ export const QueryClientWrapper: React.FC<QueryClientWrapperProps> = ({ children
               // Don't retry mutations by default
               return false;
             },
-            onError: (error) => {
+            onError: (error, mutation) => {
+              // Skip logout for PIN verification errors - 401 here means wrong PIN, not unauthorized user
+              const mutationKey = mutation?.options?.mutationKey?.[0];
+              const isPinVerification = mutationKey === 'verifyPin';
+              
+              if (isPinVerification) {
+                // Don't logout for PIN verification errors - they're handled in the component
+                return;
+              }
+              
               // Check for authentication errors
               if (error instanceof ApiError) {
                 const errorMessage = (error.message?.toLowerCase() || '') + 
                   (error.data?.message?.toLowerCase() || '');
+                
+                // Don't logout if error is about PIN (wrong PIN is different from unauthorized)
+                const isPinError = errorMessage.includes('pin') && 
+                  (errorMessage.includes('invalid') || errorMessage.includes('wrong') || errorMessage.includes('incorrect'));
+                
+                if (isPinError) {
+                  // PIN errors are handled in the component, don't logout
+                  return;
+                }
+                
                 if (
                   errorMessage.includes('you are not logged in') ||
-                  errorMessage.includes('unauthorized') ||
-                  error.statusCode === 401
+                  (errorMessage.includes('unauthorized') && !isPinError) ||
+                  (error.statusCode === 401 && !isPinError)
                 ) {
                   // Logout and redirect to login
                   logout();
@@ -109,10 +145,13 @@ export const QueryClientWrapper: React.FC<QueryClientWrapperProps> = ({ children
               // Also check if error is a plain object with message
               if (error && typeof error === 'object' && 'message' in error) {
                 const errorMessage = String((error as any).message || '').toLowerCase();
-                if (
+                const isPinError = errorMessage.includes('pin') && 
+                  (errorMessage.includes('invalid') || errorMessage.includes('wrong') || errorMessage.includes('incorrect'));
+                
+                if (!isPinError && (
                   errorMessage.includes('you are not logged in') ||
                   errorMessage.includes('unauthorized')
-                ) {
+                )) {
                   logout();
                 }
               }

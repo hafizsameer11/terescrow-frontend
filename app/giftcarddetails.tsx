@@ -19,8 +19,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/authContext';
 import {
   getGiftCardProductById,
-  getGiftCardProductCountries,
-  getGiftCardProductTypes,
 } from '@/utils/queries/quickActionQueries';
 
 const { width } = Dimensions.get('window');
@@ -37,9 +35,17 @@ const GiftCardDetails = () => {
     imageUrl?: string;
     cardId?: string; // Legacy support
     cardName?: string; // Legacy support
-    selectedCountry?: string;
-    selectedCountryCode?: string;
-    selectedGiftCardType?: string;
+    selectedCountry?: string; // ISO country code from buygiftcards
+    selectedCountryName?: string; // Country name from buygiftcards
+    selectedCategory?: string; // Category value from buygiftcards
+    selectedCategoryName?: string; // Category name from buygiftcards
+    selectedCountryCode?: string; // Legacy support
+    selectedGiftCardType?: string; // Legacy support - not used anymore
+    fixedValue?: string; // Fixed price value
+    minValue?: string; // Minimum price value
+    maxValue?: string; // Maximum price value
+    isVariableDenomination?: string; // Whether denomination is variable
+    priceRange?: string; // Formatted price range string
   }>();
 
   // Support both new (productId) and legacy (cardId) params
@@ -52,8 +58,11 @@ const GiftCardDetails = () => {
   const isValidProductId = productId !== null && productId > 0;
 
   const [quantity, setQuantity] = useState(1);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(params.selectedCountry || null);
-  const [selectedGiftCardType, setSelectedGiftCardType] = useState<string | null>(params.selectedGiftCardType || null);
+  // Use country and category from params (passed from buygiftcards) - no longer selectable
+  const selectedCountry = params.selectedCountry || null;
+  const selectedCountryName = params.selectedCountryName || null;
+  const selectedCategory = params.selectedCategory || null;
+  const selectedCategoryName = params.selectedCategoryName || null;
   const [amountUSD, setAmountUSD] = useState('');
 
   // Fetch product details if productId is available and valid
@@ -68,38 +77,7 @@ const GiftCardDetails = () => {
     retry: false, // Don't retry on 404 errors
   });
 
-  // Fetch available countries for the product
-  const {
-    data: countriesData,
-    isLoading: countriesLoading,
-    isError: countriesError,
-  } = useQuery({
-    queryKey: ['giftCardProductCountries', productId],
-    queryFn: () => getGiftCardProductCountries(token, productId!),
-    enabled: !!token && isValidProductId,
-    retry: false, // Don't retry on 404 errors
-  });
-
-  // Fetch available card types for the product
-  const {
-    data: typesData,
-    isLoading: typesLoading,
-    isError: typesError,
-  } = useQuery({
-    queryKey: ['giftCardProductTypes', productId],
-    queryFn: () => getGiftCardProductTypes(token, productId!),
-    enabled: !!token && isValidProductId,
-    retry: false, // Don't retry on 404 errors
-  });
-
-  useEffect(() => {
-    if (params.selectedCountry) {
-      setSelectedCountry(params.selectedCountry);
-    }
-    if (params.selectedGiftCardType) {
-      setSelectedGiftCardType(params.selectedGiftCardType);
-    }
-  }, [params.selectedCountry, params.selectedGiftCardType]);
+  // No longer fetching countries or types - they're passed from previous screen
 
   // Use product image from API or fallback to param or default
   const cardImage = productData?.data?.imageUrl || imageUrl || images.nikeCard;
@@ -115,31 +93,10 @@ const GiftCardDetails = () => {
     setQuantity(quantity + 1);
   };
 
-  const handleSelectCountry = () => {
-    if (!isValidProductId) return;
-    navigate('countrymodal' as any, {
-      selectedCountry: selectedCountry || '',
-      returnTo: 'giftcarddetails',
-      productName: displayName,
-      productId: productId?.toString(),
-      imageUrl: cardImage,
-    });
-  };
-
-  const handleSelectGiftCardType = () => {
-    if (!isValidProductId) return;
-    navigate('giftcardtypemodal' as any, {
-      selectedGiftCardType: selectedGiftCardType || '',
-      returnTo: 'giftcarddetails',
-      productName: displayName,
-      productId: productId?.toString(),
-      imageUrl: cardImage,
-      selectedCountry: selectedCountry || '',
-    });
-  };
+  // Country and gift card type selection removed - values come from previous screen
 
   const handleProceed = () => {
-    if (!selectedCountry || !selectedGiftCardType || !amountUSD || !isValidProductId) {
+    if (!amountUSD || !isValidProductId) {
       return;
     }
 
@@ -155,9 +112,7 @@ const GiftCardDetails = () => {
       productName: displayName,
       quantity: quantity.toString(),
       unitPrice: unitPrice.toString(),
-      selectedCountry: selectedCountry,
-      selectedCountryCode: params.selectedCountryCode || '',
-      selectedGiftCardType: selectedGiftCardType,
+      // Country and gift card type no longer needed for purchase API
     });
   };
 
@@ -240,51 +195,41 @@ const GiftCardDetails = () => {
           </View>
         </View>
 
-        {/* Select Country */}
-        <View style={styles.inputSection}>
-          <TouchableOpacity
-            style={styles.selector}
-            onPress={handleSelectCountry}
-          >
-            {selectedCountry ? (
-              <Text style={styles.selectorValue}>
-                {selectedCountry}
-              </Text>
-            ) : (
-              <Text style={styles.selectorPlaceholder}>
-                Select country
-              </Text>
-            )}
-            <Image
-              source={icons.arrowDown}
-              style={styles.arrowIcon}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-        </View>
+        {/* Display Selected Category (Read-only) */}
+        {selectedCategoryName && (
+          <View style={[styles.infoSection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+            <Text style={[styles.infoLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Category
+            </Text>
+            <Text style={[styles.infoValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              {selectedCategoryName}
+            </Text>
+          </View>
+        )}
 
-        {/* Gift card type */}
-        <View style={styles.inputSection}>
-          <TouchableOpacity
-            style={styles.selector}
-            onPress={handleSelectGiftCardType}
-          >
-            {selectedGiftCardType ? (
-              <Text style={styles.selectorValue}>
-                {selectedGiftCardType}
-              </Text>
-            ) : (
-              <Text style={styles.selectorPlaceholder}>
-                Gift card type
-              </Text>
-            )}
-            <Image
-              source={icons.arrowDown}
-              style={styles.arrowIcon}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-        </View>
+        {/* Display Selected Country (Read-only) */}
+        {selectedCountryName && (
+          <View style={[styles.infoSection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+            <Text style={[styles.infoLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Country
+            </Text>
+            <Text style={[styles.infoValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+              {selectedCountryName}
+            </Text>
+          </View>
+        )}
+
+        {/* Display Product Price Range */}
+        {params.priceRange && (
+          <View style={[styles.infoSection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+            <Text style={[styles.infoLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Price Range
+            </Text>
+            <Text style={[styles.infoValue, dark ? { color: COLORS.primary } : { color: COLORS.primary }, styles.priceValue]}>
+              {params.priceRange}
+            </Text>
+          </View>
+        )}
 
         {/* Enter amount in USD */}
         <View style={styles.inputSection}>
@@ -315,9 +260,9 @@ const GiftCardDetails = () => {
 
       {/* Proceed Button */}
       <TouchableOpacity
-        style={[styles.proceedButton, (!selectedCountry || !selectedGiftCardType || !amountUSD) && styles.proceedButtonDisabled]}
+        style={[styles.proceedButton, !amountUSD && styles.proceedButtonDisabled]}
         onPress={handleProceed}
-        disabled={!selectedCountry || !selectedGiftCardType || !amountUSD}
+        disabled={!amountUSD}
       >
         <Text style={styles.proceedButtonText}>Proceed</Text>
       </TouchableOpacity>
@@ -419,33 +364,27 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 20,
   },
-  selector: {
+  infoSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: 56,
-    paddingHorizontal: 16,
+    padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2d9ec',
-    backgroundColor: '#FEFEFE',
+    marginBottom: 16,
   },
-  selectorValue: {
-    fontSize: 16,
+  infoLabel: {
+    fontSize: isTablet ? 16 : 14,
     fontWeight: '400',
-    color: '#1e1e1e',
-    flex: 1,
   },
-  selectorPlaceholder: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: '#989898',
-    flex: 1,
+  infoValue: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '600',
   },
-  arrowIcon: {
-    width: 20,
-    height: 20,
-    tintColor: '#989898',
+  priceValue: {
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: '700',
   },
   proceedButton: {
     position: 'absolute',

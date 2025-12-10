@@ -398,7 +398,7 @@ const AssetDetail = () => {
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
-              Transactions
+              Transactionsss
             </Text>
             {transactions.length > 0 ? (
               <FlatList

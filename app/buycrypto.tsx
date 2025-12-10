@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,6 +10,8 @@ import {
   Modal,
   Alert,
   Pressable,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -56,6 +58,10 @@ const BuyCrypto = () => {
   const assetId = params.assetId || '1';
   const currencySymbol = params.currencySymbol || '';
 
+  // Drag animation for summary modal
+  const dragY = useRef(new Animated.Value(0)).current;
+  const modalHeight = useRef(0);
+
   // Fetch wallet balance
   const { data: walletData } = useQuery({
     queryKey: ['walletOverview'],
@@ -75,6 +81,13 @@ const BuyCrypto = () => {
       setSelectedCurrency(params.selectedCurrency);
     }
   }, [params.selectedNetwork, params.selectedCurrency]);
+
+  // Reset drag animation when modal opens/closes
+  useEffect(() => {
+    if (showSummaryModal) {
+      dragY.setValue(0);
+    }
+  }, [showSummaryModal]);
 
   // Get quote when quantity changes
   const getQuote = useCallback(async (qty: string) => {
@@ -212,6 +225,44 @@ const BuyCrypto = () => {
     setShowSummaryModal(false);
     executeBuy(buyRequest);
   };
+
+  // Pan responder for drag to close
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        dragY.setOffset((dragY as any)._value);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          dragY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        dragY.flattenOffset();
+        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          // Close modal if dragged down significantly
+          Animated.timing(dragY, {
+            toValue: modalHeight.current,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowSummaryModal(false);
+            dragY.setValue(0);
+          });
+        } else {
+          // Snap back to original position
+          Animated.spring(dragY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   return (
     <SafeAreaView
@@ -370,27 +421,54 @@ const BuyCrypto = () => {
           style={styles.summaryModalOverlay} 
           onPress={() => setShowSummaryModal(false)}
         >
-          <Pressable 
-            style={styles.summaryModalContent} 
-            onPress={(e) => e.stopPropagation()}
+          <Animated.View
+            style={[
+              styles.summaryModalContent,
+              {
+                transform: [{ translateY: dragY }],
+              },
+            ]}
+            onLayout={(event) => {
+              modalHeight.current = event.nativeEvent.layout.height;
+            }}
+            {...panResponder.panHandlers}
           >
-            <SafeAreaView
-              style={[
-                styles.summaryContainer,
-                dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
-              ]}
-              edges={['top']}
+            <Pressable 
+              onPress={(e) => e.stopPropagation()}
             >
-              {/* Drag Handle */}
-              <View style={styles.dragHandleContainer}>
-                <View style={[styles.dragHandle, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' }]} />
-              </View>
+              <SafeAreaView
+                style={[
+                  styles.summaryContainer,
+                  dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
+                ]}
+                edges={['top', 'bottom']}
+              >
+                {/* Drag Handle */}
+                <View style={styles.dragHandleContainer}>
+                  <View style={[styles.dragHandle, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#E5E5E5' }]} />
+                </View>
 
               {/* Header */}
               <View style={styles.summaryHeader}>
-                <Text style={[styles.summaryHeaderTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-                  Summary
-                </Text>
+                <View style={styles.summaryHeaderContent}>
+                  <Text style={[styles.summaryHeaderTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                    Summary
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowSummaryModal(false)}
+                    style={[
+                      styles.summaryCloseButton,
+                      dark ? { backgroundColor: 'rgba(255, 255, 255, 0.1)' } : { backgroundColor: 'rgba(0, 0, 0, 0.05)' }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.summaryCloseIconText,
+                      { color: dark ? COLORS.white : COLORS.black }
+                    ]}>
+                      ×
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Summary Details */}
@@ -471,8 +549,9 @@ const BuyCrypto = () => {
                   </TouchableOpacity>
                 </>
               )}
-            </SafeAreaView>
-          </Pressable>
+              </SafeAreaView>
+            </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
 
@@ -491,12 +570,25 @@ const BuyCrypto = () => {
             <Text style={[styles.modalMessage, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
               Your current balance is {currency} {totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, but you need {currency} {amountLocal || '0.00'} to complete this purchase.
             </Text>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setInsufficientBalance(false)}
-            >
-              <Text style={styles.modalButtonText}>OK</Text>
-            </TouchableOpacity>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButtonSecondary, dark ? { borderColor: COLORS.greyScale800 } : { borderColor: '#E5E5E5' }]}
+                onPress={() => setInsufficientBalance(false)}
+              >
+                <Text style={[styles.modalButtonSecondaryText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  setInsufficientBalance(false);
+                  navigate('fundwalletmodal' as any);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Topup</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -694,8 +786,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 20,
   },
-  modalButton: {
+  modalButtonContainer: {
+    flexDirection: 'row',
+    gap: 12,
     width: '100%',
+  },
+  modalButton: {
+    flex: 1,
     backgroundColor: COLORS.primary,
     paddingVertical: 12,
     borderRadius: 100,
@@ -703,6 +800,18 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     color: COLORS.white,
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '700',
+  },
+  modalButtonSecondary: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    borderRadius: 100,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  modalButtonSecondaryText: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: '700',
   },
@@ -721,7 +830,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 40,
-    maxHeight: '70%',
+    maxHeight: '90%',
   },
   dragHandleContainer: {
     alignItems: 'center',
@@ -735,11 +844,34 @@ const styles = StyleSheet.create({
   },
   summaryHeader: {
     marginBottom: 24,
+  },
+  summaryHeaderContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   summaryHeaderTitle: {
     fontSize: isTablet ? 18 : 13,
     fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+  },
+  summaryCloseButton: {
+    marginLeft: 'auto',
+    borderRadius: 20,
+    width: isTablet ? 40 : 36,
+    height: isTablet ? 40 : 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  summaryCloseIconText: {
+    fontSize: isTablet ? 32 : 28,
+    fontWeight: '300',
+    lineHeight: isTablet ? 40 : 36,
+    textAlign: 'center',
+    includeFontPadding: false,
+    height: isTablet ? 40 : 36,
   },
   summaryDetailsContainer: {
     marginBottom: 24,

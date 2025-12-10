@@ -1,12 +1,14 @@
-import { View, FlatList, ActivityIndicator, Text } from "react-native";
+import React from "react";
+import { View, FlatList, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DUMMY_CRYPTO_SOLDS_BOUGHT } from "@/utils/dummyTrans";
 import NavigateBack from "@/components/NavigateBack";
 import SearchInputField from "@/components/SearchInputField";
 import TransactionData from "@/components/TransactionData";
+import TransactionDetail from "@/components/TransactionDetail";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import { getCryptoTransactionById, getCryptoTransactions } from "@/utils/queries/accountQueries";
@@ -14,8 +16,13 @@ import { getCryptoTransactionById, getCryptoTransactions } from "@/utils/queries
 const CryptoSold = () => {
   const { dark } = useTheme();
   const { token } = useAuth();
+  const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
-  const transactionId = params.id;
+  // Ensure transactionId is always a string and properly extracted
+  const transactionId = React.useMemo(() => {
+    const id = params.id?.toString() || params.id || '';
+    return id.trim();
+  }, [params.id]);
 
   // If transactionId is provided, fetch single transaction detail
   const {
@@ -70,26 +77,72 @@ const CryptoSold = () => {
       <NavigateBack text={transactionId ? "Transaction Details" : "Crypto Sold"} />
       {!transactionId && <SearchInputField />}
       <View style={{ flex: 1 }}>
-        {transactionId && transactionDetail?.data ? (
-          <TransactionData
-            icon={""}
-            heading={transactionDetail.data.type || "SELL"}
-            date={new Date(transactionDetail.data.createdAt).toLocaleDateString()}
-            price={`${transactionDetail.data.amount} ${transactionDetail.data.currency}`}
-            productId={transactionDetail.data.id}
-          />
+        {transactionId ? (
+          // If transactionId is provided, always show detail view (even if loading or error)
+          detailLoading ? (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={{ marginTop: 12, color: dark ? COLORS.white : COLORS.black }}>
+                Loading transaction details...
+              </Text>
+            </View>
+          ) : detailError ? (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+              <Text style={{ color: COLORS.red, textAlign: "center", marginBottom: 8 }}>
+                Error loading transaction
+              </Text>
+              <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center" }}>
+                Transaction ID: {transactionId}
+              </Text>
+            </View>
+          ) : transactionDetail?.data ? (
+            <TransactionDetail transaction={transactionDetail.data} />
+          ) : (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+              <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center" }}>
+                Transaction not found
+              </Text>
+              <Text style={{ color: dark ? COLORS.greyscale500 : COLORS.greyscale600, textAlign: "center", marginTop: 8 }}>
+                ID: {transactionId}
+              </Text>
+            </View>
+          )
         ) : (
           <FlatList
             data={data}
-            renderItem={({ item }) => (
-              <TransactionData
-                icon={item.icon || ""}
-                heading={item.heading || item.type || "SELL"}
-                date={item.date || new Date(item.createdAt || "").toLocaleDateString()}
-                price={item.price || `${item.amount} ${item.currency}`}
-                productId={item.productId || item.id}
-              />
-            )}
+            renderItem={({ item }) => {
+              const txId = item.id || item.productId;
+              const transactionType = item.transactionType || item.type || 'SELL';
+              
+              // Determine route based on transaction type
+              const getRoute = () => {
+                if (transactionType === 'BUY') return 'cryptobought';
+                if (transactionType === 'SELL') return 'cryptosold';
+                if (transactionType === 'SWAP') return 'swapsuccess';
+                return 'cryptosold';
+              };
+
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (txId) {
+                      router.push({
+                        pathname: getRoute() as any,
+                        params: { id: txId.toString() }
+                      });
+                    }
+                  }}
+                >
+                  <TransactionData
+                    icon={item.icon || ""}
+                    heading={item.tradeType || item.heading || transactionType || "SELL"}
+                    date={item.date || new Date(item.createdAt || "").toLocaleDateString()}
+                    price={item.youReceived || item.amountNaira || item.price || `${item.amount || '0'} ${item.currency || ''}`}
+                    productId={txId?.toString() || ''}
+                  />
+                </TouchableOpacity>
+              );
+            }}
             keyExtractor={(item) => item.key || item.id || item.productId}
             numColumns={1}
             contentContainerStyle={{ paddingBottom: 40 }}

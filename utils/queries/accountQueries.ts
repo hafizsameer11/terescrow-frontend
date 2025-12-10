@@ -874,3 +874,34 @@ export const getCryptoTransactionById = async (
   const url = `${API_ENDPOINTS.CRYPTO.GetTransactionById}/${transactionId}`;
   return await apiCall(url, 'GET', undefined, token);
 };
+
+// Crypto Rates Interfaces
+export interface ICryptoRate {
+  id: number;
+  transactionType: string;
+  minAmount: string;
+  maxAmount: string | null;
+  rate: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ICryptoRatesResponse {
+  status: number;
+  message: string;
+  data: {
+    BUY: ICryptoRate[];
+    SELL: ICryptoRate[];
+    SWAP: ICryptoRate[];
+    SEND: ICryptoRate[];
+    RECEIVE: ICryptoRate[];
+  };
+}
+
+// Get all crypto rates
+export const getAllCryptoRates = async (
+  token: string
+): Promise<ICryptoRatesResponse> => {
+  return await apiCall(API_ENDPOINTS.CRYPTO.GetAllCryptoRates, 'GET', undefined, token);
+};

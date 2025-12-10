@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Dimensions, ImageBackground, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { COLORS, icons, images } from '@/constants';
@@ -7,18 +7,41 @@ import { useAuth } from '@/contexts/authContext';
 import { useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import { getWalletOverview } from '@/utils/queries/accountQueries';
+import { getWalletOverview, getCryptoAssets, getAllCryptoRates } from '@/utils/queries/accountQueries';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
+
+const WALLET_STORAGE_KEY = 'selectedWallet';
 
 const BalanceCard = () => {
   const { dark } = useTheme();
   const { userData, token } = useAuth();
   const { navigate } = useNavigation<NavigationProp<any>>();
   const [balanceVisible, setBalanceVisible] = useState(true);
+  const [selectedWallet, setSelectedWallet] = useState<string>('naira');
 
-  // Fetch wallet overview
+  // Load saved wallet selection
+  useEffect(() => {
+    const loadWalletSelection = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(WALLET_STORAGE_KEY);
+        if (saved) {
+          setSelectedWallet(saved);
+        }
+      } catch (error) {
+        console.log('Error loading wallet selection:', error);
+      }
+    };
+    loadWalletSelection();
+
+    // Listen for wallet selection changes
+    const interval = setInterval(loadWalletSelection, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch wallet overview (fiat balance)
   const { 
     data: walletData, 
     isLoading: walletLoading,
@@ -30,13 +53,53 @@ const BalanceCard = () => {
     refetchInterval: 5000, // Refetch every 5 seconds
   });
 
-  // Extract balance from API response
-  const totalBalance = walletData?.data?.totalBalance || 0;
+  // Fetch crypto assets (always fetch to show secondary balance)
+  const { 
+    data: cryptoAssetsData, 
+    isLoading: cryptoLoading,
+  } = useQuery({
+    queryKey: ['cryptoAssets'],
+    queryFn: () => getCryptoAssets(token),
+    enabled: !!token,
+    refetchInterval: 5000, // Refetch every 5 seconds
+  });
+
+  // Fetch crypto rates for USD to NGN conversion
+  const {
+    data: ratesData,
+  } = useQuery({
+    queryKey: ['cryptoRates'],
+    queryFn: () => getAllCryptoRates(token),
+    enabled: !!token,
+    staleTime: 60000, // Cache for 1 minute
+  });
+
+  // Extract balances
+  const nairaBalance = walletData?.data?.totalBalance || 0;
   const currency = walletData?.data?.currency || 'NGN';
+  const cryptoTotalUsd = parseFloat(cryptoAssetsData?.data?.totals?.totalUsd || '0');
+  const cryptoTotalNaira = parseFloat(cryptoAssetsData?.data?.totals?.totalNaira || '0');
+
+  // Get USD to NGN rate from BUY rates (use first active rate)
+  const buyRates = ratesData?.data?.BUY || [];
+  const activeBuyRate = buyRates.find(rate => rate.isActive);
+  const usdToNgnRate = activeBuyRate ? parseFloat(activeBuyRate.rate) : 1500; // Fallback to 1500 if no rate found
+
+  // Determine which balance to show based on selected wallet
+  const isCryptoWallet = selectedWallet === 'crypto';
   
-  // Convert to Naira and Dollar (assuming 1 USD = 1500 NGN for now, or use actual conversion rate)
-  const nairaBalance = currency === 'NGN' ? totalBalance : totalBalance * 1500; // Adjust conversion rate as needed
-  const dollarBalance = currency === 'NGN' ? totalBalance / 1500 : totalBalance; // Adjust conversion rate as needed
+  // For crypto wallet: show USD as main, NGN as secondary
+  // For naira wallet: show NGN as main, USD as secondary
+  const mainBalance = isCryptoWallet ? cryptoTotalUsd : nairaBalance;
+  // Calculate secondary balance using the rate from API
+  const secondaryBalance = isCryptoWallet 
+    ? (cryptoTotalNaira > 0 ? cryptoTotalNaira : (cryptoTotalUsd * usdToNgnRate))
+    : (nairaBalance / usdToNgnRate);
+  
+  const mainLabel = isCryptoWallet ? 'Crypto Balance' : 'Naira Balance';
+  const mainCurrency = isCryptoWallet ? '$' : 'N';
+  const secondaryCurrency = isCryptoWallet ? 'N' : '$';
+  const isLoading = isCryptoWallet ? (cryptoLoading || walletLoading) : walletLoading;
 
   const formatBalance = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -55,7 +118,7 @@ const BalanceCard = () => {
       {/* Top Section */}
       <View style={styles.topSection}>
         <View style={styles.balanceHeader}>
-          <Text style={styles.balanceLabel}>Naira Balance</Text>
+          <Text style={styles.balanceLabel}>{mainLabel}</Text>
           <TouchableOpacity
             onPress={() => navigate('switchwalletmodal' as any)}
           >
@@ -79,23 +142,23 @@ const BalanceCard = () => {
 
       {/* Balance Amount */}
       <View style={styles.balanceSection}>
-        {walletLoading ? (
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#FFFFFF" />
             <Text style={styles.loadingText}>Loading balance...</Text>
           </View>
-        ) : walletError ? (
+        ) : walletError && !isCryptoWallet ? (
           <Text style={styles.nairaBalance}>
-            {balanceVisible ? 'N0.00' : 'N••••••'}
+            {balanceVisible ? `${mainCurrency}0.00` : `${mainCurrency}••••••`}
           </Text>
         ) : (
           <>
             <Text style={styles.nairaBalance}>
-              {balanceVisible ? `N${formatBalance(nairaBalance)}` : 'N••••••'}
+              {balanceVisible ? `${mainCurrency}${formatBalance(mainBalance)}` : `${mainCurrency}••••••`}
             </Text>
-            <Text style={styles.dollarBalance}>
-              {balanceVisible ? `≈ $${formatBalance(dollarBalance)}` : '= $••••••'}
-            </Text>
+            {/* <Text style={styles.dollarBalance}>
+              {balanceVisible ? `≈ ${secondaryCurrency}${formatBalance(secondaryBalance)}` : `= ${secondaryCurrency}••••••`}
+            </Text> */}
           </>
         )}
       </View>

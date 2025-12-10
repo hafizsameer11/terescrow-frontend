@@ -16,7 +16,7 @@ import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import { useAuth } from '@/contexts/authContext';
 import { useMutation } from '@tanstack/react-query';
-import { purchaseGiftCard, IPurchaseGiftCardReq } from '@/utils/mutations/authMutations';
+import { purchaseGiftCard, IPurchaseGiftCardReq, verifyPin, IVerifyPinReq } from '@/utils/mutations/authMutations';
 import { showTopToast } from '@/utils/helpers';
 import { ApiError } from '@/utils/customApiCalls';
 
@@ -53,6 +53,90 @@ const GiftCardPinModal = () => {
       setPin(pin.slice(0, -1));
     }
   };
+
+  // Mutation for verifying PIN
+  const { mutate: verifyPinMutation, isPending: isVerifyingPin } = useMutation({
+    mutationKey: ['verifyPin'],
+    mutationFn: (pinData: IVerifyPinReq) => verifyPin(pinData, token),
+    onSuccess: (data) => {
+      // PIN verified successfully, proceed with purchase
+      if (data?.data?.verified) {
+        const productId = params.productId ? Number(params.productId) : null;
+        const quantity = params.quantity ? Number(params.quantity) : 1;
+        const unitPrice = params.unitPrice ? Number(params.unitPrice) : null;
+        
+        if (!productId || !unitPrice || unitPrice <= 0) {
+          showTopToast({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Invalid product details',
+          });
+          setPin([]);
+          isProcessingRef.current = false;
+          return;
+        }
+
+        // Get sender name from userData
+        const senderName = userData?.firstname && userData?.lastname
+          ? `${userData.firstname} ${userData.lastname}`
+          : userData?.firstname || userData?.username || 'User';
+
+        const pinValue = pin.join('');
+
+        // Prepare purchase data
+        const purchaseData: IPurchaseGiftCardReq = {
+          productId,
+          quantity,
+          unitPrice,
+          senderName,
+          pin: pinValue,
+        };
+
+        // Proceed with purchase
+        purchaseCard(purchaseData);
+      } else {
+        isProcessingRef.current = false;
+        setPin([]);
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: 'PIN verification failed. Please try again.',
+        });
+      }
+    },
+    onError: (error: ApiError) => {
+      isProcessingRef.current = false;
+      setPin([]);
+      let errorMessage = 'Invalid PIN. Please try again.';
+      
+      // Check error message to determine if it's a PIN error or auth error
+      const errorMsg = (error.message?.toLowerCase() || '') + 
+        (error.data?.message?.toLowerCase() || '');
+      
+      if (error.statusCode === 400) {
+        errorMessage = error.message || 'Invalid PIN format or PIN not set.';
+      } else if (error.statusCode === 401) {
+        // 401 for PIN verification usually means wrong PIN, not unauthorized user
+        if (errorMsg.includes('pin') || errorMsg.includes('invalid') || errorMsg.includes('incorrect')) {
+          errorMessage = 'Invalid PIN. Please try again.';
+        } else if (errorMsg.includes('unauthorized') || errorMsg.includes('not logged in')) {
+          // Only logout if it's actually an authentication error, not a PIN error
+          errorMessage = 'Session expired. Please login again.';
+          // Don't logout here - let the global handler do it if needed
+        } else {
+          errorMessage = 'Invalid PIN. Please try again.';
+        }
+      } else if (error.statusCode === 404) {
+        errorMessage = 'User not found.';
+      }
+      
+      showTopToast({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMessage,
+      });
+    },
+  });
 
   // Mutation for purchasing gift card
   const { mutate: purchaseCard, isPending: isPurchasing } = useMutation({
@@ -103,48 +187,12 @@ const GiftCardPinModal = () => {
     if (pin.length === 4 && !isProcessingRef.current) {
       isProcessingRef.current = true;
       
-      const productId = params.productId ? Number(params.productId) : null;
-      const quantity = params.quantity ? Number(params.quantity) : 1;
-      const unitPrice = params.unitPrice ? Number(params.unitPrice) : null;
-      
-      if (!productId || !unitPrice || unitPrice <= 0) {
-        showTopToast({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Invalid product details',
-        });
-        setPin([]);
-        isProcessingRef.current = false;
-        return;
-      }
-
-      // Get sender name from userData
-      const senderName = userData?.firstname && userData?.lastname
-        ? `${userData.firstname} ${userData.lastname}`
-        : userData?.firstname || userData?.username || 'User';
-
       const pinValue = pin.join('');
 
-      // Prepare purchase data
-      const purchaseData: IPurchaseGiftCardReq = {
-        productId,
-        quantity,
-        unitPrice,
-        senderName,
-        pin: pinValue,
-      };
-
-      console.log('Purchasing gift card with data:', {
-        productId,
-        quantity,
-        unitPrice,
-        senderName,
-      });
-
-      // Create purchase
-      purchaseCard(purchaseData);
+      // First verify PIN, then proceed with purchase
+      verifyPinMutation({ pin: pinValue });
     }
-  }, [pin, params, purchaseCard, userData]);
+  }, [pin, verifyPinMutation]);
 
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
@@ -208,11 +256,11 @@ const GiftCardPinModal = () => {
             </View>
 
             {/* Loading Indicator */}
-            {isPurchasing && (
+            {(isVerifyingPin || isPurchasing) && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={COLORS.primary} />
                 <Text style={[styles.loadingText, { color: themeStyles.buttonText }]}>
-                  Processing purchase...
+                  {isVerifyingPin ? 'Verifying PIN...' : 'Processing purchase...'}
                 </Text>
               </View>
             )}
@@ -227,8 +275,8 @@ const GiftCardPinModal = () => {
                     styles.numberButton,
                     { backgroundColor: themeStyles.buttonBackground },
                   ]}
-                  onPress={() => !isPurchasing && handlePress(digit.toString())}
-                  disabled={isPurchasing}
+                  onPress={() => !isVerifyingPin && !isPurchasing && handlePress(digit.toString())}
+                  disabled={isVerifyingPin || isPurchasing}
                 >
                   <Text
                     style={[
@@ -248,8 +296,8 @@ const GiftCardPinModal = () => {
                     styles.numberButton,
                     { backgroundColor: themeStyles.buttonBackground },
                   ]}
-                  onPress={() => !isPurchasing && handlePress(digit.toString())}
-                  disabled={isPurchasing}
+                  onPress={() => !isVerifyingPin && !isPurchasing && handlePress(digit.toString())}
+                  disabled={isVerifyingPin || isPurchasing}
                 >
                   <Text
                     style={[
@@ -269,8 +317,8 @@ const GiftCardPinModal = () => {
                     styles.numberButton,
                     { backgroundColor: themeStyles.buttonBackground },
                   ]}
-                  onPress={() => !isPurchasing && handlePress(digit.toString())}
-                  disabled={isPurchasing}
+                  onPress={() => !isVerifyingPin && !isPurchasing && handlePress(digit.toString())}
+                  disabled={isVerifyingPin || isPurchasing}
                 >
                   <Text
                     style={[
@@ -289,8 +337,8 @@ const GiftCardPinModal = () => {
                   styles.numberButton,
                   { backgroundColor: 'transparent' },
                 ]}
-                onPress={() => !isPurchasing && handlePress('0')}
-                disabled={isPurchasing}
+                onPress={() => !isVerifyingPin && !isPurchasing && handlePress('0')}
+                disabled={isVerifyingPin || isPurchasing}
               >
                 <Text
                   style={[
@@ -306,7 +354,7 @@ const GiftCardPinModal = () => {
                   styles.numberButton,
                 ]}
                 onPress={handleBackspace}
-                disabled={isPurchasing}
+                disabled={isVerifyingPin || isPurchasing}
               >
                 <Text
                   style={[
