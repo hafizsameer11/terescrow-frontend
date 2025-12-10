@@ -9,7 +9,8 @@ const isTablet = width >= 768;
 
 interface TransactionDetailProps {
   transaction: {
-    id: string;
+    id?: string | number;
+    transactionId?: string | number; // For crypto transactions
     transactionType?: string;
     status?: string;
     currency?: string;
@@ -51,7 +52,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
         year: "numeric",
         month: "short",
         day: "numeric",
-        hour: "2-digit",
+        hour: "numeric",
         minute: "2-digit",
       });
     } catch {
@@ -59,12 +60,21 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
     }
   };
 
-  const handleCopyTransactionId = async () => {
+  const handleCopyTransactionId = async (transactionIdToCopy?: string | number) => {
     try {
-      await Clipboard.setStringAsync(transaction.id);
+      // Get the transaction ID - prefer transactionId for crypto, fallback to id
+      const idToCopy = transactionIdToCopy || transaction.transactionId || transaction.id;
+      // Ensure it's a string for clipboard
+      const idString = idToCopy ? String(idToCopy) : '';
+      if (!idString) {
+        Alert.alert("Error", "Transaction ID not available");
+        return;
+      }
+      await Clipboard.setStringAsync(idString);
       Alert.alert("Copied", "Transaction ID copied to clipboard");
     } catch (error) {
       console.error("Failed to copy:", error);
+      Alert.alert("Error", "Failed to copy transaction ID");
     }
   };
 
@@ -74,7 +84,7 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
       case "success":
         return COLORS.green;
       case "pending":
-        return COLORS.orange || "#FFA500";
+        return COLORS.warning || "#FFA500";
       case "failed":
       case "declined":
       case "unsuccessful":
@@ -84,8 +94,10 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
     }
   };
 
-  const renderDetailRow = (label: string, value: string | null | undefined, showCopy?: boolean) => {
+  const renderDetailRow = (label: string, value: string | number | null | undefined, showCopy?: boolean, copyValue?: string | number) => {
     if (value === null || value === undefined || value === "") return null;
+    
+    const valueString = String(value);
     
     return (
       <View style={styles.detailRow}>
@@ -99,10 +111,13 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
               dark ? { color: COLORS.white } : { color: COLORS.black },
             ]}
           >
-            {value}
+            {valueString}
           </Text>
           {showCopy && (
-            <TouchableOpacity onPress={handleCopyTransactionId} style={styles.copyButton}>
+            <TouchableOpacity 
+              onPress={() => handleCopyTransactionId(copyValue || value)} 
+              style={styles.copyButton}
+            >
               <Image source={icons.copy} style={styles.copyIcon} contentFit="contain" />
             </TouchableOpacity>
           )}
@@ -115,9 +130,25 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
   const isSwap = transactionType === "SWAP" || transaction.transactionType === "SWAP";
   const isSuccessful = transaction.status?.toLowerCase() === "successful" || transaction.status?.toLowerCase() === "success";
 
-  // Determine amount to display
-  const displayAmount = transaction.youReceived || transaction.amountNaira || transaction.amountUsd || transaction.amount || "N/A";
-  const isDebit = transaction.transactionType === "SELL" || transaction.transactionType === "BUY";
+  // Determine amount to display and format with + sign for positive amounts
+  const rawAmount = transaction.youReceived || transaction.amountNaira || transaction.amountUsd || transaction.amount || "N/A";
+  // Determine if this is a credit (positive) transaction
+  // Credits: BUY (receiving crypto), RECEIVE, DEPOSIT, rewards, etc.
+  // Debits: SELL (selling crypto), WITHDRAW, etc.
+  const isCredit = transaction.transactionType === "BUY" || 
+                   transaction.transactionType === "RECEIVE" || 
+                   transaction.transactionType === "DEPOSIT" ||
+                   transaction.tradeType?.toLowerCase().includes("reward") ||
+                   transaction.tradeType?.toLowerCase().includes("referral");
+  
+  // Format amount with + sign for credits
+  const displayAmount = rawAmount !== "N/A" && isCredit && !rawAmount.startsWith("+") && !rawAmount.startsWith("-")
+    ? `+${rawAmount}`
+    : rawAmount;
+  
+  // Get transaction ID - prefer transactionId for crypto, fallback to id
+  const transactionId = transaction.transactionId || transaction.id;
+  const transactionIdString = transactionId ? String(transactionId) : "N/A";
 
   return (
     <ScrollView
@@ -125,12 +156,12 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Success Icon Section */}
+      {/* Success Icon Section - Large green circle with white checkmark */}
       <View style={styles.successIconContainer}>
-        <View style={[styles.successCircle, { backgroundColor: isSuccessful ? "#E8F8F3" : "#FFF4E6" }]}>
+        <View style={[styles.successCircle, { backgroundColor: isSuccessful ? COLORS.green : COLORS.warning || "#FFA500" }]}>
           <Image
             source={icons.tickMarked}
-            style={[styles.successIcon, { tintColor: isSuccessful ? COLORS.green : COLORS.orange }]}
+            style={[styles.successIcon, { tintColor: COLORS.white }]}
             contentFit="contain"
           />
         </View>
@@ -139,21 +170,21 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
       {/* Amount Section */}
       <View style={styles.amountSection}>
         <Text style={[styles.amountText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-          {isDebit && transaction.transactionType === "SELL" ? "" : "-"}{displayAmount}
+          {displayAmount}
         </Text>
         <Text style={[styles.dateText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
           {formatDate(transaction.createdAt)}
         </Text>
       </View>
 
-      {/* Transaction Summary Section */}
+      {/* Transaction Summary Section - Grey rectangular section */}
       <View style={[styles.summaryCard, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.grayscale100 }]}>
         {transaction.from && renderDetailRow("Sender's Details", transaction.from)}
         {transaction.youReceived && renderDetailRow("Amount Received", transaction.youReceived)}
         {!transaction.youReceived && transaction.amountNaira && renderDetailRow("Amount Received", transaction.amountNaira)}
         {!transaction.youReceived && !transaction.amountNaira && transaction.amountUsd && renderDetailRow("Amount Received", transaction.amountUsd)}
-        {renderDetailRow("Transaction ID", transaction.id, true)}
-        {renderDetailRow("Transaction Type", transaction.tradeType || transaction.transactionType)}
+        {transactionIdString !== "N/A" && renderDetailRow("Transaction ID", transactionIdString, true, transactionId)}
+        {renderDetailRow("Transaction Type", transaction.tradeType || transaction.transactionType || "Transaction")}
         {renderDetailRow("Transaction Status", transaction.status?.toUpperCase() || "PENDING")}
       </View>
 
@@ -168,14 +199,14 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
       </View>
 
       {/* Footer Section */}
-      <View style={styles.footerSection}>
+      {/* <View style={styles.footerSection}>
         <Text style={[styles.footerText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
           Issue with this transaction?
         </Text>
         <TouchableOpacity>
           <Text style={styles.reportLink}>Report transaction</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </ScrollView>
   );
 };
@@ -197,15 +228,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   successCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
   },
   successIcon: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
   },
   amountSection: {
     alignItems: "center",
@@ -268,11 +299,13 @@ const styles = StyleSheet.create({
   footerSection: {
     alignItems: "center",
     paddingVertical: 20,
+    width: "100%",
   },
   footerText: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: "400",
-    marginBottom: 8,
+    marginBottom: 4,
+    textAlign: "center",
   },
   reportLink: {
     fontSize: isTablet ? 16 : 14,

@@ -57,9 +57,24 @@ const ChatItem: React.FC<{
       // Navigate to transaction detail page with ID
       // Using push ensures we can navigate back, but the detail page will show details when ID is present
       try {
+        // Parse route to extract query parameters if present
+        const [pathname, queryString] = routePath.split('?');
+        const params: any = { id: transactionId };
+        
+        // Parse query string to extract type parameter
+        if (queryString) {
+          const queryParams = queryString.split('&');
+          for (const param of queryParams) {
+            const [key, value] = param.split('=');
+            if (key === 'type' && value) {
+              params.type = decodeURIComponent(value);
+            }
+          }
+        }
+        
         router.push({
-          pathname: routePath as any,
-          params: { id: transactionId }
+          pathname: pathname as any,
+          params: params
         });
       } catch (error) {
         console.error('ChatItem: Navigation error:', error);

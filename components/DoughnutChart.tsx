@@ -1,9 +1,10 @@
 import React from "react";
-import { StyleSheet, Text, View, Dimensions, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, Dimensions, ActivityIndicator, TouchableOpacity } from "react-native";
 import PieChart from "react-native-pie-chart";
 import { ITransactionOverviewChart } from "@/utils/queries/accountQueries";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS } from "@/constants";
+import { useRouter } from "expo-router";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -17,7 +18,35 @@ interface DoughnutChartProps {
 
 const TestChart: React.FC<DoughnutChartProps> = ({ overviewData, isLoading }) => {
   const { dark } = useTheme();
+  const router = useRouter();
   const widthAndHeight = screenWidth * 0.6;
+
+  // Map transaction type to dedicated transaction list pages according to TRANSACTION_DETAIL_ROUTES.md
+  const getRouteForType = (type: string): { pathname: string; params?: any } => {
+    // Map overview transaction types to dedicated transaction list pages
+    const typeToRouteMap: { [key: string]: string } = {
+      'Crypto': '/crypto-transactions',
+      'Gift Card': '/giftcard-transactions',
+      'Gift Cards': '/giftcard-transactions',
+      'Bill Payments': '/(tabs)/transactions', // TODO: Create /billpayment-transactions when needed
+      'Bill Payment': '/(tabs)/transactions', // TODO: Create /billpayment-transactions when needed
+      'Naira Transactions': '/(tabs)/transactions', // TODO: Create /wallet-transactions when needed
+      'Wallet': '/(tabs)/transactions', // TODO: Create /wallet-transactions when needed
+    };
+    
+    const route = typeToRouteMap[type] || '/(tabs)/transactions';
+    return {
+      pathname: route,
+    };
+  };
+
+  const handleTypePress = (type: string) => {
+    const route = getRouteForType(type);
+    router.push({
+      pathname: route.pathname as any,
+      params: route.params,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -79,15 +108,20 @@ const TestChart: React.FC<DoughnutChartProps> = ({ overviewData, isLoading }) =>
           />
         </View>
 
-        {/* Legends */}
+        {/* Legends - Clickable to navigate to filtered transaction view */}
         <View style={styles.legendContainer}>
           {chartTypes.map((type, index) => (
-            <View key={type.type} style={styles.legendItem}>
+            <TouchableOpacity
+              key={type.type}
+              style={styles.legendItem}
+              onPress={() => handleTypePress(type.type)}
+              activeOpacity={0.7}
+            >
               <View style={[styles.colorBox, { backgroundColor: colors[index] }]} />
               <Text style={[styles.legendText, { color: dark ? COLORS.white : COLORS.black }]}>
                 {type.type} ({type.percentage.toFixed(1)}%)
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </View>

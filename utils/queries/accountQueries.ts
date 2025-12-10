@@ -938,3 +938,160 @@ export const getTransactionOverview = async (
 ): Promise<ITransactionOverviewResponse> => {
   return await apiCall(API_ENDPOINTS.TRANSACTIONS.GetTransactionOverview, 'GET', undefined, token);
 };
+
+// Gift Card Orders Interfaces
+export interface IGiftCardOrder {
+  orderId: string;
+  reloadlyOrderId?: number;
+  reloadlyTransactionId?: number;
+  status: string;
+  productName: string;
+  brandName: string;
+  productImage?: string;
+  faceValue: number;
+  totalAmount: number;
+  fees: number;
+  currencyCode: string;
+  quantity: number;
+  cardType?: string;
+  countryCode?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  recipientEmail?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  [key: string]: any;
+}
+
+export interface IGiftCardOrdersResponse {
+  status: number;
+  message: string;
+  data: {
+    orders: IGiftCardOrder[];
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+// Get gift card orders
+export const getGiftCardOrders = async (
+  token: string,
+  params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<IGiftCardOrdersResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.status) queryParams.append('status', params.status);
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+  const url = queryParams.toString()
+    ? `${API_ENDPOINTS.GIFT_CARDS.GetOrders}?${queryParams.toString()}`
+    : API_ENDPOINTS.GIFT_CARDS.GetOrders;
+
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+// Get single gift card order by orderId
+export interface IGiftCardOrderDetailResponse {
+  status: number;
+  message: string;
+  data: IGiftCardOrder;
+}
+
+export const getGiftCardOrderById = async (
+  token: string,
+  orderId: string
+): Promise<IGiftCardOrderDetailResponse> => {
+  const url = `${API_ENDPOINTS.GIFT_CARDS.GetOrderById}/${orderId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+// Bill Payment History Interfaces
+export interface IBillPaymentHistoryItem {
+  id: string;
+  transactionId?: string;
+  sceneCode: string;
+  billType: string;
+  billerId: string;
+  billerName: string;
+  itemId?: string;
+  itemName?: string;
+  rechargeAccount?: string;
+  amount: string;
+  currency: string;
+  status: string;
+  palmpayOrderId?: string;
+  palmpayOrderNo?: string;
+  palmpayStatus?: string;
+  billReference?: string;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  [key: string]: any;
+}
+
+export interface IBillPaymentHistoryResponse {
+  status: number;
+  message: string;
+  data: {
+    transactions: IBillPaymentHistoryItem[];
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+// Get bill payment history
+export const getBillPaymentHistory = async (
+  token: string,
+  params?: {
+    page?: number;
+    limit?: number;
+    sceneCode?: string;
+    billerId?: string;
+    status?: string;
+  }
+): Promise<IBillPaymentHistoryResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.sceneCode) queryParams.append('sceneCode', params.sceneCode);
+  if (params?.billerId) queryParams.append('billerId', params.billerId);
+  if (params?.status) queryParams.append('status', params.status);
+
+  const url = queryParams.toString()
+    ? `${API_ENDPOINTS.BILL_PAYMENTS.GetHistory}?${queryParams.toString()}`
+    : API_ENDPOINTS.BILL_PAYMENTS.GetHistory;
+
+  return await apiCall(url, 'GET', undefined, token);
+};
+
+// Get single bill payment detail
+export interface IBillPaymentDetailResponse {
+  status: number;
+  message: string;
+  data: {
+    orderStatus?: any;
+    billPayment: IBillPaymentHistoryItem;
+  };
+}
+
+export const getBillPaymentById = async (
+  token: string,
+  billPaymentId: string
+): Promise<IBillPaymentDetailResponse> => {
+  const url = `${API_ENDPOINTS.BILL_PAYMENTS.GetOrderStatus}?billPaymentId=${billPaymentId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};

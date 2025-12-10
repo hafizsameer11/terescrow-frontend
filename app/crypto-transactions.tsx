@@ -1,62 +1,55 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { View, FlatList, ActivityIndicator, Text, TouchableOpacity, Dimensions, RefreshControl, StyleSheet } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  Dimensions,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
-import NavigateBack from "@/components/NavigateBack";
+import { Pressable } from "react-native";
 import SearchInputField from "@/components/SearchInputField";
-import TransactionDetail from "@/components/TransactionDetail";
 import { useTheme } from "@/contexts/themeContext";
 import { COLORS, icons } from "@/constants";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
-import { getCryptoTransactionById, getCryptoTransactions } from "@/utils/queries/accountQueries";
+import { useRouter } from "expo-router";
+import { getCryptoTransactions } from "@/utils/queries/accountQueries";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-const CryptoBought = () => {
+const CryptoTransactions = () => {
   const { dark } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const [activeTab, setActiveTab] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Ensure transactionId is always a string and properly extracted
-  const transactionId = useMemo(() => {
-    const id = params.id?.toString() || params.id || '';
-    return id.trim();
-  }, [params.id]);
 
-  // If transactionId is provided, fetch single transaction detail
+  // Fetch crypto transactions based on active tab
   const {
-    data: transactionDetail,
-    isLoading: detailLoading,
-    isError: detailError,
-    refetch: refetchDetail,
+    data: cryptoTransactionsData,
+    isLoading: cryptoTransactionsLoading,
+    refetch: refetchCryptoTransactions,
   } = useQuery({
-    queryKey: ["cryptoTransaction", transactionId],
-    queryFn: () => getCryptoTransactionById(token, transactionId!),
-    enabled: !!token && !!transactionId,
+    queryKey: ["cryptoTransactions", activeTab],
+    queryFn: () => {
+      const type = activeTab === "All" ? undefined : activeTab.toUpperCase();
+      return getCryptoTransactions(token, { type, limit: 100, offset: 0 });
+    },
+    enabled: !!token,
+    staleTime: 10000,
   });
 
-  // If no transactionId, fetch list of BUY transactions
-  const {
-    data: transactionsData,
-    isLoading: transactionsLoading,
-    refetch: refetchTransactions,
-  } = useQuery({
-    queryKey: ["cryptoTransactions", "BUY"],
-    queryFn: () => getCryptoTransactions(token, { type: "BUY", limit: 100, offset: 0 }),
-    enabled: !!token && !transactionId,
-  });
-
-  // Process and filter transactions (only API data, no dummy data)
+  // Process and filter transactions
   const processedTransactions = useMemo(() => {
-    if (!transactionsData?.data?.transactions) return [];
-    
-    let transactions = transactionsData.data.transactions;
+    let transactions = cryptoTransactionsData?.data?.transactions || [];
 
     // Filter by search term
     if (searchTerm) {
@@ -77,25 +70,21 @@ const CryptoBought = () => {
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     });
-  }, [transactionsData, searchTerm]);
+  }, [cryptoTransactionsData, searchTerm]);
 
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      if (transactionId) {
-        await refetchDetail();
-      } else {
-        await refetchTransactions();
-      }
+      await refetchCryptoTransactions();
     } catch (error) {
-      console.log("Error refreshing:", error);
+      console.log("Error refreshing transactions:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [transactionId, refetchDetail, refetchTransactions]);
+  }, [refetchCryptoTransactions]);
 
-  // Format date to match photo: "11 Nov. 2024"
+  // Format date
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     try {
@@ -110,14 +99,26 @@ const CryptoBought = () => {
     }
   };
 
+  // Get route for transaction detail based on type
+  const getTransactionRoute = (transactionType: string): string => {
+    const txType = transactionType.toUpperCase();
+    if (txType === "BUY" || txType.includes("BUY")) return "/cryptobought";
+    if (txType === "SELL" || txType.includes("SELL")) return "/cryptosold";
+    if (txType === "SWAP" || txType.includes("SWAP")) return "/swapsuccess";
+    if (txType === "SEND" || txType.includes("SEND")) return "/cryptosold";
+    if (txType === "RECEIVE" || txType.includes("RECEIVE")) return "/cryptobought";
+    return "/cryptobought";
+  };
+
   // Handle transaction press
   const handleTransactionPress = (item: any) => {
+    const route = getTransactionRoute(item.transactionType || item.type || "");
     const transactionId = item.transactionId || item.id;
-    const transactionType = item.transactionType || item.type || "BUY";
+    const transactionType = item.transactionType || item.type || activeTab;
 
     if (transactionId) {
       router.push({
-        pathname: "/cryptobought" as any,
+        pathname: route as any,
         params: {
           id: String(transactionId),
           type: transactionType,
@@ -126,7 +127,10 @@ const CryptoBought = () => {
     }
   };
 
-  // Render transaction item matching photo design
+  // Tabs for crypto transactions
+  const tabs = ["All", "Buy", "Sell", "Send", "Receive"];
+
+  // Render transaction item
   const renderTransactionItem = ({ item }: { item: any }) => {
     const cryptoName = item.cryptocurrencyType || item.currency || "Crypto";
     const date = formatDate(item.createdAt);
@@ -136,7 +140,7 @@ const CryptoBought = () => {
     const usdAmount = item.amountUsd || "$0";
     
     // Get icon - use symbol if available, otherwise default
-    const icon = item.symbol || icons.crypto || icons.gift;
+    const icon = item.symbol || icons.gift;
 
     return (
       <TouchableOpacity
@@ -175,90 +179,86 @@ const CryptoBought = () => {
     );
   };
 
-  // If transactionId is provided, show detail view
-  if (transactionId) {
-    if (detailLoading) {
-      return (
-        <SafeAreaView
-          style={[
-            { flex: 1, justifyContent: "center", alignItems: "center" },
-            dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
-          ]}
-        >
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={{ marginTop: 12, color: dark ? COLORS.white : COLORS.black }}>
-            Loading transaction details...
-          </Text>
-        </SafeAreaView>
-      );
-    }
-
-    if (detailError) {
-      return (
-        <SafeAreaView
-          style={[
-            { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-            dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
-          ]}
-        >
-          <Text style={{ color: COLORS.red, textAlign: "center", marginBottom: 8, fontSize: 16, fontWeight: "600" }}>
-            Error loading transaction
-          </Text>
-          <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center", fontSize: 14 }}>
-            Transaction ID: {transactionId}
-          </Text>
-        </SafeAreaView>
-      );
-    }
-
-    if (transactionDetail?.data) {
-      return (
-        <SafeAreaView
-          style={[
-            { flex: 1 },
-            dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
-          ]}
-        >
-          <NavigateBack text="Transaction Details" />
-          <TransactionDetail transaction={transactionDetail.data} />
-        </SafeAreaView>
-      );
-    }
-
-    return (
-      <SafeAreaView
-        style={[
-          { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-          dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
-        ]}
-      >
-        <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center", fontSize: 16, fontWeight: "600" }}>
-          Transaction not found
-        </Text>
-        <Text style={{ color: dark ? COLORS.greyscale500 : COLORS.greyscale600, textAlign: "center", marginTop: 8, fontSize: 14 }}>
-          ID: {transactionId}
-        </Text>
-      </SafeAreaView>
-    );
-  }
-
-  // List view - styled to match photo
   return (
     <SafeAreaView
       style={[
         { flex: 1 },
         dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
       ]}
+      edges={['top']}
     >
-      {/* Header - removed NavigateBack as requested */}
-      
+      {/* Custom Header - matches photo design */}
+      <View style={[styles.header, dark ? { backgroundColor: COLORS.white } : { backgroundColor: COLORS.white }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessible={true}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
+          <Image
+            source={icons.arrowBack}
+            style={[
+              styles.backIcon,
+              dark ? { tintColor: COLORS.white } : { tintColor: COLORS.black },
+            ]}
+            contentFit="contain"
+          />
+        </Pressable>
+        <View style={styles.headerTitleContainer}>
+          <Text
+            style={[
+              styles.headerTitle,
+              dark ? { color: COLORS.white } : { color: COLORS.black },
+            ]}
+          >
+            Crypto Txns
+          </Text>
+        </View>
+        <View style={styles.headerRight} />
+      </View>
+
+      {/* Tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabsContainer}
+        contentContainerStyle={styles.tabsContent}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tab,
+                isActive && styles.activeTab,
+                dark && isActive && { backgroundColor: COLORS.black },
+              ]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  isActive
+                    ? { color: COLORS.white, fontWeight: "600" }
+                    : { color: dark ? COLORS.white : COLORS.black },
+                ]}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <SearchInputField searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
       </View>
 
       {/* Transaction List */}
-      {transactionsLoading ? (
+      {cryptoTransactionsLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
@@ -268,10 +268,7 @@ const CryptoBought = () => {
       ) : processedTransactions.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-            {searchTerm ? "No transactions found matching your search" : "No buy transactions found"}
-          </Text>
-          <Text style={[styles.emptySubtext, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-            {searchTerm ? "Try adjusting your search terms" : "You haven't made any crypto purchases yet"}
+            No transactions found
           </Text>
         </View>
       ) : (
@@ -295,6 +292,59 @@ const CryptoBought = () => {
 };
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.grayscale100, // Light gray background as per photo
+    marginBottom: 20,
+  },
+  backButton: {
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  backIcon: {
+    width: 24,
+    height: 24,
+    tintColor: COLORS.black, // Black chevron as per photo
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+    marginLeft: -40, // Offset to center the title
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.black, // Bold black text as per photo
+  },
+  headerRight: {
+    width: 40, // Balance the back button width
+  },
+  tabsContainer: {
+    maxHeight: 50,
+    marginBottom: 8,
+  },
+  tabsContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.grayscale100,
+    marginRight: 8,
+  },
+  activeTab: {
+    backgroundColor: COLORS.black,
+  },
+  tabText: {
+    fontSize: isTablet ? 14 : 12,
+    fontWeight: "400",
+  },
   searchContainer: {
     paddingHorizontal: 0,
     marginBottom: 8,
@@ -371,18 +421,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 40,
-    paddingHorizontal: 20,
   },
   emptyText: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: "center",
   },
 });
 
-export default CryptoBought;
+export default CryptoTransactions;
+

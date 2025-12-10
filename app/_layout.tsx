@@ -311,6 +311,14 @@ export default function RootLayout() {
                 name="giftcarddetails"
                 options={{ headerShown: false }}
               />
+              <Stack.Screen
+                name="crypto-transactions"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="giftcard-transactions"
+                options={{ headerShown: false }}
+              />
             </Stack>
           </SocketProvider>
           <Toast />

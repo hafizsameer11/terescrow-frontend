@@ -184,7 +184,21 @@ const GiftCardPinModal = () => {
           errorMessage = 'Invalid PIN. Please try again.';
         }
       } else if (error.statusCode === 400) {
-        errorMessage = error.message || 'Invalid request. Please check your details.';
+        // Check if it's a unitPrice validation error
+        const fullErrorMsg = error.message || error.data?.message || '';
+        if (fullErrorMsg.includes('unitPrice') || fullErrorMsg.includes('Invalid unitPrice')) {
+          // Extract valid denominations from error message
+          // Format: "Invalid unitPrice. For this product, unitPrice must be one of: 30, 50, 100, 300"
+          const match = fullErrorMsg.match(/must be one of:\s*([\d,\s]+)/i);
+          if (match && match[1]) {
+            const validDenominations = match[1].split(',').map(d => d.trim()).filter(Boolean);
+            errorMessage = `Invalid amount. Please use one of these values: ${validDenominations.join(', ')}`;
+          } else {
+            errorMessage = 'Invalid amount. Please check the allowed denominations for this product.';
+          }
+        } else {
+          errorMessage = fullErrorMsg || 'Invalid request. Please check your details.';
+        }
       } else if (error.statusCode === 403) {
         errorMessage = 'Insufficient balance or permission denied.';
       }

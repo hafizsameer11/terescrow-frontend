@@ -29,15 +29,23 @@ const TransactionList: React.FC<TransactionListProps> = ({ overviewData, isLoadi
     return iconMap[type] || icons.gift;
   };
 
-  // Map transaction type to transaction detail route
-  const getRouteForType = (type: string): string => {
-    const routeMap: { [key: string]: string } = {
-      'Crypto': '/(tabs)/transactions',
-      'Gift Card': '/(tabs)/transactions',
-      'Bill Payments': '/(tabs)/transactions',
-      'Naira Transactions': '/(tabs)/transactions',
+  // Map transaction type to dedicated transaction list pages according to TRANSACTION_DETAIL_ROUTES.md
+  const getRouteForType = (type: string): { pathname: string; params?: any } => {
+    // Map overview transaction types to dedicated transaction list pages
+    const typeToRouteMap: { [key: string]: string } = {
+      'Crypto': '/crypto-transactions',
+      'Gift Card': '/giftcard-transactions',
+      'Gift Cards': '/giftcard-transactions',
+      'Bill Payments': '/(tabs)/transactions', // TODO: Create /billpayment-transactions when needed
+      'Bill Payment': '/(tabs)/transactions', // TODO: Create /billpayment-transactions when needed
+      'Naira Transactions': '/(tabs)/transactions', // TODO: Create /wallet-transactions when needed
+      'Wallet': '/(tabs)/transactions', // TODO: Create /wallet-transactions when needed
     };
-    return routeMap[type] || '/(tabs)/transactions';
+    
+    const route = typeToRouteMap[type] || '/(tabs)/transactions';
+    return {
+      pathname: route,
+    };
   };
 
   // Format date
@@ -91,7 +99,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ overviewData, isLoadi
             dark ? { color: COLORS.white } : { color: COLORS.black },
           ]}
         >
-          Transaction Historyss
+          Transaction History
         </Text>
       </View>
       {hasTransactions ? (
@@ -101,9 +109,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ overviewData, isLoadi
             return (
               <TouchableOpacity
                 onPress={() => {
-                  // Navigate to transactions overview page
+                  // Navigate to home page with appropriate tab selected
+                  // This will show filtered transactions for the selected type
+                  const route = getRouteForType(item.type);
                   router.push({
-                    pathname: '/(tabs)/transactions' as any,
+                    pathname: route.pathname as any,
+                    params: route.params,
                   });
                 }}
               >

@@ -34,15 +34,8 @@ const GiftCardPurchaseSuccess = () => {
   const quantity = params.quantity || '1';
 
   const handleViewCardDetails = () => {
-    router.push({
-      pathname: '/giftcarddetails',
-      params: {
-        productName: productName,
-        cardName: productName, // Legacy support
-        amount: amount,
-        quantity: quantity,
-      },
-    } as any);
+    // Navigate to transactions tab
+    router.push('/(tabs)/transactions' as any);
   };
 
   return (

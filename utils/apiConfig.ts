@@ -82,6 +82,8 @@ export const API_ENDPOINTS = {
     GetItems: API_DOMAIN + '/v2/bill-payments/items',
     CreateOrder: API_DOMAIN + '/v2/bill-payments/create-order',
     VerifyAccount: API_DOMAIN + '/v2/bill-payments/verify-account',
+    GetHistory: API_DOMAIN + '/v2/bill-payments/history',
+    GetOrderStatus: API_DOMAIN + '/v2/bill-payments/order-status',
   },
   SUPPORT: {
     CreateChat: API_DOMAIN + '/v2/support/chats',
@@ -98,6 +100,9 @@ export const API_ENDPOINTS = {
     GetProductCountries: API_DOMAIN + '/v2/giftcards/products', // + /{productId}/countries
     GetProductTypes: API_DOMAIN + '/v2/giftcards/products', // + /{productId}/types
     Purchase: API_DOMAIN + '/v2/giftcards/purchase',
+    GetOrders: API_DOMAIN + '/v2/giftcards/orders',
+    GetOrderById: API_DOMAIN + '/v2/giftcards/orders', // + /{orderId}
+    GetCardDetails: API_DOMAIN + '/v2/giftcards/orders', // + /{orderId}/card-details
   },
   PAYMENTS: {
     GetBanks: API_DOMAIN + '/v2/payments/palmpay/banks',

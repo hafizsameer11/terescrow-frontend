@@ -15,7 +15,12 @@ import {
   getAllBanners,
 } from "@/utils/queries/quickActionQueries";
 import { getAllChats } from "@/utils/queries/chatQueries";
-import { getWalletTransactions, getCryptoTransactions } from "@/utils/queries/accountQueries";
+import {
+  getWalletTransactions,
+  getCryptoTransactions,
+  getGiftCardOrders,
+  getBillPaymentHistory,
+} from "@/utils/queries/accountQueries";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { images } from "@/constants";
@@ -41,34 +46,62 @@ export default function HomeScreen() {
   const getTransactionParams = React.useMemo(() => {
     switch (activeTab) {
       case "Gift Cards":
-        return { type: "giftcard", useCryptoApi: false, showAll: false, excludeTypes: [] };
+        return { useGiftCardApi: true, useCryptoApi: false, useBillPaymentApi: false, useWalletApi: false, showAll: false };
       case "Crypto":
-        return { useCryptoApi: true, showAll: false, excludeTypes: [] };
+        return { useGiftCardApi: false, useCryptoApi: true, useBillPaymentApi: false, useWalletApi: false, showAll: false };
       case "Bill Payments":
-        return { type: "bill", useCryptoApi: false, showAll: false, excludeTypes: [] };
+        return { useGiftCardApi: false, useCryptoApi: false, useBillPaymentApi: true, useWalletApi: false, showAll: false };
       case "Wallet":
-        return { type: undefined, useCryptoApi: false, showAll: false, excludeTypes: ['giftcard', 'bill'] }; // Wallet tab excludes giftcard and bill
+        return { useGiftCardApi: false, useCryptoApi: false, useBillPaymentApi: false, useWalletApi: true, showAll: false };
       default:
-        return { useCryptoApi: false, showAll: true, excludeTypes: [] }; // "All" - show both wallet and crypto
+        return { useGiftCardApi: false, useCryptoApi: true, useBillPaymentApi: false, useWalletApi: true, showAll: true }; // "All" - show crypto and wallet
     }
   }, [activeTab]);
 
-  // Fetch wallet transactions (for non-crypto tabs, "All" tab, and "Wallet" tab)
+  // Fetch gift card orders (for Gift Cards tab)
   const {
-    data: walletTransactionsData,
-    isLoading: transactionsLoading,
-    isError: transactionsError,
-    refetch: refetchTransactions,
-    isFetching: transactionsFetching,
+    data: giftCardOrdersData,
+    isLoading: giftCardOrdersLoading,
+    isError: giftCardOrdersError,
+    refetch: refetchGiftCardOrders,
   } = useQuery({
-    queryKey: ["walletTransactions", activeTab],
-    queryFn: () => getWalletTransactions(token, { type: getTransactionParams.type, page: 1, limit: 20 }),
-    enabled: !!token && (!getTransactionParams.useCryptoApi || getTransactionParams.showAll || activeTab === 'Wallet'),
+    queryKey: ["giftCardOrders", activeTab],
+    queryFn: () => getGiftCardOrders(token, { page: 1, limit: 20 }),
+    enabled: !!token && getTransactionParams.useGiftCardApi,
     staleTime: 10000,
     refetchOnWindowFocus: false,
   });
 
-  // Fetch crypto transactions (for crypto tab and "All" tab)
+  // Fetch bill payment history (for Bill Payments tab)
+  const {
+    data: billPaymentHistoryData,
+    isLoading: billPaymentHistoryLoading,
+    isError: billPaymentHistoryError,
+    refetch: refetchBillPaymentHistory,
+  } = useQuery({
+    queryKey: ["billPaymentHistory", activeTab],
+    queryFn: () => getBillPaymentHistory(token, { page: 1, limit: 20 }),
+    enabled: !!token && getTransactionParams.useBillPaymentApi,
+    staleTime: 10000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch wallet transactions (for Wallet tab and "All" tab)
+  const {
+    data: walletTransactionsData,
+    isLoading: walletTransactionsLoading,
+    isError: walletTransactionsError,
+    refetch: refetchWalletTransactions,
+    isFetching: walletTransactionsFetching,
+  } = useQuery({
+    queryKey: ["walletTransactions", activeTab],
+    queryFn: () => getWalletTransactions(token, { page: 1, limit: 20 }), // Omit type to get all wallet transaction types
+    enabled: !!token && (getTransactionParams.useWalletApi || getTransactionParams.showAll),
+    staleTime: 10000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch crypto transactions (for Crypto tab and "All" tab)
   const {
     data: cryptoTransactionsData,
     isLoading: cryptoTransactionsLoading,
@@ -87,54 +120,121 @@ export default function HomeScreen() {
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try {
-      // Refetch all queries based on active tab
-      if (activeTab === 'Wallet') {
-        // Wallet tab - only wallet transactions (excluding giftcard and bill)
-        await refetchTransactions();
-      } else if (getTransactionParams.showAll) {
-        await Promise.all([refetchTransactions(), refetchCryptoTransactions()]);
+      const refetchPromises: Promise<any>[] = [];
+      
+      if (getTransactionParams.showAll) {
+        // "All" tab - refetch crypto and wallet
+        refetchPromises.push(refetchCryptoTransactions(), refetchWalletTransactions());
       } else if (getTransactionParams.useCryptoApi) {
-        await refetchCryptoTransactions();
-      } else {
-        await refetchTransactions();
+        refetchPromises.push(refetchCryptoTransactions());
+      } else if (getTransactionParams.useWalletApi) {
+        refetchPromises.push(refetchWalletTransactions());
+      } else if (getTransactionParams.useBillPaymentApi) {
+        refetchPromises.push(refetchBillPaymentHistory());
+      } else if (getTransactionParams.useGiftCardApi) {
+        refetchPromises.push(refetchGiftCardOrders());
       }
+      
+      await Promise.all(refetchPromises);
     } catch (error) {
       console.log("Error refreshing data:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [activeTab, refetchTransactions, refetchCryptoTransactions, getTransactionParams.useCryptoApi, getTransactionParams.showAll]);
+  }, [
+    activeTab,
+    refetchCryptoTransactions,
+    refetchWalletTransactions,
+    refetchBillPaymentHistory,
+    refetchGiftCardOrders,
+    getTransactionParams,
+  ]);
 
   // Get transactions from API response - memoized to prevent unnecessary recalculations
   const transactions = React.useMemo(() => {
     let allTransactions: any[] = [];
 
-    // Add wallet transactions (for non-crypto tabs and "All" tab)
-    if (!getTransactionParams.useCryptoApi || getTransactionParams.showAll) {
-      const walletTxs = (walletTransactionsData?.data?.transactions || [])
+    // Add gift card orders (for Gift Cards tab)
+    // According to TRANSACTION_DETAIL_ROUTES.md, gift card orders use orderId field
+    if (getTransactionParams.useGiftCardApi && giftCardOrdersData?.data?.orders) {
+      const giftCardTxs = giftCardOrdersData.data.orders.map((order: any) => {
+        // Map gift card order to transaction format
+        return {
+          // Gift card orders: use orderId for navigation (e.g., "order_123")
+          id: order.orderId?.toString() || '',
+          orderId: order.orderId, // Keep orderId for detail route
+          type: 'GIFT_CARD',
+          status: order.status || 'pending',
+          amount: order.totalAmount || order.faceValue || 0,
+          currency: order.currencyCode || 'USD',
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt || order.createdAt,
+          // Gift card specific fields
+          productName: order.productName,
+          brandName: order.brandName,
+          faceValue: order.faceValue,
+          fees: order.fees,
+          quantity: order.quantity,
+          isCrypto: false,
+          isGiftCard: true,
+        };
+      });
+      allTransactions = [...allTransactions, ...giftCardTxs];
+    }
+
+    // Add bill payment history (for Bill Payments tab)
+    // According to TRANSACTION_DETAIL_ROUTES.md, bill payments use id field (billPaymentId, UUID)
+    if (getTransactionParams.useBillPaymentApi && billPaymentHistoryData?.data?.transactions) {
+      const billPaymentTxs = billPaymentHistoryData.data.transactions.map((tx: any) => {
+        // Map bill payment to transaction format
+        return {
+          // Bill payments: use id field (billPaymentId, UUID) for navigation
+          id: tx.id?.toString() || tx.transactionId?.toString() || '',
+          transactionId: tx.transactionId, // Keep transactionId for reference
+          type: tx.billType?.toUpperCase() || 'BILL_PAYMENT',
+          status: tx.status || 'pending',
+          amount: parseFloat(tx.amount || '0'),
+          currency: tx.currency || 'NGN',
+          createdAt: tx.createdAt,
+          updatedAt: tx.updatedAt || tx.createdAt,
+          // Bill payment specific fields
+          sceneCode: tx.sceneCode,
+          billType: tx.billType,
+          billerId: tx.billerId,
+          billerName: tx.billerName,
+          rechargeAccount: tx.rechargeAccount,
+          isCrypto: false,
+          isBillPayment: true,
+        };
+      });
+      allTransactions = [...allTransactions, ...billPaymentTxs];
+    }
+
+    // Add wallet transactions (for Wallet tab and "All" tab)
+    // According to TRANSACTION_DETAIL_ROUTES.md, wallet transactions include:
+    // DEPOSIT, WITHDRAW, TRANSFER (but NOT BILL_PAYMENT - those come from bill payment history API)
+    if ((getTransactionParams.useWalletApi || getTransactionParams.showAll) && walletTransactionsData?.data?.transactions) {
+      const walletTxs = walletTransactionsData.data.transactions
         .map((tx: any) => ({
           ...tx,
+          id: tx.id?.toString() || '', // Wallet transactions use id (UUID) field
           isCrypto: false,
         }))
-        // Filter out excluded types (for Wallet tab)
+        // Filter out BILL_PAYMENT types (they come from bill payment history API)
         .filter((tx: any) => {
-          if (getTransactionParams.excludeTypes && getTransactionParams.excludeTypes.length > 0) {
-            const txType = (tx.type || '').toLowerCase();
-            return !getTransactionParams.excludeTypes.some(excludedType => 
-              txType === excludedType.toLowerCase()
-            );
-          }
-          return true;
+          const txType = (tx.type || '').toUpperCase();
+          // Exclude BILL_PAYMENT from wallet transactions (use bill payment history API instead)
+          // Valid wallet transaction types: DEPOSIT, WITHDRAW, TRANSFER
+          return txType !== 'BILL_PAYMENT';
         });
       allTransactions = [...allTransactions, ...walletTxs];
     }
 
-    // Add crypto transactions (for crypto tab and "All" tab)
-    // Wallet tab should NOT show crypto transactions
-    if ((getTransactionParams.useCryptoApi || getTransactionParams.showAll) && activeTab !== 'Wallet') {
-      const cryptoTxs = (cryptoTransactionsData?.data?.transactions || []).map((tx: any) => {
+    // Add crypto transactions (for Crypto tab and "All" tab)
+    // According to TRANSACTION_DETAIL_ROUTES.md, crypto transactions use transactionId field
+    if ((getTransactionParams.useCryptoApi || getTransactionParams.showAll) && cryptoTransactionsData?.data?.transactions) {
+      const cryptoTxs = cryptoTransactionsData.data.transactions.map((tx: any) => {
         // Map API response fields to consistent format
-        // API returns transactionType, but we use type for consistency
         const transactionType = tx.transactionType || tx.type || 'UNKNOWN';
         
         // Parse amount - API returns string like "25ETH" or "$64717.25"
@@ -142,20 +242,20 @@ export default function HomeScreen() {
         let currency = tx.currency || 'USD';
         
         if (tx.amount) {
-          // Try to parse amount (remove currency symbols)
           const amountStr = tx.amount.toString().replace(/[^0-9.]/g, '');
           amount = parseFloat(amountStr) || 0;
         } else if (tx.amountUsd) {
-          // Use USD amount if available
           const usdStr = tx.amountUsd.toString().replace(/[^0-9.]/g, '');
           amount = parseFloat(usdStr) || 0;
           currency = 'USD';
         }
 
         return {
-          id: tx.id?.toString() || '', // Ensure ID is always a string
-          type: transactionType, // Map transactionType to type
-          transactionType: transactionType, // Keep original for reference
+          // Crypto transactions: use transactionId for navigation (e.g., "BUY-1765357258830-12-vjd7f336e")
+          id: tx.transactionId?.toString() || tx.id?.toString() || '',
+          transactionId: tx.transactionId || tx.id, // Keep transactionId for detail route
+          type: transactionType,
+          transactionType: transactionType, // Keep transactionType for routing
           amount: amount,
           currency: currency,
           status: tx.status || 'pending',
@@ -182,14 +282,21 @@ export default function HomeScreen() {
 
     // Sort by createdAt (newest first) and limit to 6 for recent transactions
     const sorted = allTransactions.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA; // Descending order (newest first)
     });
 
     // Limit to 6 transactions for recent section
     return sorted.slice(0, 6);
-  }, [walletTransactionsData, cryptoTransactionsData, getTransactionParams.useCryptoApi, getTransactionParams.showAll]);
+  }, [
+    giftCardOrdersData,
+    billPaymentHistoryData,
+    walletTransactionsData,
+    cryptoTransactionsData,
+    getTransactionParams,
+    activeTab,
+  ]);
 
   // Hardcoded quick actions matching the design
   const quickActions = React.useMemo(() => [
@@ -296,8 +403,29 @@ export default function HomeScreen() {
         keyExtractor={(item) => (item.id?.toString() || item.productId?.toString() || Math.random().toString())}
         style={{ paddingHorizontal: 16 }}
         renderItem={({ item }) => {
-          // Ensure we have a valid transaction ID
-          const itemId = item.id?.toString() || item.productId?.toString() || '';
+          // Extract transaction ID based on transaction type according to TRANSACTION_DETAIL_ROUTES.md:
+          // - Crypto: use transactionId (e.g., "BUY-1765357258830-12-vjd7f336e")
+          // - Gift Cards: use orderId (e.g., "order_123")
+          // - Bill Payments: use id (billPaymentId, UUID)
+          // - Wallet: use id (UUID)
+          let itemId = '';
+          if (item.isCrypto && item.transactionId) {
+            // Crypto transactions: use transactionId field
+            itemId = item.transactionId.toString();
+          } else if (item.isGiftCard && item.orderId) {
+            // Gift card orders: use orderId field
+            itemId = item.orderId.toString();
+          } else if (item.isBillPayment && item.id) {
+            // Bill payments: use id field (billPaymentId)
+            itemId = item.id.toString();
+          } else if (item.id) {
+            // Wallet transactions and others: use id field (UUID)
+            itemId = item.id.toString();
+          } else if (item.transactionId) {
+            // Fallback: try transactionId if id is not available
+            itemId = item.transactionId.toString();
+          }
+          
           if (!itemId) {
             console.warn('Transaction item missing ID:', item);
             return null;
@@ -348,15 +476,45 @@ export default function HomeScreen() {
                 formattedAmount = `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
               }
             } else {
-              // Fallback for other crypto transaction types
+              // Fallback for other crypto transaction types (SEND, RECEIVE)
               if (item.amountUsd) {
                 formattedAmount = item.amountUsd;
               } else {
                 formattedAmount = `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
               }
             }
+          } else if (item.isGiftCard) {
+            // For gift card orders
+            heading = item.productName || item.brandName || 'Gift Card';
+            description = `${item.brandName || 'Gift Card'} - ${item.productName || 'Order'}`;
+            const currency = item.currency || 'USD';
+            formattedAmount = currency === 'NGN'
+              ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
+              : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
+          } else if (item.isBillPayment) {
+            // For bill payment transactions
+            heading = item.billerName || item.billType || 'Bill Payment';
+            description = `${item.billerName || 'Bill Payment'} - ${item.billType || 'Payment'}`;
+            const currency = item.currency || 'NGN';
+            formattedAmount = currency === 'NGN'
+              ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
+              : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
           } else {
-            // For wallet transactions (non-crypto)
+            // For wallet transactions (non-crypto, non-giftcard, non-bill)
+            const txType = (item.type || '').toUpperCase();
+            if (txType === 'DEPOSIT') {
+              heading = 'Deposit';
+              description = 'Money deposited';
+            } else if (txType === 'WITHDRAW') {
+              heading = 'Withdrawal';
+              description = 'Money withdrawn';
+            } else if (txType === 'TRANSFER') {
+              heading = 'Transfer';
+              description = 'Money transferred';
+            } else {
+              heading = item.type || 'Transaction';
+              description = `${item.type || 'Transaction'} transaction`;
+            }
             formattedAmount = item.currency === 'NGN' 
               ? `₦${new Intl.NumberFormat('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`
               : `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.amount)}`;
@@ -364,24 +522,88 @@ export default function HomeScreen() {
 
           // Determine route based on transaction type - always return a valid detail page route
           // NEVER return transaction history routes - only detail pages
+          // According to TRANSACTION_DETAIL_ROUTES.md:
+          // - Crypto transactions come from /api/v2/crypto/transactions and use transactionId
+          // - Wallet transactions come from /api/v2/wallets/transactions and use id (UUID)
+          // - Only route to crypto pages if item.isCrypto === true (from crypto API)
           const getTransactionRoute = (): string => {
+            // Only route to crypto detail pages if this is actually a crypto transaction
+            // (i.e., it came from the crypto transactions API, not wallet transactions API)
             if (item.isCrypto) {
-              // For crypto transactions, route to appropriate detail screen
-              const transactionType = item.type || item.transactionType;
-              if (transactionType === 'BUY') return '/cryptobought';
-              if (transactionType === 'SELL') return '/cryptosold';
-              if (transactionType === 'SWAP') return '/swapsuccess';
+              // For crypto transactions, route to appropriate detail screen based on transactionType
+              const transactionType = item.transactionType || item.type || '';
+              const normalizedType = transactionType.toUpperCase();
+              
+              if (normalizedType === 'BUY' || normalizedType.includes('BUY')) {
+                return '/cryptobought';
+              }
+              if (normalizedType === 'SELL' || normalizedType.includes('SELL')) {
+                return '/cryptosold';
+              }
+              if (normalizedType === 'SWAP' || normalizedType.includes('SWAP')) {
+                return '/swapsuccess';
+              }
+              if (normalizedType === 'SEND' || normalizedType.includes('SEND')) {
+                return '/cryptosold'; // SEND uses cryptosold route
+              }
+              if (normalizedType === 'RECEIVE' || normalizedType.includes('RECEIVE')) {
+                return '/cryptobought'; // RECEIVE uses cryptobought route
+              }
               return '/cryptobought'; // Default fallback for crypto
             }
-            // For non-crypto transactions, determine route based on type
-            if (item.type === 'giftcard') return '/giftcardsold';
-            if (item.type === 'bill') return '/billpayments';
-            return '/giftcardsold'; // Default for other transaction types
+            
+            // For gift card orders (from /api/v2/giftcards/orders)
+            if (item.isGiftCard) return '/giftcardsold';
+            
+            // For bill payment transactions (from /api/v2/bill-payments/history)
+            if (item.isBillPayment) return '/giftcardsold'; // TODO: Update when bill payment detail page exists
+            
+            // For wallet transactions (from /api/v2/wallets/transactions)
+            // Valid types: DEPOSIT, WITHDRAW, TRANSFER, BILL_PAYMENT
+            // Note: Even if type contains "CRYPTO", it's still a wallet transaction and uses UUID id
+            const txType = (item.type || '').toUpperCase();
+            if (txType === 'DEPOSIT') return '/giftcardsold'; // TODO: Update when deposit detail page exists
+            if (txType === 'WITHDRAW') return '/giftcardsold'; // TODO: Update when withdraw detail page exists
+            if (txType === 'TRANSFER') return '/giftcardsold'; // TODO: Update when transfer detail page exists
+            if (txType === 'BILL_PAYMENT') return '/giftcardsold'; // TODO: Update when bill payment detail page exists
+            // For any other wallet transaction type (including CRYPTO_SELL, CRYPTO_BUY, etc.)
+            return '/giftcardsold'; // Default for wallet transactions
             // Note: Never return '/transactions' or any history page route
           };
 
           const transactionRoute = getTransactionRoute();
-          const transactionId = itemId; // Use the validated itemId from above
+          // Use the extracted itemId as the transaction ID for navigation
+          // This is already correctly set based on transaction type above
+          const transactionId = itemId;
+          
+          // Determine transaction type for routing parameter
+          // This helps the detail page identify what type of transaction it is
+          let transactionTypeParam = '';
+          if (item.isCrypto) {
+            // For crypto transactions, use the transactionType field
+            const txType = (item.transactionType || item.type || '').toUpperCase();
+            if (txType === 'BUY' || txType.includes('BUY')) {
+              transactionTypeParam = 'BUY';
+            } else if (txType === 'SELL' || txType.includes('SELL')) {
+              transactionTypeParam = 'SELL';
+            } else if (txType === 'SWAP' || txType.includes('SWAP')) {
+              transactionTypeParam = 'SWAP';
+            } else if (txType === 'SEND' || txType.includes('SEND')) {
+              transactionTypeParam = 'SEND';
+            } else if (txType === 'RECEIVE' || txType.includes('RECEIVE')) {
+              transactionTypeParam = 'RECEIVE';
+            } else {
+              transactionTypeParam = txType || 'CRYPTO';
+            }
+          } else if (item.isGiftCard) {
+            transactionTypeParam = 'GIFT_CARD';
+          } else if (item.isBillPayment) {
+            transactionTypeParam = 'BILL_PAYMENT';
+          } else {
+            // For wallet transactions, use the type field as-is (DEPOSIT, WITHDRAW, TRANSFER, BILL_PAYMENT, CRYPTO_SELL, etc.)
+            // Even if it's CRYPTO_SELL, it's still a wallet transaction and should use UUID id, not transactionId
+            transactionTypeParam = (item.type || 'WALLET').toUpperCase();
+          }
 
           // Ensure we always have a valid route and transaction ID
           if (!transactionRoute) {
@@ -408,6 +630,10 @@ export default function HomeScreen() {
             return null;
           }
 
+          // Build route with transaction ID and type
+          // Format: /route?id=transactionId&type=transactionType
+          const routeWithParams = `${transactionRoute}?id=${encodeURIComponent(transactionId)}&type=${encodeURIComponent(transactionTypeParam)}`;
+          
           return (
             <ChatItem
               id={transactionId}
@@ -418,7 +644,7 @@ export default function HomeScreen() {
               productId={transactionId}
               price={formattedAmount}
               status={item.status}
-              route={transactionRoute}
+              route={routeWithParams}
             />
           );
         }}
@@ -433,7 +659,7 @@ export default function HomeScreen() {
           />
         }
         ListEmptyComponent={
-          (transactionsLoading || cryptoTransactionsLoading) ? (
+          (giftCardOrdersLoading || billPaymentHistoryLoading || walletTransactionsLoading || cryptoTransactionsLoading) ? (
             <View style={styles.emptyLoadingContainer}>
               <ActivityIndicator size="large" color={COLORS.primary} />
               <Text style={[styles.loadingText, { color: dark ? COLORS.white : COLORS.black }]}>
