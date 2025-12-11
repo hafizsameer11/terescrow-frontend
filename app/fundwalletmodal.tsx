@@ -186,6 +186,9 @@ const FundWalletModal = () => {
         text1: 'Coming Soon',
         text2: 'Card payment will be available soon',
       });
+      // Close the modal automatically
+      setShowPaymentModal(false);
+      router.back();
     }
   };
 

@@ -79,6 +79,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const pickImage = async () => {
+    // Request permissions first
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "We need access to your photos to select images.");
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -227,7 +234,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         <View style={styles.imagePickerContainer}>
           <TouchableOpacity onPress={() => {
             setIsImagePickerOpen(false);
-            loadGalleryImages();
+            pickImage();
           }} style={styles.optionButton}>
             <Text style={styles.optionText}>Pick from Gallery</Text>
           </TouchableOpacity>

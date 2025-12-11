@@ -480,9 +480,25 @@ const SellCrypto = () => {
 
               {/* Header */}
               <View style={styles.summaryHeader}>
-                <Text style={[styles.summaryHeaderTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-                  Summary
-                </Text>
+                <View style={styles.summaryHeaderContent}>
+                  <Text style={[styles.summaryHeaderTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                    Summary
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowSummaryModal(false)}
+                    style={[
+                      styles.summaryCloseButton,
+                      dark ? { backgroundColor: 'rgba(255, 255, 255, 0.1)' } : { backgroundColor: 'rgba(0, 0, 0, 0.05)' }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.summaryCloseIconText,
+                      { color: dark ? COLORS.white : COLORS.black }
+                    ]}>
+                      ×
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Summary Details */}
@@ -786,11 +802,34 @@ const styles = StyleSheet.create({
   },
   summaryHeader: {
     marginBottom: 24,
+  },
+  summaryHeaderContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   summaryHeaderTitle: {
     fontSize: isTablet ? 18 : 13,
     fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+  },
+  summaryCloseButton: {
+    marginLeft: 'auto',
+    borderRadius: 20,
+    width: isTablet ? 40 : 36,
+    height: isTablet ? 40 : 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  summaryCloseIconText: {
+    fontSize: isTablet ? 32 : 28,
+    fontWeight: '300',
+    lineHeight: isTablet ? 40 : 36,
+    textAlign: 'center',
+    includeFontPadding: false,
+    height: isTablet ? 40 : 36,
   },
   summaryDetailsContainer: {
     marginBottom: 24,

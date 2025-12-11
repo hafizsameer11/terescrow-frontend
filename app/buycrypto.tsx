@@ -164,8 +164,8 @@ const BuyCrypto = () => {
         text1: 'Success',
         text2: 'Cryptocurrency purchased successfully',
       });
-      // Invalidate wallet query to refresh balance
-      router.back();
+      // Navigate to transactions tab
+      router.replace('/(tabs)/transactions' as any);
     },
     onError: (error: any) => {
       console.error('Buy error:', error);
@@ -829,8 +829,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '90%',
+    paddingBottom: 0,
+    maxHeight: '100%',
   },
   dragHandleContainer: {
     alignItems: 'center',

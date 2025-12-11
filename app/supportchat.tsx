@@ -378,15 +378,16 @@ const SupportChat = () => {
                 dark ? { color: COLORS.white } : { color: COLORS.black },
               ]}
             >
-              {chatData?.data?.chat?.subject || 'Customer Support'}
+              {/* {chatData?.data?.chat?.subject || 'Customer Support'} */}
+              {'Customer Support'}
             </Text>
-            <Text style={styles.headerStatus}>
+            {/* <Text style={styles.headerStatus}>
               {chatData?.data?.chat?.status === 'completed' 
                 ? 'Completed' 
                 : chatData?.data?.chat?.status === 'processing'
                 ? 'Processing'
                 : 'Always online'}
-            </Text>
+            </Text> */}
           </View>
         </View>
       </View>

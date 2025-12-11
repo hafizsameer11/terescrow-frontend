@@ -16,7 +16,7 @@ import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/authContext';
 import { getCryptoAssets, ICryptoAsset, getAllCryptoRates, getBuyCurrencies, getSellCurrencies, ICryptoCurrency } from '@/utils/queries/accountQueries';
 import { getImageUrl } from '@/utils/helpers';
@@ -29,7 +29,9 @@ const AllAssets = () => {
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
   const { token } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'Buy' | 'Sell'>('Buy');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Fetch buy currencies - enabled immediately so data is ready
   const {
@@ -112,18 +114,31 @@ const AllAssets = () => {
     }).format(amount);
   };
 
-  // Pull to refresh handler
+  // Pull to refresh handler - social media style
   const onRefresh = useCallback(async () => {
+    setRefreshing(true);
     try {
+      // Refetch currencies based on active tab
+      const promises = [];
       if (activeTab === 'Buy') {
-        await refetchBuy();
+        promises.push(refetchBuy());
       } else {
-        await refetchSell();
+        promises.push(refetchSell());
       }
+      // Also refresh assets and rates for balance display
+      queryClient.invalidateQueries({ queryKey: ['cryptoAssets'] });
+      queryClient.invalidateQueries({ queryKey: ['cryptoRates'] });
+      
+      await Promise.all(promises);
     } catch (error) {
       console.log('Error refreshing currencies:', error);
+    } finally {
+      // Add a small delay to show the refresh animation
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 500);
     }
-  }, [activeTab, refetchBuy, refetchSell]);
+  }, [activeTab, refetchBuy, refetchSell, queryClient]);
 
   const handleAssetPress = (currency: ICryptoCurrency) => {
     if (activeTab === 'Buy') {
@@ -383,10 +398,11 @@ const AllAssets = () => {
             contentContainerStyle={styles.listContainer}
             refreshControl={
               <RefreshControl
-                refreshing={isFetching}
+                refreshing={refreshing || isFetching}
                 onRefresh={onRefresh}
                 tintColor={COLORS.primary}
                 colors={[COLORS.primary]}
+                progressViewOffset={0}
               />
             }
             ListEmptyComponent={
