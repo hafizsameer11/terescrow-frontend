@@ -63,7 +63,17 @@ const GiftCardDetails = () => {
   const selectedCountryName = params.selectedCountryName || null;
   const selectedCategory = params.selectedCategory || null;
   const selectedCategoryName = params.selectedCategoryName || null;
-  const [amountUSD, setAmountUSD] = useState('');
+  
+  // Determine if product has fixed value or is variable
+  const fixedValue = params.fixedValue ? parseFloat(params.fixedValue) : null;
+  const minValue = params.minValue ? parseFloat(params.minValue) : null;
+  const maxValue = params.maxValue ? parseFloat(params.maxValue) : null;
+  const isVariableDenomination = params.isVariableDenomination === 'true' || params.isVariableDenomination === true;
+  const hasFixedPrice = fixedValue !== null && fixedValue > 0;
+  
+  // Initialize amount with fixed value if available, otherwise empty
+  const [amountUSD, setAmountUSD] = useState(hasFixedPrice ? fixedValue.toString() : '');
+  const [amountError, setAmountError] = useState('');
 
   // Fetch product details if productId is available and valid
   const {
@@ -83,6 +93,13 @@ const GiftCardDetails = () => {
   const cardImage = productData?.data?.imageUrl || imageUrl || images.nikeCard;
   const displayName = productData?.data?.productName || productName;
 
+  // Update amount when fixed value is available
+  useEffect(() => {
+    if (hasFixedPrice && fixedValue) {
+      setAmountUSD(fixedValue.toString());
+    }
+  }, [hasFixedPrice, fixedValue]);
+
   const handleDecreaseQuantity = () => {
     if (quantity > 1) {
       setQuantity(quantity - 1);
@@ -96,14 +113,42 @@ const GiftCardDetails = () => {
   // Country and gift card type selection removed - values come from previous screen
 
   const handleProceed = () => {
-    if (!amountUSD || !isValidProductId) {
+    if (!isValidProductId) {
       return;
     }
 
-    // Validate amount
-    const unitPrice = parseFloat(amountUSD);
-    if (isNaN(unitPrice) || unitPrice <= 0) {
-      return;
+    let unitPrice: number;
+
+    // If fixed price, use the fixed value
+    if (hasFixedPrice && fixedValue) {
+      unitPrice = fixedValue;
+    } else {
+      // For variable prices, validate the entered amount
+      if (!amountUSD || amountUSD.trim() === '') {
+        setAmountError('Please enter an amount');
+        return;
+      }
+
+      const enteredPrice = parseFloat(amountUSD);
+      if (isNaN(enteredPrice) || enteredPrice <= 0) {
+        setAmountError('Please enter a valid amount');
+        return;
+      }
+
+      // Validate amount is within range for variable denomination
+      if (isVariableDenomination) {
+        if (minValue !== null && enteredPrice < minValue) {
+          setAmountError(`Amount must be at least $${minValue}`);
+          return;
+        }
+        if (maxValue !== null && enteredPrice > maxValue) {
+          setAmountError(`Amount must not exceed $${maxValue}`);
+          return;
+        }
+      }
+
+      unitPrice = enteredPrice;
+      setAmountError(''); // Clear any previous errors
     }
 
     // Navigate to PIN modal for purchase
@@ -219,11 +264,11 @@ const GiftCardDetails = () => {
           </View>
         )}
 
-        {/* Display Product Price Range */}
+        {/* Display Product Price Range or Fixed Price */}
         {params.priceRange && (
           <View style={[styles.infoSection, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
             <Text style={[styles.infoLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-              Price Range
+              {hasFixedPrice ? 'Price' : 'Price Range'}
             </Text>
             <Text style={[styles.infoValue, dark ? { color: COLORS.primary } : { color: COLORS.primary }, styles.priceValue]}>
               {params.priceRange}
@@ -231,18 +276,51 @@ const GiftCardDetails = () => {
           </View>
         )}
 
-        {/* Enter amount in USD */}
-        <View style={styles.inputSection}>
-          <Input
-            label=""
-            keyboardType="decimal-pad"
-            value={amountUSD}
-            onChangeText={setAmountUSD}
-            id="amountUSD"
-            variant="signin"
-            placeholder="Enter amount in USD"
-          />
-        </View>
+        {/* Enter amount in USD - Only show for variable denomination products */}
+        {!hasFixedPrice && (
+          <View style={styles.inputSection}>
+            <Input
+              label="Enter amount in USD"
+              keyboardType="decimal-pad"
+              value={amountUSD}
+              onChangeText={(text) => {
+                setAmountUSD(text);
+                // Clear error when user starts typing
+                if (amountError) {
+                  setAmountError('');
+                }
+                // Validate in real-time for variable prices
+                if (text && text.trim() !== '') {
+                  const enteredPrice = parseFloat(text);
+                  if (!isNaN(enteredPrice) && enteredPrice > 0) {
+                    if (isVariableDenomination) {
+                      if (minValue !== null && enteredPrice < minValue) {
+                        setAmountError(`Amount must be at least $${minValue}`);
+                      } else if (maxValue !== null && enteredPrice > maxValue) {
+                        setAmountError(`Amount must not exceed $${maxValue}`);
+                      } else {
+                        setAmountError('');
+                      }
+                    }
+                  }
+                }
+              }}
+              id="amountUSD"
+              variant="signin"
+              placeholder={`Enter amount${minValue && maxValue ? ` ($${minValue}-$${maxValue})` : minValue ? ` (min: $${minValue})` : ''}`}
+            />
+            {amountError ? (
+              <Text style={[styles.errorText, { color: '#FF0000', marginTop: 4, fontSize: 12, paddingLeft: 4 }]}>
+                {amountError}
+              </Text>
+            ) : null}
+            {isVariableDenomination && minValue && maxValue && (
+              <Text style={[styles.helperText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }, { marginTop: 4, fontSize: 12, paddingLeft: 4 }]}>
+                Valid range: ${minValue} - ${maxValue}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Redemption Instructions */}
         {productData?.data?.redemptionInstructions?.concise && (
@@ -260,9 +338,13 @@ const GiftCardDetails = () => {
 
       {/* Proceed Button */}
       <TouchableOpacity
-        style={[styles.proceedButton, !amountUSD && styles.proceedButtonDisabled]}
+        style={[
+          styles.proceedButton, 
+          (!hasFixedPrice && !amountUSD) && styles.proceedButtonDisabled,
+          amountError && styles.proceedButtonDisabled
+        ]}
         onPress={handleProceed}
-        disabled={!amountUSD}
+        disabled={(!hasFixedPrice && !amountUSD) || !!amountError}
       >
         <Text style={styles.proceedButtonText}>Proceed</Text>
       </TouchableOpacity>
@@ -448,5 +530,13 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     lineHeight: 20,
     color: COLORS.greyscale600,
+  },
+  errorText: {
+    fontSize: isTablet ? 12 : 10,
+    fontWeight: '400',
+  },
+  helperText: {
+    fontSize: isTablet ? 12 : 10,
+    fontWeight: '400',
   },
 });

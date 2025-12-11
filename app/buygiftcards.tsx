@@ -181,15 +181,32 @@ const BuyGiftCards = () => {
 
   // Format product value range for display
   const getProductValueRange = (product: IGiftCardProduct): string => {
+    // For fixed value products
     if (product.fixedValue) {
       return `$${product.fixedValue}`;
     }
+    
+    // For variable denomination products (RANGE type) - show min-max range
+    if (product.isVariableDenomination && product.minValue && product.maxValue) {
+      return `$${product.minValue}-$${product.maxValue}`;
+    }
+    
+    // For variable denomination with only min value
+    if (product.isVariableDenomination && product.minValue) {
+      return `From $${product.minValue}`;
+    }
+    
+    // For products with min and max (even if not explicitly variable)
     if (product.minValue && product.maxValue) {
       return `$${product.minValue}-$${product.maxValue}`;
     }
+    
+    // For products with only min value
     if (product.minValue) {
       return `From $${product.minValue}`;
     }
+    
+    // Fallback for variable products without specific values
     return 'Variable';
   };
 
