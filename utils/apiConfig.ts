@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
   WALLETS: {
     GetWalletOverview: API_DOMAIN + '/v2/wallets/overview',
     GetWalletTransactions: API_DOMAIN + '/v2/wallets/transactions',
+    GetWalletTransactionById: API_DOMAIN + '/v2/wallets/transactions', // + /{transactionId}
   },
   KYC: {
     GetKycStatus: API_DOMAIN + '/v2/kyc/status',

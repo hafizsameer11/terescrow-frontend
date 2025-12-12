@@ -196,6 +196,19 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ transaction }) =>
         {transaction.currency && !transaction.cryptocurrencyType && renderDetailRow("Currency", transaction.currency)}
         {transaction.rate && renderDetailRow("Rate", transaction.rate)}
         {transaction.txHash && renderDetailRow("Transaction Hash", transaction.txHash)}
+        {(transaction as any).description && renderDetailRow("Description", (transaction as any).description)}
+        {(transaction as any).fees && parseFloat((transaction as any).fees) > 0 && renderDetailRow("Fees", `${(transaction as any).currency || ''} ${(transaction as any).fees}`)}
+        {(transaction as any).balanceBefore && renderDetailRow("Balance Before", `${(transaction as any).currency || ''} ${(transaction as any).balanceBefore}`)}
+        {(transaction as any).balanceAfter && renderDetailRow("Balance After", `${(transaction as any).currency || ''} ${(transaction as any).balanceAfter}`)}
+        {(transaction as any).payeeName && renderDetailRow("Payee Name", (transaction as any).payeeName)}
+        {(transaction as any).payeeBankCode && renderDetailRow("Bank Code", (transaction as any).payeeBankCode)}
+        {(transaction as any).payeeBankAccNo && renderDetailRow("Account Number", (transaction as any).payeeBankAccNo)}
+        {(transaction as any).payeePhoneNo && renderDetailRow("Phone Number", (transaction as any).payeePhoneNo)}
+        {(transaction as any).billType && renderDetailRow("Bill Type", (transaction as any).billType)}
+        {(transaction as any).billProvider && renderDetailRow("Bill Provider", (transaction as any).billProvider)}
+        {(transaction as any).billAccount && renderDetailRow("Bill Account", (transaction as any).billAccount)}
+        {(transaction as any).billReference && renderDetailRow("Bill Reference", (transaction as any).billReference)}
+        {(transaction as any).errorMessage && renderDetailRow("Error Message", (transaction as any).errorMessage)}
       </View>
 
       {/* Footer Section */}

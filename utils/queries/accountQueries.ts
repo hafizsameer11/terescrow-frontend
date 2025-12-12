@@ -124,13 +124,43 @@ export const getWalletTransactions = async (
 };
 
 export interface IWalletTransaction {
-  id: number;
-  amount: number;
-  currency: string;
+  id: string; // UUID format
+  userId: number;
+  walletId: string;
   type: string;
   status: string;
+  currency: string;
+  amount: string;
+  fees: string;
+  totalAmount: string;
+  balanceBefore: string;
+  balanceAfter: string;
+  palmpayOrderId?: string | null;
+  palmpayOrderNo?: string | null;
+  palmpayStatus?: string | null;
+  palmpaySessionId?: string | null;
+  checkoutUrl?: string | null;
+  redirectUrl?: string | null;
+  payeeName?: string | null;
+  payeeBankCode?: string | null;
+  payeeBankAccNo?: string | null;
+  payeePhoneNo?: string | null;
+  billType?: string | null;
+  billProvider?: string | null;
+  billAccount?: string | null;
+  billAmount?: string | null;
+  billReference?: string | null;
+  description?: string | null;
+  metadata?: any | null;
+  errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string | null;
+  wallet?: {
+    id: string;
+    currency: string;
+  };
+  billPayment?: any | null;
   [key: string]: any; // Allow for additional fields
 }
 
@@ -147,6 +177,23 @@ export interface IWalletTransactionsResponse {
   };
   message: string;
 }
+
+export interface IWalletTransactionDetailResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    transaction: IWalletTransaction;
+  };
+}
+
+// Get wallet transaction by ID
+export const getWalletTransactionById = async (
+  token: string,
+  transactionId: string
+): Promise<IWalletTransactionDetailResponse> => {
+  const url = `${API_ENDPOINTS.WALLETS.GetWalletTransactionById}/${transactionId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
 
 export const getKycStatus = async (
   token: string
