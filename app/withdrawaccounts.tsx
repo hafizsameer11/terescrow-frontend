@@ -17,50 +17,78 @@ import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getBankAccounts, IBankAccount } from '@/utils/queries/accountQueries';
+import { setDefaultBankAccount, deleteBankAccount } from '@/utils/mutations/authMutations';
+import { showTopToast } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
-
-// Dummy accounts data
-const accountsData = [
-    {
-        id: '1',
-        accountName: 'Qmardeen Malik',
-        accountNumber: '1239584226',
-        bankName: 'Access Bank',
-        isDefault: true,
-    },
-    {
-        id: '2',
-        accountName: 'Qmardeen Malik',
-        accountNumber: '1239584226',
-        bankName: 'Access Bank',
-        isDefault: false,
-    },
-    {
-        id: '3',
-        accountName: 'Qmardeen Malik',
-        accountNumber: '1239584226',
-        bankName: 'Access Bank',
-        isDefault: false,
-    },
-];
 
 const WithdrawAccounts = () => {
     const { dark } = useTheme();
     const router = useRouter();
     const { navigate } = useNavigation<NavigationProp<any>>();
-    const [accounts, setAccounts] = useState(accountsData);
-    const [defaultAccountId, setDefaultAccountId] = useState('1');
+    const { token } = useAuth();
+    const queryClient = useQueryClient();
     const [refreshing, setRefreshing] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSetDefault = (accountId: string) => {
-        setDefaultAccountId(accountId);
-        setAccounts(accounts.map(acc => ({
-            ...acc,
-            isDefault: acc.id === accountId,
-        })));
+    // Fetch bank accounts
+    const {
+        data: bankAccountsData,
+        isLoading: isLoadingAccounts,
+        refetch: refetchAccounts,
+    } = useQuery({
+        queryKey: ['bankAccounts'],
+        queryFn: () => getBankAccounts(token),
+        enabled: !!token,
+    });
+
+    const accounts: IBankAccount[] = bankAccountsData?.data?.bankAccounts || [];
+
+    // Set default account mutation
+    const { mutate: setDefaultAccount, isPending: isSettingDefault } = useMutation({
+        mutationFn: (accountId: number) => setDefaultBankAccount(token, accountId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            showTopToast({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Default account updated successfully',
+            });
+        },
+        onError: (error: any) => {
+            showTopToast({
+                type: 'error',
+                text1: 'Error',
+                text2: error?.message || 'Failed to set default account',
+            });
+        },
+    });
+
+    // Delete account mutation
+    const { mutate: deleteAccount, isPending: isDeleting } = useMutation({
+        mutationFn: (accountId: number) => deleteBankAccount(token, accountId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            showTopToast({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Account deleted successfully',
+            });
+        },
+        onError: (error: any) => {
+            showTopToast({
+                type: 'error',
+                text1: 'Error',
+                text2: error?.message || 'Failed to delete account',
+            });
+        },
+    });
+
+    const handleSetDefault = (accountId: number) => {
+        setDefaultAccount(accountId);
     };
 
     const handleCopyAccountNumber = async (accountNumber: string) => {
@@ -68,18 +96,18 @@ const WithdrawAccounts = () => {
         Alert.alert('Copied', 'Account number copied to clipboard');
     };
 
-    const handleEdit = (accountId: string) => {
-        const account = accounts.find(acc => acc.id === accountId);
+    const handleEdit = (account: IBankAccount) => {
         navigate('addwithdrawaccount', {
-            accountId: accountId,
-            accountName: account?.accountName,
-            accountNumber: account?.accountNumber,
-            bankName: account?.bankName,
+            accountId: account.id.toString(),
+            accountName: account.accountName,
+            accountNumber: account.accountNumber,
+            bankName: account.bankName,
+            bankCode: account.bankCode,
             isEdit: true,
         });
     };
 
-    const handleDelete = (accountId: string) => {
+    const handleDelete = (account: IBankAccount) => {
         Alert.alert(
             'Delete Account',
             'Are you sure you want to delete this account?',
@@ -89,19 +117,7 @@ const WithdrawAccounts = () => {
                     text: 'Delete',
                     style: 'destructive',
                     onPress: () => {
-                        if (accounts.find(acc => acc.id === accountId)?.isDefault && accounts.length > 1) {
-                            // If deleting default, set first remaining as default
-                            const remaining = accounts.filter(acc => acc.id !== accountId);
-                            if (remaining.length > 0) {
-                                setDefaultAccountId(remaining[0].id);
-                                setAccounts(remaining.map((acc, index) => ({
-                                    ...acc,
-                                    isDefault: index === 0,
-                                })));
-                            }
-                        } else {
-                            setAccounts(accounts.filter(acc => acc.id !== accountId));
-                        }
+                        deleteAccount(account.id);
                     },
                 },
             ]
@@ -116,17 +132,13 @@ const WithdrawAccounts = () => {
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         try {
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            // In a real app, you would refetch accounts data here
-            // For now, we'll just refresh the state
-            setAccounts(accountsData);
+            await refetchAccounts();
         } catch (error) {
             console.log("Error refreshing accounts:", error);
         } finally {
             setRefreshing(false);
         }
-    }, []);
+    }, [refetchAccounts]);
 
     return (
         <SafeAreaView
@@ -150,11 +162,17 @@ const WithdrawAccounts = () => {
                 <View style={styles.headerRight} />
             </View>
 
-            {isLoading ? (
+            {isLoadingAccounts ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
                     <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
                         Loading accounts...
+                    </Text>
+                </View>
+            ) : accounts.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                    <Text style={[styles.emptyText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                        No bank accounts found. Add your first account to get started.
                     </Text>
                 </View>
             ) : (
@@ -176,6 +194,7 @@ const WithdrawAccounts = () => {
                         <TouchableOpacity
                             style={styles.radioButton}
                             onPress={() => handleSetDefault(account.id)}
+                            disabled={isSettingDefault || account.isDefault}
                         >
                             <View
                                 style={[
@@ -249,8 +268,9 @@ const WithdrawAccounts = () => {
                                 {/* Action Buttons */}
                                 <View style={styles.actionButtons}>
                                     <TouchableOpacity
-                                        onPress={() => handleEdit(account.id)}
+                                        onPress={() => handleEdit(account)}
                                         style={styles.actionButton}
+                                        disabled={isDeleting}
                                     >
                                         <Image
                                             source={images.vector47}
@@ -259,14 +279,19 @@ const WithdrawAccounts = () => {
                                         />
                                     </TouchableOpacity>
                                     <TouchableOpacity
-                                        onPress={() => handleDelete(account.id)}
+                                        onPress={() => handleDelete(account)}
                                         style={styles.actionButton}
+                                        disabled={isDeleting}
                                     >
-                                        <Image
-                                            source={images.vector48}
-                                            style={styles.actionIcon}
-                                            contentFit="contain"
-                                        />
+                                        {isDeleting ? (
+                                            <ActivityIndicator size="small" color={COLORS.primary} />
+                                        ) : (
+                                            <Image
+                                                source={images.vector48}
+                                                style={styles.actionIcon}
+                                                contentFit="contain"
+                                            />
+                                        )}
                                     </TouchableOpacity>
                                     {account.isDefault && (
                                         <View style={styles.defaultBadge}>
@@ -436,6 +461,18 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 12,
         fontSize: 14,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: 16,
+    },
+    emptyText: {
+        fontSize: 14,
+        fontWeight: '500',
+        textAlign: 'center',
     },
 });
 

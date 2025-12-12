@@ -132,4 +132,12 @@ export const API_ENDPOINTS = {
     GetTransactionById: API_DOMAIN + '/v2/crypto/transactions', // + /{transactionId}
     GetAllCryptoRates: API_DOMAIN + '/admin/crypto/rates',
   },
+  BANK_ACCOUNTS: {
+    GetAll: API_DOMAIN + '/v2/bank-accounts',
+    GetById: API_DOMAIN + '/v2/bank-accounts', // + /{id}
+    Create: API_DOMAIN + '/v2/bank-accounts',
+    Update: API_DOMAIN + '/v2/bank-accounts', // + /{id}
+    SetDefault: API_DOMAIN + '/v2/bank-accounts', // + /{id}/set-default
+    Delete: API_DOMAIN + '/v2/bank-accounts', // + /{id}
+  },
 };

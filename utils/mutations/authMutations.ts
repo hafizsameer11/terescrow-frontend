@@ -570,6 +570,77 @@ export const sellCrypto = async (
   return await apiCall(API_ENDPOINTS.CRYPTO.ExecuteSell, 'POST', data, token);
 };
 
+// Bank Accounts Mutations
+export interface ICreateBankAccountRequest {
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+  bankCode: string;
+  isDefault?: boolean;
+}
+
+export interface IUpdateBankAccountRequest {
+  accountName?: string;
+  accountNumber?: string;
+  bankName?: string;
+  bankCode?: string;
+  isDefault?: boolean;
+}
+
+export interface IBankAccountResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    bankAccount: {
+      id: number;
+      userId: number;
+      accountName: string;
+      accountNumber: string;
+      bankName: string;
+      bankCode: string;
+      isDefault: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
+}
+
+// Create bank account
+export const createBankAccount = async (
+  token: string,
+  data: ICreateBankAccountRequest
+): Promise<IBankAccountResponse> => {
+  return await apiCall(API_ENDPOINTS.BANK_ACCOUNTS.Create, 'POST', data, token);
+};
+
+// Update bank account
+export const updateBankAccount = async (
+  token: string,
+  accountId: number,
+  data: IUpdateBankAccountRequest
+): Promise<IBankAccountResponse> => {
+  const url = `${API_ENDPOINTS.BANK_ACCOUNTS.Update}/${accountId}`;
+  return await apiCall(url, 'PUT', data, token);
+};
+
+// Set bank account as default
+export const setDefaultBankAccount = async (
+  token: string,
+  accountId: number
+): Promise<IBankAccountResponse> => {
+  const url = `${API_ENDPOINTS.BANK_ACCOUNTS.SetDefault}/${accountId}/set-default`;
+  return await apiCall(url, 'PUT', undefined, token);
+};
+
+// Delete bank account
+export const deleteBankAccount = async (
+  token: string,
+  accountId: number
+): Promise<ApiResponse> => {
+  const url = `${API_ENDPOINTS.BANK_ACCOUNTS.Delete}/${accountId}`;
+  return await apiCall(url, 'DELETE', undefined, token);
+};
+
 // Crypto Swap Mutation
 export interface ISwapCryptoRequest {
   fromAmount: number;

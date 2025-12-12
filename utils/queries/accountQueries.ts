@@ -1095,3 +1095,48 @@ export const getBillPaymentById = async (
   const url = `${API_ENDPOINTS.BILL_PAYMENTS.GetOrderStatus}?billPaymentId=${billPaymentId}`;
   return await apiCall(url, 'GET', undefined, token);
 };
+
+// Bank Accounts Interfaces and Queries
+export interface IBankAccount {
+  id: number;
+  userId: number;
+  accountName: string;
+  accountNumber: string;
+  bankName: string;
+  bankCode: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IBankAccountsResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    bankAccounts: IBankAccount[];
+  };
+}
+
+export interface IBankAccountResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    bankAccount: IBankAccount;
+  };
+}
+
+// Get all bank accounts
+export const getBankAccounts = async (
+  token: string
+): Promise<IBankAccountsResponse> => {
+  return await apiCall(API_ENDPOINTS.BANK_ACCOUNTS.GetAll, 'GET', undefined, token);
+};
+
+// Get bank account by ID
+export const getBankAccountById = async (
+  token: string,
+  accountId: number
+): Promise<IBankAccountResponse> => {
+  const url = `${API_ENDPOINTS.BANK_ACCOUNTS.GetById}/${accountId}`;
+  return await apiCall(url, 'GET', undefined, token);
+};
