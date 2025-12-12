@@ -1140,3 +1140,44 @@ export const getBankAccountById = async (
   const url = `${API_ENDPOINTS.BANK_ACCOUNTS.GetById}/${accountId}`;
   return await apiCall(url, 'GET', undefined, token);
 };
+
+// Referrals Interfaces and Queries
+export interface IReferralCodeResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    referralCode: string;
+  };
+}
+
+export interface IReferredUser {
+  id: number;
+  firstname: string;
+  lastname: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface IReferralStatsResponse extends ApiResponse {
+  status: string;
+  message: string;
+  data: {
+    referralCode: string;
+    totalReferrals: number;
+    referredUsers: IReferredUser[];
+  };
+}
+
+// Get referral code
+export const getReferralCode = async (
+  token: string
+): Promise<IReferralCodeResponse> => {
+  return await apiCall(API_ENDPOINTS.REFERRALS.GetCode, 'GET', undefined, token);
+};
+
+// Get referral statistics
+export const getReferralStats = async (
+  token: string
+): Promise<IReferralStatsResponse> => {
+  return await apiCall(API_ENDPOINTS.REFERRALS.GetStats, 'GET', undefined, token);
+};

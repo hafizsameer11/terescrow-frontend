@@ -18,6 +18,9 @@ import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/authContext';
+import { getReferralStats } from '@/utils/queries/accountQueries';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -26,15 +29,26 @@ const Referrals = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { navigate } = useNavigation<NavigationProp<any>>();
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<'Rewards' | 'FAQs'>('Rewards');
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const referralCode = 'DEMSCR3ATIONS';
-  const earningBalance = '$0.00';
-  const numberOfReferrals = 14;
+  // Fetch referral statistics
+  const {
+    data: referralStatsData,
+    isLoading: isLoadingStats,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ['referralStats'],
+    queryFn: () => getReferralStats(token),
+    enabled: !!token,
+  });
+
+  const referralCode = referralStatsData?.data?.referralCode || '';
+  const numberOfReferrals = referralStatsData?.data?.totalReferrals || 0;
+  const earningBalance = '$0.00'; // This might come from a different endpoint or calculation
 
   const handleCopyCode = async () => {
     await Clipboard.setStringAsync(referralCode);
@@ -50,16 +64,13 @@ const Referrals = () => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In a real app, you would refetch referral data here
-      // For now, we'll just refresh the state
+      await refetchStats();
     } catch (error) {
       console.log("Error refreshing referral data:", error);
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [refetchStats]);
 
   const faqs = [
     {
@@ -155,7 +166,7 @@ const Referrals = () => {
         </TouchableOpacity>
       </View>
 
-      {isLoading ? (
+      {isLoadingStats ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
@@ -230,14 +241,14 @@ const Referrals = () => {
               </View>
             </ImageBackground>
 
-            {/* Referral Code Section */}
+              {/* Referral Code Section */}
             <View style={styles.referralCodeSection}>
               <Text style={[styles.referralCodeLabel, dark ? { color: COLORS.greyscale600 } : { color: COLORS.greyscale600 }]}>
                 Your referral code
               </Text>
               <View style={[styles.referralCodeContainer, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' }]}>
                 <Text style={[styles.referralCode, dark ? { color: COLORS.black } : { color: COLORS.black }]}>
-                  {referralCode}
+                  {referralCode || 'Loading...'}
                 </Text>
                 <View style={styles.referralCodeActions}>
                   <TouchableOpacity onPress={handleCopyCode} style={styles.codeActionButton}>

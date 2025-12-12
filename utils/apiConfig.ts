@@ -140,4 +140,8 @@ export const API_ENDPOINTS = {
     SetDefault: API_DOMAIN + '/v2/bank-accounts', // + /{id}/set-default
     Delete: API_DOMAIN + '/v2/bank-accounts', // + /{id}
   },
+  REFERRALS: {
+    GetCode: API_DOMAIN + '/v2/referrals/code',
+    GetStats: API_DOMAIN + '/v2/referrals/stats',
+  },
 };
