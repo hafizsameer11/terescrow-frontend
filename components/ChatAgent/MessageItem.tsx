@@ -26,11 +26,14 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
         item.isUser ? styles.userMessage : styles.otherMessage,
       ]}
     >
-     {item.image && (
+     {(item.image || item.imageUrl) && (
         <TouchableOpacity
-          onPress={() =>
-            setImagePreview(`${API_BASE_URL}/uploads/${item.image}` as string)
-          }
+          onPress={() => {
+            const imageUri = item.imageUrl || (item.image ? `${API_BASE_URL}/uploads/${item.image}` : '');
+            if (imageUri) {
+              setImagePreview(imageUri);
+            }
+          }}
           style={[
             styles.imageContainer,
             item.isUser
@@ -39,12 +42,14 @@ const MessageItem = ({ item, setImagePreview }: PropTypes) => {
           ]}
         >
           <Image
-            source={{ uri: `${API_BASE_URL}/uploads/${item.image}` }}
+            source={{ 
+              uri: item.imageUrl || (item.image ? `${API_BASE_URL}/uploads/${item.image}` : '')
+            }}
             style={styles.dynamicImage}
           />
         </TouchableOpacity>
       )}
-      {!item.image && (
+      {!item.image && !item.imageUrl && (
        <TouchableOpacity onLongPress={() => copyToClipboard(item.text)} delayLongPress={300}>
        <Text
          style={[

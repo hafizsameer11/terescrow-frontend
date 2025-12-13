@@ -7,6 +7,7 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -25,6 +26,7 @@ const Tier3Verification = () => {
   const { goBack } = useNavigation();
   const { token } = useAuth();
   const [proofOfAddressUri, setProofOfAddressUri] = useState<string | null>(null);
+  const [showTier4Modal, setShowTier4Modal] = useState(false);
 
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
@@ -41,7 +43,8 @@ const Tier3Verification = () => {
         text1: 'Success',
         text2: 'Tier 3 verification submitted successfully.',
       });
-      router.push('/updatekyclevel');
+      // Show modal to navigate to Tier 4
+      setShowTier4Modal(true);
     },
     onError: (error: any) => {
       showTopToast({
@@ -172,6 +175,45 @@ const Tier3Verification = () => {
           disabled={isSubmitting}
         />
       </View>
+
+      {/* Tier 4 Navigation Modal */}
+      <Modal
+        visible={showTier4Modal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTier4Modal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+            <Text style={[styles.modalTitle, { color: themeStyles.normalText }]}>
+              Tier 3 Verification Complete!
+            </Text>
+            <Text style={[styles.modalMessage, { color: themeStyles.normalText }]}>
+              Your Tier 3 verification has been submitted successfully. Would you like to proceed to Tier 4 verification?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setShowTier4Modal(false);
+                  router.push('/updatekyclevel');
+                }}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Later</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={() => {
+                  setShowTier4Modal(false);
+                  router.push('/tier4verification');
+                }}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Go to Tier 4</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -249,6 +291,62 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     paddingTop: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonPrimary: {
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+  },
+  modalButtonPrimaryText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonSecondaryText: {
+    color: COLORS.gray,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

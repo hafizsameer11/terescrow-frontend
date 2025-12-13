@@ -6,6 +6,7 @@ import {
   View,
   TouchableOpacity,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { router, useRouter } from 'expo-router';
 import { useSearchParams } from 'expo-router/build/hooks';
@@ -32,6 +33,8 @@ const SetPinScreen: React.FC = () => {
   const { navigate, reset } = useNavigation<NavigationProp<any>>();
   const [pin, setPin] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [enteredPinValue, setEnteredPinValue] = useState<string>('');
   const { dark } = useTheme();
   const { token: authToken, userData, logout } = useAuth();
 
@@ -141,6 +144,20 @@ const SetPinScreen: React.FC = () => {
 
   const validatePin = () => {
     const pinValue = pin.join('');
+    
+    console.log('validatePin called - title:', title, 'context:', context, 'pinValue:', pinValue);
+    
+    // Handle transactionPin case first - show confirmation modal immediately
+    // Check for "Enter New Pin" (capital N) as passed from profilesecurity.tsx
+    if (title === 'Enter New Pin' && context === 'transactionPin') {
+      console.log('Showing confirmation modal for transactionPin');
+      // Show confirmation modal instead of navigating
+      setEnteredPinValue(pinValue);
+      setShowConfirmModal(true);
+      setPin([]);
+      return;
+    }
+    
     // Removed router.push('/(tabs)') - it was interfering with navigation flow
     if (title === 'Confirm your Pin') {
       const enteredPin = searchParams.get('enteredPin');
@@ -185,6 +202,7 @@ const SetPinScreen: React.FC = () => {
       }
 
       if (context === 'transactionPin') {
+        // This is for the confirmation screen flow (if still used)
         // Call update PIN API
         const userEmail = userData?.email;
         if (!userEmail) {
@@ -239,15 +257,6 @@ const SetPinScreen: React.FC = () => {
           });
           setPin([]);
         }
-
-        if (title === 'Enter new Pin' && context === 'transactionPin') {
-          push({
-            pathname: '/setpinscreen',
-            params: { title: 'Confirm your Pin', enteredPin: pinValue },
-          });
-          setModalVisible(false);
-          setPin([]);
-        }
       })
       .catch((err: { message: string }) => {
         showTopToast({ type: 'error', text1: 'Error', text2: err.message });
@@ -256,7 +265,9 @@ const SetPinScreen: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log('useEffect triggered - pin.length:', pin.length, 'title:', title, 'context:', context);
     if (pin.length === 4) {
+      console.log('Calling validatePin because pin.length is 4');
       validatePin();
     }
 
@@ -267,7 +278,7 @@ const SetPinScreen: React.FC = () => {
     ) {
       setModalVisible(true);
     }
-  }, [pin, title, context, push]);
+  }, [pin, title, context]);
 
   const handleModalPress = () => {
     setModalVisible(false);
@@ -397,6 +408,66 @@ const SetPinScreen: React.FC = () => {
           onPress={handleModalPress}
           buttonTitle="Go to dashboard"
         />
+
+        {/* Confirmation Modal for Transaction Pin Update */}
+        <Modal
+          visible={showConfirmModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowConfirmModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+              <Text style={[styles.modalTitle, { color: dark ? COLORS.white : COLORS.black }]}>
+                Confirm PIN Change
+              </Text>
+              <Text style={[styles.modalMessage, { color: dark ? COLORS.greyscale500 : COLORS.greyscale600 }]}>
+                Are you sure you want to change your transaction PIN to {enteredPinValue}?
+              </Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonCancel]}
+                  onPress={() => {
+                    setShowConfirmModal(false);
+                    setEnteredPinValue('');
+                  }}
+                >
+                  <Text style={styles.modalButtonCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonConfirm]}
+                  onPress={() => {
+                    setShowConfirmModal(false);
+                    const userEmail = userData?.email;
+                    if (!userEmail) {
+                      showTopToast({
+                        type: 'error',
+                        text1: 'Error',
+                        text2: 'Email not found. Please try again.',
+                      });
+                      setEnteredPinValue('');
+                      return;
+                    }
+                    if (!authToken) {
+                      showTopToast({
+                        type: 'error',
+                        text1: 'Error',
+                        text2: 'Authentication token not found. Please try again.',
+                      });
+                      setEnteredPinValue('');
+                      return;
+                    }
+                    // Call API to update PIN
+                    handleUpdatePin({ email: userEmail, pin: enteredPinValue });
+                    setEnteredPinValue('');
+                  }}
+                >
+                  <Text style={styles.modalButtonConfirmText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -473,6 +544,62 @@ const styles = StyleSheet.create({
     height: 70,
     marginVertical: 10,
     marginHorizontal: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonConfirm: {
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonCancel: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+  },
+  modalButtonConfirmText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonCancelText: {
+    color: COLORS.gray,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

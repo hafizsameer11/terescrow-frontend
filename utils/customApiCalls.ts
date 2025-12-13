@@ -23,15 +23,19 @@ export const apiCall = async (
   data?: any,
   token?: string
 ) => {
-  let headers;
-  headers = {
-    Authorization: token ? `Bearer ${token}` : '',
-    'Content-Type': 'application/json',
-  };
-
-  if (data && data instanceof FormData) {
-    headers['Content-Type'] = 'multipart/form-data';
+  let headers: any = {};
+  
+  // Always set Authorization header if token is provided
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
+
+  // For FormData, don't set Content-Type at all - let axios set it with boundary
+  // For other data, set Content-Type to application/json
+  if (!(data instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+  // For FormData, explicitly don't set Content-Type - axios will handle it
 
   try {
     let response: AxiosResponse | undefined;
@@ -41,7 +45,25 @@ export const apiCall = async (
         break;
 
       case 'POST':
-        response = await axios.post(url, data, { headers });
+        // For FormData in React Native, we need special handling
+        const postConfig: any = {
+          timeout: 120000, // 120 second timeout for file uploads
+        };
+        
+        // Only set these for FormData (file uploads)
+        if (data instanceof FormData) {
+          postConfig.maxContentLength = Infinity;
+          postConfig.maxBodyLength = Infinity;
+          // Create new headers object without Content-Type for FormData
+          // Axios will automatically set Content-Type with boundary
+          const formDataHeaders = { ...headers };
+          delete formDataHeaders['Content-Type'];
+          postConfig.headers = formDataHeaders;
+        } else {
+          postConfig.headers = headers;
+        }
+        
+        response = await axios.post(url, data, postConfig);
         break;
 
       case 'PUT':
@@ -58,15 +80,30 @@ export const apiCall = async (
 
     return response?.data;
   } catch (error) {
-    if (isAxiosError(error) && error.response) {
-      console.log(error?.response?.data);
-      throw new ApiError(
-        error.response?.data,
-        error.response.data?.message || 'Something went wrong',
-        error.response.status || error.status || 500
-      );
+    if (isAxiosError(error)) {
+      // If there's a response, it's an HTTP error
+      if (error.response) {
+        console.log('API Error Response:', error?.response?.data);
+        throw new ApiError(
+          error.response?.data,
+          error.response.data?.message || 'Something went wrong',
+          error.response.status || error.status || 500
+        );
+      } 
+      // If there's no response but there's a request, it's a network error
+      else if (error.request) {
+        console.log('Network Error - No response received:', error.message);
+        throw new ApiError(undefined, 'Network error. Please check your connection.', 0);
+      }
+      // Other axios errors
+      else {
+        console.log('Axios Error:', error.message);
+        throw new ApiError(undefined, error.message || 'Network or server error occurred', 500);
+      }
     } else {
-      throw new ApiError(undefined, 'Network or server error occured', 500);
+      // Non-axios errors
+      console.log('Non-Axios Error:', error);
+      throw new ApiError(undefined, 'Network or server error occurred', 500);
     }
   }
 };

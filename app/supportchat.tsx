@@ -30,6 +30,7 @@ export type Message = {
   isUser: boolean;
   sentAt: Date;
   image?: string;
+  imageUrl?: string; // URL from API response
   isSystemNotification?: boolean;
 };
 
@@ -64,9 +65,10 @@ const SupportChat = () => {
       const apiMessages: ISupportMessage[] = chatData.data.messages;
       const convertedMessages: Message[] = apiMessages.map((msg) => ({
         id: msg.id.toString(),
-        text: msg.message,
+        text: msg.message || '',
         isUser: msg.senderType === 'user',
         sentAt: new Date(msg.createdAt),
+        imageUrl: (msg as any).imageUrl || undefined, // Include imageUrl if available
       }));
 
       // If no messages, show welcome message
@@ -118,8 +120,12 @@ const SupportChat = () => {
   // Send message mutation
   const { mutate: sendMessage, isPending: sendingMessage } = useMutation({
     mutationKey: ['sendSupportMessage', chatId],
-    mutationFn: (data: { message: string; senderType: 'user' }) =>
-      sendSupportMessage(chatId!, data, token),
+    mutationFn: (data: FormData | { message: string; senderType: 'user' }) => {
+      if (!token) {
+        throw new Error('Authentication token is required');
+      }
+      return sendSupportMessage(chatId!, data, token);
+    },
     onSuccess: (response: any) => {
       console.log('Send message response:', JSON.stringify(response, null, 2));
       
@@ -128,49 +134,95 @@ const SupportChat = () => {
       let messageText: string | undefined;
       let senderType: 'user' | 'support' | undefined;
       let createdAt: string | undefined;
+      let imageUrl: string | null | undefined;
       
-      if (response?.data?.id) {
+      // Handle API response structure: { status: 201, message: "...", data: { message: {...} } }
+      if (response?.data?.message) {
+        messageId = response.data.message.id;
+        messageText = response.data.message.message || '';
+        senderType = response.data.message.senderType;
+        createdAt = response.data.message.createdAt;
+        imageUrl = response.data.message.imageUrl || null;
+      } 
+      // Handle alternative structure: { status: "success", data: { message: {...} } }
+      else if (response?.data?.message && typeof response.data.message === 'object') {
+        messageId = response.data.message.id;
+        messageText = response.data.message.message || '';
+        senderType = response.data.message.senderType;
+        createdAt = response.data.message.createdAt;
+        imageUrl = response.data.message.imageUrl || null;
+      }
+      // Handle flat structure: { data: { id, message, ... } }
+      else if (response?.data?.id) {
         messageId = response.data.id;
         messageText = response.data.message;
         senderType = response.data.senderType;
         createdAt = response.data.createdAt;
-      } else if (response?.data?.data?.id) {
+        imageUrl = response.data.imageUrl || null;
+      } 
+      // Handle nested data structure: { data: { data: { id, ... } } }
+      else if (response?.data?.data?.id) {
         messageId = response.data.data.id;
         messageText = response.data.data.message;
         senderType = response.data.data.senderType;
         createdAt = response.data.data.createdAt;
-      } else if (response?.id) {
+        imageUrl = response.data.data.imageUrl || null;
+      } 
+      // Handle direct structure: { id, message, ... }
+      else if (response?.id) {
         messageId = response.id;
         messageText = response.message;
         senderType = response.senderType;
         createdAt = response.createdAt;
+        imageUrl = response.imageUrl || null;
       }
 
-      // Only add message if we have valid data
-      if (messageId && messageText && senderType && createdAt) {
+      // Only add message if we have valid data (at least messageId and createdAt)
+      if (messageId && createdAt) {
         const newMessage: Message = {
           id: messageId.toString(),
-          text: messageText,
+          text: messageText || '',
           isUser: senderType === 'user',
           sentAt: new Date(createdAt),
+          imageUrl: imageUrl || undefined,
         };
         setMessages((prevMessages) => [...prevMessages, newMessage]);
         setQuickActionsShown(false);
         scrollToBottom();
+      } else {
+        // If we can't parse the message, still invalidate queries to refetch
+        console.warn('Could not parse message from response:', response);
       }
       
-      // Invalidate and refetch to get updated chat (this will also add the message if it wasn't added above)
+      // Always invalidate and refetch to get updated chat (this will also add the message if it wasn't added above)
       queryClient.invalidateQueries({ queryKey: ['supportChat', chatId] });
       queryClient.invalidateQueries({ queryKey: ['supportChats'] });
     },
-    onError: (error: ApiError) => {
+    onError: (error: ApiError | Error) => {
       console.error('Error sending message:', error);
+      console.error('Error details:', {
+        message: error.message,
+        statusCode: (error as ApiError).statusCode,
+        data: (error as ApiError).data,
+      });
+      
       let errorMessage = 'Failed to send message. Please try again.';
       
-      if (error.statusCode === 400) {
-        errorMessage = error.message || 'Cannot send message. Chat may be completed.';
-      } else if (error.statusCode === 404) {
-        errorMessage = 'Support chat not found.';
+      // Handle ApiError with statusCode
+      if ((error as ApiError).statusCode) {
+        const apiError = error as ApiError;
+        if (apiError.statusCode === 400) {
+          errorMessage = apiError.message || 'Cannot send message. Chat may be completed.';
+        } else if (apiError.statusCode === 404) {
+          errorMessage = 'Support chat not found.';
+        } else if (apiError.statusCode === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (apiError.statusCode === 0) {
+          errorMessage = 'Network error. Please check your connection.';
+        }
+      } else {
+        // Handle generic Error
+        errorMessage = error.message || 'Failed to send message. Please try again.';
       }
       
       showTopToast({
@@ -193,20 +245,47 @@ const SupportChat = () => {
       return;
     }
 
-    // For now, only text messages are supported by the API
+    // Create FormData for image uploads, or use JSON for text-only messages
     if (image) {
-      showTopToast({
-        type: 'info',
-        text1: 'Info',
-        text2: 'Image messages are not yet supported.',
+      // Create FormData for image upload
+      const formData = new FormData();
+      
+      // Append message if present
+      if (message?.trim()) {
+        formData.append('message', message);
+      }
+      
+      // Append image file - React Native FormData format
+      // Extract filename from URI or use default
+      const filename = image.split('/').pop() || 'image.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      // React Native FormData requires this specific format
+      formData.append('image', {
+        uri: image,
+        type: type,
+        name: filename,
+      } as any);
+      
+      formData.append('senderType', 'user');
+      
+      console.log('Sending FormData with image:', {
+        hasMessage: !!message?.trim(),
+        imageUri: image,
+        filename,
+        type,
+        chatId,
       });
-      return;
+      
+      sendMessage(formData);
+    } else {
+      // Text-only message
+      sendMessage({
+        message: message || '',
+        senderType: 'user',
+      });
     }
-
-    sendMessage({
-      message: message || '',
-      senderType: 'user',
-    });
   };
 
   const handleQuickAction = (action: string) => {

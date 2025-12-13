@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -84,6 +85,7 @@ const Tier2Verification = () => {
   const [ninDocumentUri, setNinDocumentUri] = useState<string | null>(null);
   const [idDocumentUri, setIdDocumentUri] = useState<string | null>(null);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
+  const [showTier3Modal, setShowTier3Modal] = useState(false);
 
   const themeStyles = {
     background: dark ? COLORS.dark1 : COLORS.white,
@@ -100,7 +102,8 @@ const Tier2Verification = () => {
         text1: 'Success',
         text2: 'Tier 2 verification submitted successfully. An OTP will be sent to your BVN registered number.',
       });
-      router.push('/updatekyclevel');
+      // Show modal to navigate to Tier 3
+      setShowTier3Modal(true);
     },
     onError: (error: any) => {
       showTopToast({
@@ -111,7 +114,10 @@ const Tier2Verification = () => {
     },
   });
 
-  const handleImagePicker = async (type: 'ninDocument' | 'idDocument' | 'selfie') => {
+  const handleImagePicker = async (
+    type: 'ninDocument' | 'idDocument' | 'selfie',
+    setFieldValue?: (field: string, value: any) => void
+  ) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -122,10 +128,22 @@ const Tier2Verification = () => {
     if (!result.canceled && result.assets[0]) {
       if (type === 'ninDocument') {
         setNinDocumentUri(result.assets[0].uri);
+        // Also set idDocument in Formik for validation (NIN document is the idDocument)
+        if (setFieldValue) {
+          setFieldValue('idDocument', result.assets[0].uri);
+        }
       } else if (type === 'idDocument') {
         setIdDocumentUri(result.assets[0].uri);
+        // Set in Formik for validation
+        if (setFieldValue) {
+          setFieldValue('idDocument', result.assets[0].uri);
+        }
       } else {
         setSelfieUri(result.assets[0].uri);
+        // Set in Formik for validation
+        if (setFieldValue) {
+          setFieldValue('selfie', result.assets[0].uri);
+        }
       }
     }
   };
@@ -142,6 +160,17 @@ const Tier2Verification = () => {
     if (typeof docType === 'number') return docType;
     const doc = DOCUMENT_TYPES.find(d => d.title.toLowerCase() === docType.toLowerCase());
     return doc?.id || 0;
+  };
+
+  const getDocumentTypeApiFormat = (docType: string | number | undefined): string => {
+    if (!docType) return '';
+    if (typeof docType === 'number') {
+      const doc = DOCUMENT_TYPES.find(d => d.id === docType);
+      return doc ? doc.title.toLowerCase().replace(/\s+/g, '_') : '';
+    }
+    // Convert "International Passport" to "international_passport"
+    // Convert "Drivers License" to "drivers_license"
+    return docType.toLowerCase().replace(/\s+/g, '_');
   };
 
   const handleStepSubmit = (values: any, errors: any) => {
@@ -189,8 +218,8 @@ const Tier2Verification = () => {
       setCurrentStep(3);
     } else if (currentStep === 3) {
       // Validate step 3 - document selection and selfie upload
-      if (errors.documentType || errors.documentNumber) {
-        const errorMsg = errors.documentType || errors.documentNumber;
+      if (errors.documentType || errors.documentNumber || errors.idDocument || errors.selfie) {
+        const errorMsg = errors.documentType || errors.documentNumber || errors.idDocument || errors.selfie;
         showTopToast({
           type: 'error',
           text1: 'Validation Error',
@@ -207,7 +236,15 @@ const Tier2Verification = () => {
         });
         return;
       }
-      if (!selfieUri) {
+      if (!ninDocumentUri) {
+        showTopToast({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Please upload your NIN document',
+        });
+        return;
+      }
+      if (!selfieUri || !values.selfie) {
         showTopToast({
           type: 'error',
           text1: 'Error',
@@ -223,9 +260,8 @@ const Tier2Verification = () => {
       const countryId = typeof values.country === 'number' ? values.country : getCountryId(values.country);
       const countryName = COUNTRIES.find(c => c.id === countryId)?.title || values.country;
       
-      // Convert document type ID to string
-      const docTypeId = typeof values.documentType === 'number' ? values.documentType : getDocumentTypeId(values.documentType);
-      const docTypeName = DOCUMENT_TYPES.find(d => d.id === docTypeId)?.title || values.documentType;
+      // Convert document type to API format (lowercase with underscores)
+      const docTypeApiFormat = getDocumentTypeApiFormat(values.documentType);
 
       // Append text fields
       formData.append('firstName', values.firstName);
@@ -235,7 +271,7 @@ const Tier2Verification = () => {
       formData.append('country', countryName);
       formData.append('nin', values.nin);
       formData.append('bvn', values.bvn);
-      formData.append('documentType', docTypeName);
+      formData.append('documentType', docTypeApiFormat);
       formData.append('documentNumber', values.documentNumber);
       
       // Append NIN document (idDocument)
@@ -265,7 +301,7 @@ const Tier2Verification = () => {
         country: countryName,
         nin: values.nin,
         bvn: values.bvn,
-        documentType: docTypeName,
+        documentType: docTypeApiFormat,
         documentNumber: values.documentNumber,
         hasIdDocument: !!ninDocumentUri,
         hasSelfie: !!selfieUri,
@@ -291,12 +327,16 @@ const Tier2Verification = () => {
               country: '',
               documentType: '',
               documentNumber: '',
+              idDocument: null,
+              selfie: null,
             }}
             validationSchema={tier2ValidationSchema}
             onSubmit={(values) => {
               // This will be called by Formik's handleSubmit after validation passes
               // But we handle step navigation in our custom handleStepSubmit
               console.log('Formik onSubmit called with values:', values);
+              // Call handleStepSubmit to proceed with submission
+              handleStepSubmit(values, {});
             }}
             validateOnChange={true}
             validateOnBlur={true}
@@ -518,8 +558,8 @@ const Tier2Verification = () => {
                       </Text>
                       
                       <TouchableOpacity
-                        onPress={() => handleImagePicker('ninDocument')}
-                        style={styles.uploadBox}
+                        onPress={() => handleImagePicker('ninDocument', setFieldValue)}
+                        style={[styles.uploadBox, { marginBottom: 30 }]}
                       >
                         {ninDocumentUri ? (
                           <Image
@@ -584,7 +624,7 @@ const Tier2Verification = () => {
                       </Text>
                       
                       <TouchableOpacity
-                        onPress={() => handleImagePicker('selfie')}
+                        onPress={() => handleImagePicker('selfie', setFieldValue)}
                         style={styles.uploadBox}
                       >
                         {selfieUri ? (
@@ -632,6 +672,45 @@ const Tier2Verification = () => {
           </Formik>
         </View>
       </ScrollView>
+
+      {/* Tier 3 Navigation Modal */}
+      <Modal
+        visible={showTier3Modal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTier3Modal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white }]}>
+            <Text style={[styles.modalTitle, { color: themeStyles.normalText }]}>
+              Tier 2 Verification Complete!
+            </Text>
+            <Text style={[styles.modalMessage, { color: themeStyles.normalText }]}>
+              Your Tier 2 verification has been submitted successfully. Would you like to proceed to Tier 3 verification?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSecondary]}
+                onPress={() => {
+                  setShowTier3Modal(false);
+                  router.push('/updatekyclevel');
+                }}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Later</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={() => {
+                  setShowTier3Modal(false);
+                  router.push('/tier3verification');
+                }}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Go to Tier 3</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -700,6 +779,62 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonPrimary: {
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+  },
+  modalButtonPrimaryText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonSecondaryText: {
+    color: COLORS.gray,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -14,6 +14,7 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { WebView } from 'react-native-webview';
 import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation } from 'expo-router';
@@ -331,13 +332,22 @@ const Referrals = () => {
              
               <View style={[styles.videoContainer, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' }]}>
                 <View style={styles.videoPlaceholder}>
-                  <Image
-                    source={icons.play}
-                    style={styles.playIcon}
-                    contentFit="contain"
+                  <WebView
+                    source={{ uri: 'https://youtu.be/GBHwPj2FUIo' }}
+                    style={styles.videoWebView}
+                    allowsFullscreenVideo={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    startInLoadingState={true}
+                    renderLoading={() => (
+                      <View style={styles.videoLoadingContainer}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                      </View>
+                    )}
                   />
                 </View>
-                <Text style={[styles.videoTitle, dark ? { color: COLORS.white } : { color: '##8A8A8A' }]}>
+                <Text style={[styles.videoTitle, dark ? { color: COLORS.white } : { color: '#8A8A8A' }]}>
                 How to earn on Tercescrow?
               </Text>
               </View>
@@ -671,8 +681,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     backgroundColor: '#E5E5E5',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  videoWebView: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'transparent',
+  },
+  videoLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#E5E5E5',
   },
   playIcon: {
     width: 60,

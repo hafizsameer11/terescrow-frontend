@@ -425,6 +425,7 @@ export interface ISupportMessage {
   senderType: 'user' | 'support';
   createdAt: string;
   isRead?: boolean;
+  imageUrl?: string | null;
 }
 
 export interface ISupportChatResponse {

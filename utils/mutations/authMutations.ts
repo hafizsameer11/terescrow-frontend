@@ -366,23 +366,31 @@ export interface ICreateSupportChatResponse extends ApiResponse {
 
 export const sendSupportMessage = async (
   chatId: number,
-  data: ISendSupportMessageReq,
+  data: ISendSupportMessageReq | FormData,
   token: string
 ): Promise<ISendSupportMessageResponse> => {
   return await apiCall(`${API_ENDPOINTS.SUPPORT.SendMessage}/${chatId}/messages`, 'POST', data, token);
 };
 
 export interface ISendSupportMessageReq {
-  message: string;
-  senderType: 'user' | 'support';
+  message?: string;
+  senderType?: 'user' | 'support';
+  image?: any; // For FormData file upload
 }
 
-export interface ISendSupportMessageResponse extends ApiResponse {
+export interface ISendSupportMessageResponse {
+  status: number;
+  message: string;
   data: {
-    id: number;
-    message: string;
-    senderType: 'user' | 'support';
-    createdAt: string;
+    message: {
+      id: number;
+      senderType: 'user' | 'support';
+      senderId: number;
+      message: string;
+      imageUrl: string | null;
+      isRead: boolean;
+      createdAt: string;
+    };
   };
 }
 
