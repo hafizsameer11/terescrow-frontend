@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   FlatList,
+  TextInput,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
@@ -35,6 +36,7 @@ const ProviderModal = () => {
 
   const [selectedProvider, setSelectedProvider] = useState<string | null>(params.selectedProvider || null);
   const [selectedBillerId, setSelectedBillerId] = useState<string | null>(params.selectedBillerId || null);
+  const [searchQuery, setSearchQuery] = useState('');
   const returnTo = params.returnTo || 'airtime';
   const sceneCode = params.sceneCode || (returnTo === 'data' ? 'data' : returnTo === 'betting' ? 'betting' : 'airtime');
 
@@ -46,6 +48,13 @@ const ProviderModal = () => {
   });
 
   const billers: IBiller[] = billersData?.data?.billers?.data || [];
+  const activeBillers = billers.filter(b => b.status === 1);
+  
+  // Filter billers based on search query
+  const filteredBillers = activeBillers.filter(biller =>
+    biller.billerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    biller.billerId.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleSelect = (biller: IBiller) => {
     setSelectedProvider(biller.billerName);
@@ -98,6 +107,22 @@ const ProviderModal = () => {
               </Text>
             </View>
 
+            {/* Search Bar */}
+            <View style={[styles.searchContainer, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' }]}>
+              <Image
+                source={icons.search}
+                style={[styles.searchIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
+                contentFit="contain"
+              />
+              <TextInput
+                style={[styles.searchInput, dark ? { color: COLORS.white } : { color: COLORS.black }]}
+                placeholder="Search provider"
+                placeholderTextColor={dark ? COLORS.greyscale500 : COLORS.greyscale600}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+
             {/* Provider List */}
             {billersLoading ? (
               <View style={styles.loadingContainer}>
@@ -106,15 +131,21 @@ const ProviderModal = () => {
                   Loading providers...
                 </Text>
               </View>
-            ) : billers.length === 0 ? (
+            ) : activeBillers.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
                   No providers available
                 </Text>
               </View>
+            ) : filteredBillers.length === 0 && searchQuery ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                  No providers match your search. Try a different search term.
+                </Text>
+              </View>
             ) : (
               <FlatList
-                data={billers.filter(b => b.status === 1)} // Only show active billers
+                data={filteredBillers}
                 keyExtractor={(item) => item.billerId}
                 renderItem={({ item }) => (
                   <TouchableOpacity
@@ -135,14 +166,32 @@ const ProviderModal = () => {
                         <View style={[styles.providerLogoPlaceholder, dark ? { backgroundColor: COLORS.greyScale800 } : { backgroundColor: '#F7F7F7' }]} />
                       )}
                     </View>
-                    <Text
-                      style={[
-                        styles.providerName,
-                        dark ? { color: COLORS.white } : { color: COLORS.black },
-                      ]}
-                    >
-                      {item.billerName}
-                    </Text>
+                    <View style={styles.providerInfo}>
+                      <Text
+                        style={[
+                          styles.providerName,
+                          dark ? { color: COLORS.white } : { color: COLORS.black },
+                        ]}
+                      >
+                        {item.billerName}
+                      </Text>
+                      {(item.minAmount !== null || item.maxAmount !== null) && (
+                        <Text
+                          style={[
+                            styles.amountRange,
+                            dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 },
+                          ]}
+                        >
+                          {item.minAmount !== null && item.maxAmount !== null
+                            ? `₦${(item.minAmount / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - ₦${(item.maxAmount / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : item.minAmount !== null
+                            ? `From ₦${(item.minAmount / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : item.maxAmount !== null
+                            ? `Up to ₦${(item.maxAmount / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : ''}
+                        </Text>
+                      )}
+                    </View>
                     <Image
                       source={icons.arrowRight}
                       style={[styles.arrowIcon, dark ? { tintColor: COLORS.greyscale500 } : { tintColor: COLORS.greyscale600 }]}
@@ -158,6 +207,7 @@ const ProviderModal = () => {
                     ]}
                   />
                 )}
+                contentContainerStyle={styles.listContent}
               />
             )}
           </SafeAreaView>
@@ -199,7 +249,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 16,
     alignItems: 'center',
   },
   headerTitle: {
@@ -207,6 +257,28 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#8A8A8A',
     textTransform: 'uppercase',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    backgroundColor: '#F7F7F7',
+  },
+  searchIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '400',
+  },
+  listContent: {
+    paddingBottom: 20,
   },
   providerItem: {
     flexDirection: 'row',
@@ -227,10 +299,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
-  providerName: {
+  providerInfo: {
     flex: 1,
+  },
+  providerName: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: '700',
+    marginBottom: 4,
+  },
+  amountRange: {
+    fontSize: isTablet ? 12 : 11,
+    fontWeight: '400',
   },
   arrowIcon: {
     width: 20,

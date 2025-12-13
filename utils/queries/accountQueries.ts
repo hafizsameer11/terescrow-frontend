@@ -877,7 +877,7 @@ export interface ICryptoTransaction {
 }
 
 export interface ICryptoTransactionsResponse extends ApiResponse {
-  status: number;
+  status: string | number; // Can be "success" or number
   message: string;
   data: {
     transactions: ICryptoTransaction[];
@@ -1044,6 +1044,20 @@ export const getGiftCardOrders = async (
     : API_ENDPOINTS.GIFT_CARDS.GetOrders;
 
   return await apiCall(url, 'GET', undefined, token);
+};
+
+// Get transaction group for gift card sell transactions
+export interface ITransactionGroupResponse {
+  status?: number | string;
+  message?: string;
+  data?: any[];
+  [key: string]: any;
+}
+
+export const getTransactionGroup = async (
+  token: string
+): Promise<ITransactionGroupResponse> => {
+  return await apiCall(API_ENDPOINTS.TRANSACTIONS.GetTransactionHistory, 'GET', undefined, token);
 };
 
 // Get single gift card order by orderId

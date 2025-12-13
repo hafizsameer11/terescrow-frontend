@@ -19,7 +19,7 @@ import { COLORS, icons } from "@/constants";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import { useRouter } from "expo-router";
-import { getGiftCardOrders } from "@/utils/queries/accountQueries";
+import { getGiftCardOrders, getTransactionGroup } from "@/utils/queries/accountQueries";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -32,54 +32,90 @@ const GiftCardTransactions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch gift card orders
+  // Fetch gift card orders for Buy tab
   const {
     data: giftCardOrdersData,
     isLoading: giftCardOrdersLoading,
     refetch: refetchGiftCardOrders,
   } = useQuery({
-    queryKey: ["giftCardOrders", activeTab],
+    queryKey: ["giftCardOrders", "Buy"],
     queryFn: () => getGiftCardOrders(token, { page: 1, limit: 100 }),
-    enabled: !!token,
+    enabled: !!token && activeTab === "Buy",
     staleTime: 10000,
   });
 
-  // Process and filter transactions
-  // Note: Gift card API doesn't distinguish between buy/sell, so we show all orders for both tabs
+  // Fetch transaction group for Sell tab
+  const {
+    data: transactionGroupData,
+    isLoading: transactionGroupLoading,
+    refetch: refetchTransactionGroup,
+    isError: transactionGroupError,
+    error: transactionGroupErrorData,
+  } = useQuery({
+    queryKey: ["transactionGroup", "Sell"],
+    queryFn: () => getTransactionGroup(token),
+    enabled: !!token && activeTab === "Sell",
+    staleTime: 10000,
+    retry: false,
+  });
+
+  // Process and filter transactions based on active tab
   const processedTransactions = useMemo(() => {
-    let transactions = giftCardOrdersData?.data?.orders || [];
+    let transactions: any[] = [];
+
+    if (activeTab === "Buy") {
+      // For Buy tab, use gift card orders
+      transactions = giftCardOrdersData?.data?.orders || [];
+    } else if (activeTab === "Sell") {
+      // For Sell tab, use transaction group data
+      // Check if error message indicates no data found
+      const errorMessage = (transactionGroupErrorData as any)?.message;
+      if (errorMessage === "TransactionGroupData not found" || transactionGroupError) {
+        // Return empty array if data not found
+        transactions = [];
+      } else {
+        // Use the data array if available
+        transactions = transactionGroupData?.data || [];
+      }
+    }
 
     // Filter by search term
     if (searchTerm) {
-      transactions = transactions.filter((order: any) => {
+      transactions = transactions.filter((item: any) => {
         const searchLower = searchTerm.toLowerCase();
         return (
-          order.productName?.toLowerCase().includes(searchLower) ||
-          order.brandName?.toLowerCase().includes(searchLower) ||
-          order.orderId?.toLowerCase().includes(searchLower)
+          item.productName?.toLowerCase().includes(searchLower) ||
+          item.brandName?.toLowerCase().includes(searchLower) ||
+          item.orderId?.toLowerCase().includes(searchLower) ||
+          item.transactionId?.toLowerCase().includes(searchLower) ||
+          item.id?.toString().toLowerCase().includes(searchLower)
         );
       });
     }
 
     // Sort by date (newest first)
     return transactions.sort((a: any, b: any) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
+      const dateA = new Date(a.createdAt || a.date || 0).getTime();
+      const dateB = new Date(b.createdAt || b.date || 0).getTime();
       return dateB - dateA;
     });
-  }, [giftCardOrdersData, searchTerm]);
+  }, [giftCardOrdersData, transactionGroupData, transactionGroupError, transactionGroupErrorData, activeTab, searchTerm]);
 
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refetchGiftCardOrders();
+      if (activeTab === "Buy") {
+        await refetchGiftCardOrders();
+      } else {
+        await refetchTransactionGroup();
+      }
     } catch (error) {
       console.log("Error refreshing transactions:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchGiftCardOrders]);
+  }, [activeTab, refetchGiftCardOrders, refetchTransactionGroup]);
 
   // Format date
   const formatDate = (dateString?: string) => {
@@ -98,7 +134,7 @@ const GiftCardTransactions = () => {
 
   // Handle transaction press - navigate to gift card detail
   const handleTransactionPress = (item: any) => {
-    const transactionId = item.orderId || item.id;
+    const transactionId = item.orderId || item.id || item.transactionId;
     const transactionType = "GIFT_CARD";
 
     if (transactionId) {
@@ -117,13 +153,14 @@ const GiftCardTransactions = () => {
 
   // Render transaction item
   const renderTransactionItem = ({ item }: { item: any }) => {
-    const productName = item.productName || item.brandName || "Gift Card";
-    const date = formatDate(item.createdAt);
-    const currency = item.currencyCode || "USD";
-    const amount = item.totalAmount || item.faceValue || 0;
+    // Handle both Buy (gift card orders) and Sell (transaction group) data structures
+    const productName = item.productName || item.brandName || item.name || "Gift Card";
+    const date = formatDate(item.createdAt || item.date);
+    const currency = item.currencyCode || item.currency || "USD";
+    const amount = item.totalAmount || item.faceValue || item.amount || 0;
     const formattedAmount = currency === "NGN"
-      ? `₦${amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      ? `₦${typeof amount === 'number' ? amount.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : amount}`
+      : `$${typeof amount === 'number' ? amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : amount}`;
 
     return (
       <TouchableOpacity
@@ -238,7 +275,7 @@ const GiftCardTransactions = () => {
       </View>
 
       {/* Transaction List */}
-      {giftCardOrdersLoading ? (
+      {(activeTab === "Buy" ? giftCardOrdersLoading : transactionGroupLoading) ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={[styles.loadingText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
@@ -248,14 +285,25 @@ const GiftCardTransactions = () => {
       ) : processedTransactions.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-            No transactions found
+            {activeTab === "Sell" && (transactionGroupError || (transactionGroupErrorData as any)?.message === "TransactionGroupData not found")
+              ? "No sell transactions found"
+              : searchTerm
+              ? "No transactions match your search"
+              : activeTab === "Buy"
+              ? "No buy transactions found"
+              : "No sell transactions found"}
           </Text>
+          {!searchTerm && activeTab === "Sell" && (
+            <Text style={[styles.emptySubtext, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              You haven't sold any gift cards yet
+            </Text>
+          )}
         </View>
       ) : (
         <FlatList
           data={processedTransactions}
           renderItem={renderTransactionItem}
-          keyExtractor={(item) => String(item.orderId || item.id || Math.random())}
+          keyExtractor={(item) => String(item.orderId || item.id || item.transactionId || Math.random())}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
@@ -408,6 +456,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: "center",
   },
 });
 

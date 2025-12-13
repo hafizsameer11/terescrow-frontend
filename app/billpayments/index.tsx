@@ -14,6 +14,7 @@ import { COLORS, icons, images } from '@/constants';
 import { useTheme } from '@/contexts/themeContext';
 import { useRouter, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
+import { showTopToast } from '@/utils/helpers';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -88,11 +89,19 @@ const BillPayments = () => {
       // Navigate to Data screen
       navigate('data' as any);
     } else if (option.id === '3') {
-      // Navigate to Electricity screen
-      navigate('electricity' as any);
+      // Show coming soon popup for Electricity
+      showTopToast({
+        type: 'info',
+        text1: 'Coming Soon',
+        text2: 'This feature will be coming soon',
+      });
     } else if (option.id === '4') {
-      // Navigate to Cable TV screen
-      navigate('cabletv' as any);
+      // Show coming soon popup for Cable TV
+      showTopToast({
+        type: 'info',
+        text1: 'Coming Soon',
+        text2: 'This feature will be coming soon',
+      });
     } else if (option.id === '5') {
       // Navigate to Betting screen
       navigate('betting' as any);

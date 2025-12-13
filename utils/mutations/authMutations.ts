@@ -321,9 +321,21 @@ export interface IVerifyBillPaymentAccountReq {
 }
 
 export interface IVerifyBillPaymentAccountResponse extends ApiResponse {
+  statusCode: number;
+  message: string;
   data: {
+    sceneCode?: string;
+    rechargeAccount?: string;
     valid: boolean;
     biller?: string;
+    result?: {
+      respCode?: string;
+      respMsg?: string;
+      data?: {
+        biller?: string;
+      };
+      status?: boolean;
+    };
   };
 }
 
@@ -688,14 +700,22 @@ export interface IInitiateDepositRequest {
 }
 
 export interface IInitiateDepositResponse extends ApiResponse {
-  status: number;
+  statusCode: number;
   message: string;
   data: {
     transactionId: string;
-    checkoutUrl: string;
+    merchantOrderId?: string;
+    orderNo?: string;
     amount: number;
     currency: string;
     status: string;
+    virtualAccount?: {
+      accountType: number;
+      bankName: string;
+      accountName: string;
+      accountNumber: string;
+    };
+    checkoutUrl?: string;
   };
 }
 

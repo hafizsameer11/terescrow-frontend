@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import { useRouter } from "expo-router";
 import { getCryptoTransactions } from "@/utils/queries/accountQueries";
+import { getImageUrl } from "@/utils/helpers";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -49,7 +50,23 @@ const CryptoTransactions = () => {
 
   // Process and filter transactions
   const processedTransactions = useMemo(() => {
-    let transactions = cryptoTransactionsData?.data?.transactions || [];
+    // Get transactions from API response - handle both status formats
+    const responseData = cryptoTransactionsData?.data;
+    let transactions = responseData?.transactions || [];
+
+    // Filter out mock data if isMockData is true and there are no real transactions
+    if (responseData?.isMockData && transactions.length === 0) {
+      return [];
+    }
+
+    // Additional client-side filtering by tab (in case API doesn't filter properly)
+    if (activeTab !== "All") {
+      const tabType = activeTab.toUpperCase();
+      transactions = transactions.filter((tx: any) => {
+        const txType = tx.transactionType?.toUpperCase() || tx.type?.toUpperCase();
+        return txType === tabType;
+      });
+    }
 
     // Filter by search term
     if (searchTerm) {
@@ -59,7 +76,8 @@ const CryptoTransactions = () => {
           tx.cryptocurrencyType?.toLowerCase().includes(searchLower) ||
           tx.currency?.toLowerCase().includes(searchLower) ||
           tx.transactionId?.toLowerCase().includes(searchLower) ||
-          tx.tradeType?.toLowerCase().includes(searchLower)
+          tx.tradeType?.toLowerCase().includes(searchLower) ||
+          tx.transactionType?.toLowerCase().includes(searchLower)
         );
       });
     }
@@ -70,7 +88,7 @@ const CryptoTransactions = () => {
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     });
-  }, [cryptoTransactionsData, searchTerm]);
+  }, [cryptoTransactionsData, searchTerm, activeTab]);
 
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
@@ -134,13 +152,35 @@ const CryptoTransactions = () => {
   const renderTransactionItem = ({ item }: { item: any }) => {
     const cryptoName = item.cryptocurrencyType || item.currency || "Crypto";
     const date = formatDate(item.createdAt);
-    // Format crypto amount - API returns string like "10USDT" or "0.001BTC"
-    const cryptoAmount = item.amount || "0";
-    // Format USD amount - API returns string like "$10" or "$2,400"
-    const usdAmount = item.amountUsd || "$0";
     
-    // Get icon - use symbol if available, otherwise default
-    const icon = item.symbol || icons.gift;
+    // Handle different transaction types for amount display
+    let cryptoAmount = "0";
+    let usdAmount = "$0";
+    
+    if (item.transactionType?.toUpperCase() === "SWAP") {
+      // For SWAP transactions, show from/to amounts
+      cryptoAmount = item.fromAmount || "0";
+      usdAmount = item.fromAmountUsd || "$0";
+    } else {
+      // For BUY, SELL, SEND, RECEIVE
+      cryptoAmount = item.amount || "0";
+      usdAmount = item.amountUsd || "$0";
+    }
+    
+    // Get icon - convert symbol path to full URL if needed
+    let icon = icons.gift; // Default fallback
+    if (item.symbol) {
+      if (typeof item.symbol === "string") {
+        if (item.symbol.includes("http")) {
+          icon = item.symbol; // Already a full URL
+        } else if (item.symbol.includes("wallet_symbols/")) {
+          // Convert relative path to full URL
+          icon = getImageUrl(item.symbol);
+        } else {
+          icon = getImageUrl(item.symbol);
+        }
+      }
+    }
 
     return (
       <TouchableOpacity
@@ -152,8 +192,8 @@ const CryptoTransactions = () => {
       >
         <View style={styles.transactionLeft}>
           <View style={[styles.iconContainer, { backgroundColor: dark ? COLORS.dark2 : COLORS.grayscale100 }]}>
-            {typeof icon === "string" && icon.includes("http") ? (
-              <Image source={{ uri: icon }} style={styles.iconImage} contentFit="contain" />
+            {icon && icon !== icons.gift && (typeof icon === "string" && (icon.includes("http") || icon.includes("wallet_symbols"))) ? (
+              <Image source={{ uri: icon.includes("http") ? icon : getImageUrl(icon) }} style={styles.iconImage} contentFit="contain" />
             ) : (
               <Text style={styles.iconText}>₿</Text>
             )}
@@ -233,7 +273,6 @@ const CryptoTransactions = () => {
               style={[
                 styles.tab,
                 isActive && styles.activeTab,
-                dark && isActive && { backgroundColor: COLORS.black },
               ]}
               onPress={() => setActiveTab(tab)}
             >
@@ -242,8 +281,9 @@ const CryptoTransactions = () => {
                   styles.tabText,
                   isActive
                     ? { color: COLORS.white, fontWeight: "600" }
-                    : { color: dark ? COLORS.white : COLORS.black },
+                    : { color: dark ? COLORS.white : COLORS.black, fontWeight: "400" },
                 ]}
+                numberOfLines={1}
               >
                 {tab}
               </Text>
@@ -268,8 +308,17 @@ const CryptoTransactions = () => {
       ) : processedTransactions.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyText, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-            No transactions found
+            {searchTerm 
+              ? "No transactions match your search"
+              : activeTab === "All"
+              ? "No transactions found"
+              : `No ${activeTab.toLowerCase()} transactions found`}
           </Text>
+          {!searchTerm && activeTab !== "All" && (
+            <Text style={[styles.emptySubtext, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+              Try selecting a different tab or check back later
+            </Text>
+          )}
         </View>
       ) : (
         <FlatList
@@ -321,29 +370,35 @@ const styles = StyleSheet.create({
     color: COLORS.black, // Bold black text as per photo
   },
   headerRight: {
-    width: 40, // Balance the back button width
+    width: 0, // Balance the back button width
   },
   tabsContainer: {
-    maxHeight: 50,
+    maxHeight: 60,
     marginBottom: 8,
   },
   tabsContent: {
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: 14,
+    gap: 10,
   },
   tab: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: COLORS.grayscale100,
+    backgroundColor: 'transparent',
     marginRight: 8,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 60,
   },
   activeTab: {
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.primary,
   },
   tabText: {
     fontSize: isTablet ? 14 : 12,
     fontWeight: "400",
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   searchContainer: {
     paddingHorizontal: 0,
@@ -425,6 +480,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: "center",
   },
 });
 

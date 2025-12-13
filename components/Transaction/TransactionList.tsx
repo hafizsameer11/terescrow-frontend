@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, View, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
-import { COLORS, icons } from "@/constants";
+import { Image } from "expo-image";
+import { COLORS, icons, images } from "@/constants";
 import TransactionItem from "./TransactionItem";
 import { useTheme } from "@/contexts/themeContext";
 import { ITransactionOverviewType } from "@/utils/queries/accountQueries";
@@ -128,12 +129,24 @@ const TransactionList: React.FC<TransactionListProps> = ({ overviewData, isLoadi
                 >
                   <View style={styles.transactionTypeLeft}>
                     <View style={styles.iconContainer}>
-                      <Text style={styles.iconText}>
-                        {item.icon === 'crypto' ? '₿' : 
-                         item.icon === 'gift-card' ? '🎁' :
-                         item.icon === 'bill-payment' ? '💳' :
-                         item.icon === 'naira' ? '₦' : '📊'}
-                      </Text>
+                      {item.icon === 'crypto' ? (
+                        <Image
+                          source={images.crypto_trans}
+                          style={styles.iconImage}
+                          contentFit="contain"
+                        />
+                      ) : item.icon === 'gift-card' ? (
+                        <Image
+                          source={images.gift_trans}
+                          style={styles.iconImage}
+                          contentFit="contain"
+                        />
+                      ) : (
+                        <Text style={styles.iconText}>
+                          {item.icon === 'bill-payment' ? '💳' :
+                           item.icon === 'naira' ? '₦' : '📊'}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.transactionTypeInfo}>
                       <Text
@@ -254,6 +267,10 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 24,
+  },
+  iconImage: {
+    width: 32,
+    height: 32,
   },
   transactionTypeInfo: {
     flex: 1,

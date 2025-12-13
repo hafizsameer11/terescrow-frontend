@@ -867,9 +867,25 @@ const Swap = () => {
 
               {/* Header */}
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalHeaderTitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                  REVIEW TRANSACTION
-                </Text>
+                <View style={styles.modalHeaderContent}>
+                  <Text style={[styles.modalHeaderTitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                    REVIEW TRANSACTION
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setReviewModalVisible(false)}
+                    style={[
+                      styles.closeButton,
+                      dark ? { backgroundColor: 'rgba(255, 255, 255, 0.1)' } : { backgroundColor: 'rgba(0, 0, 0, 0.05)' }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.closeIconText,
+                      { color: dark ? COLORS.white : COLORS.black }
+                    ]}>
+                      ×
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Transaction Details - Scrollable */}
@@ -1331,16 +1347,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   modalHeader: {
+    marginBottom: 12,
+  },
+  modalHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
   },
   modalHeaderTitle: {
     fontSize: isTablet ? 16 : 13,
     fontWeight: '400',
     color: '#8A8A8A',
     textTransform: 'uppercase',
+    flex: 1,
+    textAlign: 'center',
+  },
+  closeButton: {
+    marginLeft: 'auto',
+    borderRadius: 20,
+    width: isTablet ? 40 : 36,
+    height: isTablet ? 40 : 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  closeIconText: {
+    fontSize: isTablet ? 32 : 28,
+    fontWeight: '300',
+    lineHeight: isTablet ? 40 : 36,
+    textAlign: 'center',
+    includeFontPadding: false,
+    height: isTablet ? 40 : 36,
   },
   detailsScrollView: {
     flex: 1,

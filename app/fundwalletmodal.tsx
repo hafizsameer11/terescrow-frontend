@@ -10,8 +10,8 @@ import {
   TextInput,
   ActivityIndicator,
   Linking,
-  Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -25,37 +25,30 @@ import { initiateDeposit, getDepositStatus, IInitiateDepositRequest } from '@/ut
 import { useAuth } from '@/contexts/authContext';
 import { showTopToast } from '@/utils/helpers';
 import { ApiError } from '@/utils/customApiCalls';
+import * as Clipboard from 'expo-clipboard';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
-
-const paymentMethods = [
-  {
-    id: 'palmpay',
-    name: 'PalmPay',
-    description: 'Pay securely with PalmPay.',
-    icon: images.vector50, // You can update this icon later
-  },
-  {
-    id: 'card',
-    name: 'Card',
-    description: 'Pay with your debit or credit card.',
-    icon: images.vector49, // You can update this icon later
-  },
-];
 
 const FundWalletModal = () => {
   const { dark } = useTheme();
   const router = useRouter();
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('palmpay');
   const [topupAmount, setTopupAmount] = useState('');
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [showWebView, setShowWebView] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(true);
+  const [virtualAccount, setVirtualAccount] = useState<{
+    accountType: number;
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+  } | null>(null);
+  const [showAccountDetails, setShowAccountDetails] = useState(false);
+  const [amountError, setAmountError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initiate deposit mutation
@@ -63,24 +56,34 @@ const FundWalletModal = () => {
     mutationFn: (data: IInitiateDepositRequest) => initiateDeposit(data, token),
     onSuccess: async (response) => {
       if (response?.data) {
+        // Clear any previous errors
+        setAmountError(null);
+        
         setTransactionId(response.data.transactionId);
         
-        // Open checkout URL in WebView
+        // Store virtual account details if available
+        if (response.data.virtualAccount) {
+          setVirtualAccount(response.data.virtualAccount);
+          setShowAccountDetails(true);
+        }
+        
+        // Store checkout URL if available
         if (response.data.checkoutUrl) {
           setCheckoutUrl(response.data.checkoutUrl);
-          setShowWebView(true);
-          setShowPaymentModal(false);
-          // Start polling for deposit status
-          setIsPolling(true);
-          startPollingDepositStatus(response.data.transactionId);
         }
+        
+        // Start polling for deposit status
+        setIsPolling(true);
+        startPollingDepositStatus(response.data.transactionId);
       }
     },
     onError: (error: ApiError) => {
+      const errorMessage = error.message || 'Failed to initiate deposit';
+      setAmountError(errorMessage);
       showTopToast({
         type: 'error',
         text1: 'Error',
-        text2: error.message || 'Failed to initiate deposit',
+        text2: errorMessage,
       });
     },
   });
@@ -153,44 +156,82 @@ const FundWalletModal = () => {
   }, []);
 
   const handleProceed = () => {
-    if (!topupAmount || parseFloat(topupAmount) <= 0) {
+    // Clear previous errors
+    setAmountError(null);
+
+    if (!topupAmount || topupAmount.trim() === '') {
+      const errorMsg = 'Please enter an amount';
+      setAmountError(errorMsg);
       showTopToast({
         type: 'error',
         text1: 'Error',
-        text2: 'Please enter a valid amount',
+        text2: errorMsg,
       });
       return;
     }
 
     const amount = parseFloat(topupAmount);
     if (isNaN(amount) || amount <= 0) {
+      const errorMsg = 'Please enter a valid amount';
+      setAmountError(errorMsg);
       showTopToast({
         type: 'error',
         text1: 'Error',
-        text2: 'Please enter a valid amount',
+        text2: errorMsg,
       });
       return;
     }
 
-    if (selectedPaymentMethod === 'palmpay') {
-      // Initiate PalmPay deposit
-      handleInitiateDeposit({
-        amount: amount,
-        currency: 'NGN',
-      });
-    } else if (selectedPaymentMethod === 'card') {
-      // TODO: Handle card payment
-      // For now, show a message that card payment is coming soon
+    // Check minimum amount (100 NGN)
+    const MINIMUM_AMOUNT = 100;
+    if (amount < MINIMUM_AMOUNT) {
+      const errorMsg = `Minimum amount is ${MINIMUM_AMOUNT.toFixed(2)} NGN`;
+      setAmountError(errorMsg);
       showTopToast({
-        type: 'info',
-        text1: 'Coming Soon',
-        text2: 'Card payment will be available soon',
+        type: 'error',
+        text1: 'Error',
+        text2: errorMsg,
       });
-      // Close the modal automatically
-      setShowPaymentModal(false);
-      router.back();
+      return;
+    }
+
+    // Initiate PalmPay deposit
+    handleInitiateDeposit({
+      amount: amount,
+      currency: 'NGN',
+    });
+  };
+
+  const handleAmountChange = (text: string) => {
+    setTopupAmount(text);
+    // Clear error when user starts typing
+    if (amountError) {
+      setAmountError(null);
     }
   };
+
+  const handleCopyAccountNumber = async () => {
+    if (virtualAccount?.accountNumber) {
+      await Clipboard.setStringAsync(virtualAccount.accountNumber);
+      showTopToast({
+        type: 'success',
+        text1: 'Copied',
+        text2: 'Account number copied to clipboard',
+      });
+    }
+  };
+
+  const handleCopyAccountName = async () => {
+    if (virtualAccount?.accountName) {
+      await Clipboard.setStringAsync(virtualAccount.accountName);
+      showTopToast({
+        type: 'success',
+        text1: 'Copied',
+        text2: 'Account name copied to clipboard',
+      });
+    }
+  };
+
 
   const handleCloseWebView = () => {
     setShowWebView(false);
@@ -201,16 +242,29 @@ const FundWalletModal = () => {
       pollIntervalRef.current = null;
     }
     setIsPolling(false);
-    // Show payment modal again or close completely
-    if (!transactionId) {
+    // Show payment modal again with account details
+    if (transactionId && virtualAccount) {
       setShowPaymentModal(true);
+      setShowAccountDetails(true);
     } else {
       router.back();
     }
   };
 
   const handleClosePaymentModal = () => {
+    // Reset all state
     setShowPaymentModal(false);
+    setShowAccountDetails(false);
+    setVirtualAccount(null);
+    setTopupAmount('');
+    setTransactionId(null);
+    setCheckoutUrl(null);
+    // Stop polling if active
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setIsPolling(false);
     router.back();
   };
 
@@ -266,104 +320,112 @@ const FundWalletModal = () => {
                 contentContainerStyle={styles.scrollContentContainer}
                 showsVerticalScrollIndicator={false}
               >
-                {/* Top-up Amount Input */}
-                <View style={styles.inputSection}>
-                  <Input
-                    label=""
-                    keyboardType="decimal-pad"
-                    value={topupAmount}
-                    onChangeText={setTopupAmount}
-                    id="topupAmount"
-                    variant="signin"
-                    placeholder="Enter topup amount"
-                  />
-                </View>
+                {!showAccountDetails ? (
+                  <>
+                    {/* Top-up Amount Input */}
+                    <View style={styles.inputSection}>
+                      <Input
+                        label="Enter Amount"
+                        keyboardType="decimal-pad"
+                        value={topupAmount}
+                        onChangeText={handleAmountChange}
+                        id="topupAmount"
+                        variant="signin"
+                        placeholder=""
+                        errorText={amountError || undefined}
+                      />
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    {/* Virtual Account Details Section */}
+                    <View style={styles.accountDetailsSection}>
+                      <Text style={[styles.sectionTitle, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                        Transfer to this account
+                      </Text>
+                      <Text style={[styles.sectionSubtitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                        Transfer the exact amount from your bank to the account below
+                      </Text>
 
-                {/* Select Payment Method Section */}
-                <View style={styles.paymentMethodSection}>
-                  <Text style={[styles.sectionTitle, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                    Select Payment Method
-                  </Text>
+                      {/* Account Details Card */}
+                      <View style={[styles.accountCard, dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: '#F7F7F7' }]}>
+                        {/* Bank Name */}
+                        <View style={styles.accountDetailRow}>
+                          <Text style={[styles.accountDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                            Bank Name
+                          </Text>
+                          <Text style={[styles.accountDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
+                            {virtualAccount?.bankName || 'N/A'}
+                          </Text>
+                        </View>
 
-                  {paymentMethods.map((method) => (
-                    <TouchableOpacity
-                      key={method.id}
-                      style={[
-                        styles.paymentMethodCard,
-                        dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-                        selectedPaymentMethod === method.id && styles.selectedCard,
-                      ]}
-                      onPress={() => setSelectedPaymentMethod(method.id)}
-                    >
-                      {/* Icon */}
-                      <View style={[styles.iconContainer, { backgroundColor: COLORS.primary }]}>
-                        <Image
-                          source={method.icon}
-                          style={styles.methodIcon}
-                          contentFit="contain"
-                        />
-                      </View>
+                        {/* Account Name */}
+                        <View style={styles.accountDetailRow}>
+                          <Text style={[styles.accountDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                            Account Name
+                          </Text>
+                          <View style={styles.accountDetailValueContainer}>
+                            <Text style={[styles.accountDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }, { flex: 1 }]}>
+                              {virtualAccount?.accountName || 'N/A'}
+                            </Text>
+                            <TouchableOpacity onPress={handleCopyAccountName} style={styles.copyButton}>
+                              <Image source={icons.copy} style={styles.copyIcon} contentFit="contain" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
 
-                      {/* Text Content */}
-                      <View style={styles.methodTextContainer}>
-                        <Text style={[styles.methodName, dark ? { color: COLORS.white } : { color: COLORS.black }]}>
-                          {method.name}
-                        </Text>
-                        <Text style={[styles.methodDescription, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                          {method.description}
-                        </Text>
-                      </View>
+                        {/* Account Number */}
+                        <View style={styles.accountDetailRow}>
+                          <Text style={[styles.accountDetailLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                            Account Number
+                          </Text>
+                          <View style={styles.accountDetailValueContainer}>
+                            <Text style={[styles.accountDetailValue, dark ? { color: COLORS.white } : { color: COLORS.black }, styles.accountNumberText, { flex: 1 }]}>
+                              {virtualAccount?.accountNumber || 'N/A'}
+                            </Text>
+                            <TouchableOpacity onPress={handleCopyAccountNumber} style={styles.copyButton}>
+                              <Image source={icons.copy} style={styles.copyIcon} contentFit="contain" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
 
-                      {/* Radio Button */}
-                      <View style={styles.radioButtonContainer}>
-                        <View
-                          style={[
-                            styles.radioButton,
-                            selectedPaymentMethod === method.id
-                              ? { borderColor: COLORS.primary, backgroundColor: COLORS.primary }
-                              : { borderColor: '#E5E5E5', backgroundColor: COLORS.white },
-                          ]}
-                        >
-                          {selectedPaymentMethod === method.id && (
-                            <View style={styles.radioButtonInner} />
-                          )}
+                        {/* Amount to Transfer */}
+                        <View style={[styles.amountHighlight, dark ? { backgroundColor: COLORS.dark1 } : { backgroundColor: '#E8F8F3' }]}>
+                          <Text style={[styles.amountLabel, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
+                            Amount to Transfer
+                          </Text>
+                          <Text style={[styles.amountValue, { color: COLORS.primary }]}>
+                            NGN {parseFloat(topupAmount || '0').toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Text>
                         </View>
                       </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                    </View>
+                  </>
+                )}
               </ScrollView>
 
               {/* Fixed Button Container at Bottom */}
-              <View style={[
-                styles.buttonContainer,
-                dark ? { borderTopColor: COLORS.greyScale800 } : { borderTopColor: '#E5E5E5' }
-              ]}>
-                <TouchableOpacity
-                  style={[
-                    styles.proceedButton, 
-                    (!topupAmount || isInitiating || isPolling) && styles.proceedButtonDisabled
-                  ]}
-                  onPress={handleProceed}
-                  disabled={!topupAmount || isInitiating || isPolling}
-                >
-                  {isInitiating || isPolling ? (
-                    <ActivityIndicator color={COLORS.white} />
-                  ) : (
-                    <Text style={styles.proceedButtonText}>Proceed</Text>
-                  )}
-                </TouchableOpacity>
-                
-                {/* Polling Status */}
-                {isPolling && (
-                  <View style={styles.pollingContainer}>
-                    <ActivityIndicator size="small" color={COLORS.primary} />
-                    <Text style={[styles.pollingText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-                      Waiting for payment confirmation...
-                    </Text>
-                  </View>
-                )}
-              </View>
+              {!showAccountDetails && (
+                <View style={[
+                  styles.buttonContainer,
+                  dark ? { borderTopColor: COLORS.greyScale800 } : { borderTopColor: '#E5E5E5' }
+                ]}>
+                  <TouchableOpacity
+                    style={[
+                      styles.proceedButton, 
+                      (!topupAmount || isInitiating) && styles.proceedButtonDisabled
+                    ]}
+                    onPress={handleProceed}
+                    disabled={!topupAmount || isInitiating}
+                  >
+                    {isInitiating ? (
+                      <ActivityIndicator color={COLORS.white} />
+                    ) : (
+                      <Text style={styles.proceedButtonText}>Proceed</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
           </SafeAreaView>
         </Pressable>
       </Pressable>
@@ -436,19 +498,6 @@ const FundWalletModal = () => {
             }}
           />
         )}
-
-        {/* Polling Status */}
-        {isPolling && (
-          <View style={[
-            styles.pollingContainer,
-            dark ? { backgroundColor: COLORS.dark2 } : { backgroundColor: COLORS.white },
-          ]}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={[styles.pollingText, dark ? { color: COLORS.greyscale500 } : { color: COLORS.greyscale600 }]}>
-              Waiting for payment confirmation...
-            </Text>
-          </View>
-        )}
       </SafeAreaView>
     </Modal>
     </>
@@ -472,7 +521,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 12,
     maxHeight: '90%',
   },
   scrollContent: {
@@ -480,11 +529,11 @@ const styles = StyleSheet.create({
   },
   scrollContentContainer: {
     flexGrow: 1,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   dragHandleContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   dragHandle: {
     width: 40,
@@ -493,7 +542,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 12,
   },
   headerContent: {
     flexDirection: 'row',
@@ -573,7 +622,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inputSection: {
-    marginBottom: 24,
+    marginBottom: 0,
   },
   paymentMethodSection: {
     marginBottom: 24,
@@ -581,7 +630,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: '400',
-    marginBottom: 16,
+    marginBottom: 8,
     paddingLeft: 4,
   },
   paymentMethodCard: {
@@ -643,7 +692,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   buttonContainer: {
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 8,
     borderTopWidth: 1,
     backgroundColor: 'transparent',
@@ -663,16 +712,66 @@ const styles = StyleSheet.create({
     fontSize: isTablet ? 18 : 16,
     fontWeight: '700',
   },
-  pollingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-    gap: 8,
+  accountDetailsSection: {
+    marginBottom: 0,
   },
-  pollingText: {
+  sectionSubtitle: {
     fontSize: isTablet ? 14 : 12,
     fontWeight: '400',
+    marginBottom: 12,
+    paddingLeft: 4,
+  },
+  accountCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  accountDetailRow: {
+    marginBottom: 12,
+  },
+  accountDetailLabel: {
+    fontSize: isTablet ? 12 : 11,
+    fontWeight: '400',
+    marginBottom: 6,
+  },
+  accountDetailValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  accountDetailValue: {
+    fontSize: isTablet ? 16 : 14,
+    fontWeight: '600',
+  },
+  accountNumberText: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    letterSpacing: 1,
+  },
+  copyButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  copyIcon: {
+    width: 20,
+    height: 20,
+    tintColor: COLORS.primary,
+  },
+  amountHighlight: {
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  amountLabel: {
+    fontSize: isTablet ? 12 : 11,
+    fontWeight: '400',
+    marginBottom: 4,
+  },
+  amountValue: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: '700',
   },
 });
 

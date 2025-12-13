@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { View, FlatList, ActivityIndicator, Text, TouchableOpacity, Dimensions, RefreshControl, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -11,6 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import { getCryptoTransactionById, getCryptoTransactions } from "@/utils/queries/accountQueries";
+import { showTopToast } from "@/utils/helpers";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -34,12 +35,34 @@ const CryptoBought = () => {
     data: transactionDetail,
     isLoading: detailLoading,
     isError: detailError,
+    error: detailErrorData,
     refetch: refetchDetail,
   } = useQuery({
     queryKey: ["cryptoTransaction", transactionId],
     queryFn: () => getCryptoTransactionById(token, transactionId!),
     enabled: !!token && !!transactionId,
+    retry: false,
   });
+
+  // Handle transaction not found error
+  useEffect(() => {
+    if (transactionId && !detailLoading) {
+      // Check if transaction was not found (error or no data)
+      const hasError = detailError || !transactionDetail?.data;
+      if (hasError) {
+        const errorMessage = (detailErrorData as any)?.message || "Transaction not found";
+        showTopToast({
+          type: 'error',
+          text1: 'Transaction Not Found',
+          text2: errorMessage,
+        });
+        // Navigate back after a short delay
+        setTimeout(() => {
+          router.back();
+        }, 2000);
+      }
+    }
+  }, [transactionId, detailLoading, detailError, transactionDetail, detailErrorData, router]);
 
   // If no transactionId, fetch list of BUY transactions
   const {
@@ -193,24 +216,6 @@ const CryptoBought = () => {
       );
     }
 
-    if (detailError) {
-      return (
-        <SafeAreaView
-          style={[
-            { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-            dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
-          ]}
-        >
-          <Text style={{ color: COLORS.red, textAlign: "center", marginBottom: 8, fontSize: 16, fontWeight: "600" }}>
-            Error loading transaction
-          </Text>
-          <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center", fontSize: 14 }}>
-            Transaction ID: {transactionId}
-          </Text>
-        </SafeAreaView>
-      );
-    }
-
     if (transactionDetail?.data) {
       return (
         <SafeAreaView
@@ -225,21 +230,22 @@ const CryptoBought = () => {
       );
     }
 
-    return (
-      <SafeAreaView
-        style={[
-          { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-          dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
-        ]}
-      >
-        <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center", fontSize: 16, fontWeight: "600" }}>
-          Transaction not found
-        </Text>
-        <Text style={{ color: dark ? COLORS.greyscale500 : COLORS.greyscale600, textAlign: "center", marginTop: 8, fontSize: 14 }}>
-          ID: {transactionId}
-        </Text>
-      </SafeAreaView>
-    );
+    // If error or no data, show loading while toast is displayed and navigation happens
+    if (detailError || !transactionDetail?.data) {
+      return (
+        <SafeAreaView
+          style={[
+            { flex: 1, justifyContent: "center", alignItems: "center" },
+            dark ? { backgroundColor: COLORS.black } : { backgroundColor: COLORS.white },
+          ]}
+        >
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={{ marginTop: 12, color: dark ? COLORS.white : COLORS.black }}>
+            Transaction not found. Redirecting...
+          </Text>
+        </SafeAreaView>
+      );
+    }
   }
 
   // List view - styled to match photo

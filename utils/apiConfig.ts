@@ -1,5 +1,5 @@
 // export const API_BASE_URL = 'https://46.202.154.203';
-export const API_BASE_URL = 'http://10.230.141.151:8000';
+export const API_BASE_URL = 'http://192.168.1.17:8000';
 
 
 export const API_DOMAIN = API_BASE_URL + '/api';

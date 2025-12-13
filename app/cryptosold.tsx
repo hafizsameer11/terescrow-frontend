@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, FlatList, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DUMMY_CRYPTO_SOLDS_BOUGHT } from "@/utils/dummyTrans";
@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/authContext";
 import { getCryptoTransactionById, getCryptoTransactions } from "@/utils/queries/accountQueries";
+import { showTopToast } from "@/utils/helpers";
 
 const CryptoSold = () => {
   const { dark } = useTheme();
@@ -29,11 +30,33 @@ const CryptoSold = () => {
     data: transactionDetail,
     isLoading: detailLoading,
     isError: detailError,
+    error: detailErrorData,
   } = useQuery({
     queryKey: ["cryptoTransaction", transactionId],
     queryFn: () => getCryptoTransactionById(token, transactionId!),
     enabled: !!token && !!transactionId,
+    retry: false,
   });
+
+  // Handle transaction not found error
+  useEffect(() => {
+    if (transactionId && !detailLoading) {
+      // Check if transaction was not found (error or no data)
+      const hasError = detailError || !transactionDetail?.data;
+      if (hasError) {
+        const errorMessage = (detailErrorData as any)?.message || "Transaction not found";
+        showTopToast({
+          type: 'error',
+          text1: 'Transaction Not Found',
+          text2: errorMessage,
+        });
+        // Navigate back after a short delay
+        setTimeout(() => {
+          router.back();
+        }, 2000);
+      }
+    }
+  }, [transactionId, detailLoading, detailError, transactionDetail, detailErrorData, router]);
 
   // If no transactionId, fetch list of SELL transactions
   const {
@@ -86,27 +109,17 @@ const CryptoSold = () => {
                 Loading transaction details...
               </Text>
             </View>
-          ) : detailError ? (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
-              <Text style={{ color: COLORS.red, textAlign: "center", marginBottom: 8 }}>
-                Error loading transaction
-              </Text>
-              <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center" }}>
-                Transaction ID: {transactionId}
+          ) : detailError || !transactionDetail?.data ? (
+            // Show loading while toast is displayed and navigation happens
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={{ marginTop: 12, color: dark ? COLORS.white : COLORS.black }}>
+                Transaction not found. Redirecting...
               </Text>
             </View>
           ) : transactionDetail?.data ? (
             <TransactionDetail transaction={transactionDetail.data} />
-          ) : (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
-              <Text style={{ color: dark ? COLORS.white : COLORS.black, textAlign: "center" }}>
-                Transaction not found
-              </Text>
-              <Text style={{ color: dark ? COLORS.greyscale500 : COLORS.greyscale600, textAlign: "center", marginTop: 8 }}>
-                ID: {transactionId}
-              </Text>
-            </View>
-          )
+          ) : null
         ) : (
           <FlatList
             data={data}

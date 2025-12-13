@@ -91,6 +91,8 @@ const bitcoinTransaction = require('../assets/images/bitcoin-transaction.png')
 const trade_crypto = require('../assets/images/trade_crypto.png')
 const bill_pay = require('../assets/images/bill_pay.png')
 const earn = require('../assets/images/earn.png')
+const crypto_trans = require('../assets/images/crypto_trans.png')
+const gift_trans = require('../assets/images/gift_trans.png')
 
 const images = {
   maskGroup,
@@ -184,6 +186,8 @@ const images = {
   trade_crypto,
   bill_pay,
   earn,
+  crypto_trans,
+  gift_trans,
 };
 
 export default images;
